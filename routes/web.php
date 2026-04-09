@@ -2,10 +2,10 @@
 
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\LaporanController;
 
 Route::get('/test-db', function () {
     try {
-        // Test koneksi
         DB::connection()->getPdo();
         
         $siswa = DB::table('mst_siswa')->get();
@@ -16,3 +16,6 @@ Route::get('/test-db', function () {
         return "Gagal nyambung ke database nih. Error: " . $e->getMessage();
     }
 });
+
+Route::get('/laporan/siswa-terajin', [LaporanController::class, 'siswaTerajin']);
+Route::get('/laporan/kunjungan-bulanan', [LaporanController::class, 'kunjunganBulanan']);
