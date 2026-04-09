@@ -3,6 +3,9 @@
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
 use Picqer\Barcode\BarcodeGeneratorHTML;
+use App\Http\Controllers\Api\LaporanController;
+
+Route::post('/laporan/tambah', [LaporanController::class, 'store']);
 
 Route::get('/test-db', function () {
     try {
