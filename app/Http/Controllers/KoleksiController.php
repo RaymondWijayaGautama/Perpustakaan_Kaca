@@ -8,31 +8,20 @@ use Picqer\Barcode\BarcodeGeneratorHTML;
 
 class KoleksiController extends Controller
 {
-    // 1. Menampilkan halaman form input untuk Pustakawan
     public function index()
     {
         return view('tambah_barcode'); 
     }
-
-    // 2. Memproses inputan, menyimpan ke DB, dan men-generate Barcode
     public function generate(Request $request)
     {
-        // Menyimpan data buku fisik baru ke tabel cp_koleksi
         $koleksiBaru = CpKoleksi::create([
-            'status_buku' => 'Tersedia', // Default saat buku baru masuk
+            'status_buku' => 'Tersedia', 
             'ISBN' => $request->isbn,
-            'id_mst_laporan' => 1 // Anggap saja ID laporan 1 dulu sementara
+            'id_mst_laporan' => 1 
         ]);
-
-        // Membuat Kode Sistem Unik (Gabungan ISBN + ID unik dari tabel)
-        // Formatnya akan menjadi misal: 978-602-1, 978-602-2, dst. (DIJAMIN UNIK)
         $kodeSistemUnik = $koleksiBaru->ISBN . '-' . $koleksiBaru->id_cp_koleksi;
-
-        // Generate Gambar Barcode
         $generator = new BarcodeGeneratorHTML();
         $gambarBarcode = $generator->getBarcode($kodeSistemUnik, $generator::TYPE_CODE_128, 2, 50, 'black');
-
-        // Tampilkan hasilnya ke layar Pustakawan
         return "
             <div style='text-align: center; margin-top: 50px; font-family: Arial;'>
                 <h2 style='color: green;'>Sukses! Buku Fisik Berhasil Didaftarkan</h2>
