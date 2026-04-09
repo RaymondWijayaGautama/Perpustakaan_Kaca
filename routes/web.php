@@ -24,6 +24,8 @@ Route::get('/test-db', function () {
 
 Route::get('/generate-barcode', [App\Http\Controllers\KoleksiController::class, 'index']);
 Route::post('/generate-barcode', [App\Http\Controllers\KoleksiController::class, 'generate']);
+Route::get('/laporan/siswa-teraktif', [LaporanController::class, 'siwswaTerajin']);
+Route::get('/laporan/kunjungan-bulanan', [LaporanController::class, 'kunjunganBulanan']);
 Route::get('/seed-buku', function () {
 
     try {

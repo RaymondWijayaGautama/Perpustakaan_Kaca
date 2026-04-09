@@ -7,6 +7,8 @@ use Illuminate\Http\Request;
 use App\Models\MstKoleksiLaporan;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Storage;
+use App\Models\Siswa;
+
 
 class LaporanController extends Controller
 {
@@ -113,5 +115,27 @@ class LaporanController extends Controller
             'status' => 'success',
             'pesan' => 'Data laporan berhasil dihapus!'
         ], 200);
+    }
+
+    public function siswaTerajin(){
+        $siswaTerajin = Siswa::withCount('peminjaman')
+            ->orderBy('peminjaman_count', 'desc')
+            ->take(10)
+            ->get();
+
+            return view('laporan.siswa_terajin', compact('siswaTerajin'));
+    }
+
+    public function kunjunganBulanan(){
+        $laporanKunjungan = \app\Models\Kunjungan::select(
+            DB::raw('MONTHNAME(start_kunjungan) as bulan'),
+            DB::raw('MONTH(start_kunjungan) as urutan_bulan'),
+            DB::raw('COUNT(*) as jumlah_kunjungan')
+        )
+        ->groupBy('bulan', 'urutan_bulan')
+        ->orderBy('urutan_bulan', 'asc')
+        ->get();
+
+        return view('laporan.kunjungan_bulanan', compact('laporanKunjungan'));
     }
 }
