@@ -35,7 +35,7 @@ Route::get('/seed-buku', function () {
             'is_delete' => 0
         ]);
         DB::table('mst_koleksi_buku')->insertOrIgnore([
-            'ISBN' => '978-602-111',
+            'ISBN' => '978-602-123',
             'judul_koleksi' => 'Buku apa aja',
             'pengarang' => 'Raymond',
             'penerbit' => 'Penerbit Kaca',
