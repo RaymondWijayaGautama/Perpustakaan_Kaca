@@ -1,0 +1,80 @@
+@import "tailwindcss";
+
+/* 1. Font Imports */
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700&family=Roboto:wght@400;500&display=swap');
+
+/* 2. Mapping Design System Boda ke Tailwind v4 Theme */
+@theme {
+  /* Font Family [cite: 68, 74] */
+  --font-montserrat: "Montserrat", sans-serif;
+  --font-roboto: "Roboto", sans-serif;
+
+  /* General Color System  */
+  --color-brand-primary-500: #265F9C;
+  --color-brand-secondary-500: #EDA60F;
+  --color-brand-accent-500: #EDD15B;
+  --color-background-default: #F6F7F9;
+  --color-success: #2E7D32;
+  --color-error: #C62828;
+  --color-neutral-900: #1A1A1A;
+
+  /* Text Color System [cite: 33, 50] */
+  --color-text-high: #1A1A1A;
+  --color-text-low: #585858;
+  --color-text-disabled: #7D7D7E;
+  --color-text-activity: #265F9C;
+  --color-text-alert: #C62828;
+  --color-text-analytic: #EDA60F;
+  --color-text-positive: #2E7D32;
+  --color-text-usp: #EDD15B;
+  --color-text-invert: #FFFFFF;
+
+  /* Spacing System (8pt Grid) [cite: 124, 128] */
+  --spacing-space-1: 8px;
+  --spacing-space-2: 16px;
+  --spacing-space-3: 24px;
+  --spacing-space-4: 32px;
+  --spacing-space-5: 40px;
+
+  /* Border & Radius [cite: 136, 138] */
+  --radius-small: 4px;
+  --radius-medium: 8px;
+  --radius-large: 16px;
+
+  /* Elevation [cite: 134] */
+  --shadow-elevation-1: 0 1px 3px rgba(0,0,0,0.1);
+  --shadow-elevation-2: 0 4px 8px rgba(0,0,0,0.15);
+
+  /* Motion [cite: 145] */
+  --animate-hover: 150ms ease-in-out;
+}
+
+/* 3. Base Styles (Pedoman Bab 2.2) */
+@layer base {
+  body {
+    margin: 0;
+    @apply font-roboto bg-background-default text-text-high antialiased; /* [cite: 76, 33] */
+  }
+
+  /* Typography Scale - Headings (Montserrat) [cite: 78, 79] */
+  h1 { @apply font-montserrat text-[48px] font-bold leading-[56px]; }
+  h2 { @apply font-montserrat text-[36px] font-semibold leading-[44px]; }
+  h3 { @apply font-montserrat text-[28px] font-semibold leading-[36px]; }
+  h4 { @apply font-montserrat text-[22px] font-medium leading-[30px]; }
+  h5 { @apply font-montserrat text-[18px] font-medium leading-[26px]; }
+  h6 { @apply font-montserrat text-[16px] font-medium leading-[24px]; }
+
+  /* Typography Scale - Body (Roboto) [cite: 99, 100] */
+  p, .body-regular { @apply font-roboto text-[16px] font-normal leading-[24px]; }
+  .body-large { @apply font-roboto text-[18px] font-normal leading-[28px]; }
+  .body-small { @apply font-roboto text-[14px] font-normal leading-[20px]; }
+  .caption { @apply font-roboto text-[12px] font-normal leading-[16px]; }
+}
+
+/* 4. Global Components [cite: 30, 145] */
+@layer components {
+  .btn-primary {
+    @apply bg-brand-primary-500 text-text-invert py-space-2 px-space-3 rounded-medium shadow-elevation-1 
+           transition-all duration-150 ease-in-out hover:brightness-110 active:scale-95;
+  }
+}
