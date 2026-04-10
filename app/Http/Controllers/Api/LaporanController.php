@@ -4,114 +4,92 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB; // WAJIB ADA untuk Query Builder
+use Illuminate\Support\Facades\Validator; // WAJIB ADA untuk fungsi store
 use App\Models\MstKoleksiLaporan;
-use Illuminate\Support\Facades\Validator;
-use Illuminate\Support\Facades\Storage;
+use App\Models\CpKoleksi; // Pastikan model ini ada jika digunakan di destroy
 
 class LaporanController extends Controller
 {
-    // Fungsi untuk Task 15: Menambah Laporan
-    public function store(Request $request)
+    public function getLaporan(Request $request)
     {
-        // 1. Validasi sesuai spesifikasi tabel (Wajib isi & Max 10MB)
-        $validator = Validator::make($request->all(), [
-            'judul_laporan' => 'required|string|max:255',
-            'penulis_laporan' => 'required|string|max:100',
-            'tahun_laporan' => 'required|digits:4',
-            'file_laporan' => 'required|file|mimes:pdf,doc,docx|max:10240', // 10240 KB = 10 MB
-        ]);
+        try {
+            // Pastikan menggunakan Facade DB (sudah di-import di atas)
+            $query = DB::table('mst_koleksi_buku')
+                ->where('id_ref_koleksi', 4) // Angka 4 = Kategori PKL
+                ->where('is_delete', 0)
+                ->select(
+                    'judul_koleksi', 
+                    'pengarang as nama_siswa_tetap', 
+                    'tahun'
+                );
 
-        if ($validator->fails()) {
-            return response()->json(['status' => 'error', 'pesan' => $validator->errors()], 400);
+            if ($request->filled('tahun')) {
+                $query->where('tahun', $request->tahun);
+            }
+
+            if ($request->filled('penulis')) {
+                $query->where('pengarang', 'like', '%' . $request->penulis . '%');
+            }
+
+            // Return data pagination (5 data per halaman)
+            return response()->json($query->paginate(5));
+
+        } catch (\Exception $e) {
+            // Mengirim pesan error asli ke React untuk mempermudah debugging
+            return response()->json(['message' => $e->getMessage()], 500);
         }
-
-        // 2. Proses Upload File ke dalam folder server (storage)
-        $file = $request->file('file_laporan');
-        // Buat nama file unik agar tidak bentrok
-        $namaFile = time() . '_' . str_replace(' ', '_', $file->getClientOriginalName()); 
-        $path = $file->storeAs('public/laporan', $namaFile); // Tersimpan di folder storage/app/public/laporan
-
-        // 3. Simpan data ke Database
-        $laporan = MstKoleksiLaporan::create([
-            'judul_laporan' => $request->judul_laporan,
-            'penulis_laporan' => $request->penulis_laporan,
-            'tahun_laporan' => $request->tahun_laporan,
-            'file_path' => $namaFile,
-            'is_delete' => 0
-        ]);
-
-        // 4. Kembalikan respon ke React JS
-        return response()->json([
-            'status' => 'success',
-            'pesan' => 'Laporan berhasil ditambahkan!',
-            'data' => $laporan
-        ], 201);
     }
 
-    public function update(Request $request, $id)
+    public function store(Request $request)
     {
-        $laporan = MstKoleksiLaporan::find($id);
-
-        if (!$laporan) {
-            return response()->json(['status' => 'error', 'pesan' => 'Data laporan tidak ditemukan!'], 404);
-        }
+        // Validator sekarang sudah dikenali karena import di atas
         $validator = Validator::make($request->all(), [
-            'judul_laporan' => 'required|string|max:255',
-            'penulis_laporan' => 'required|string|max:100',
-            'tahun_laporan' => 'required|digits:4',
-            'file_laporan' => 'nullable|file|mimes:pdf,doc,docx|max:10240', 
+            'id_mst_laporan' => 'required|integer|unique:mst_koleksi_laporan,id_mst_laporan',
+            'file_laporan' => 'required|file|mimes:pdf,doc,docx|max:10240',
         ]);
 
         if ($validator->fails()) {
             return response()->json(['status' => 'error', 'pesan' => $validator->errors()], 400);
         }
-        if ($request->hasFile('file_laporan')) {
-            if (Storage::exists('public/laporan/' . $laporan->file_path)) {
-                Storage::delete('public/laporan/' . $laporan->file_path);
-            }
+
+        try {
             $file = $request->file('file_laporan');
-            $namaFile = time() . '_' . str_replace(' ', '_', $file->getClientOriginalName()); 
+            $namaFile = time() . '_' . $file->getClientOriginalName(); 
             $file->storeAs('public/laporan', $namaFile);
 
-            $laporan->file_path = $namaFile;
+            $laporan = MstKoleksiLaporan::create([
+                'id_mst_laporan' => $request->id_mst_laporan,
+                'is_delete' => 0
+            ]);
+
+            return response()->json(['status' => 'success', 'data' => $laporan], 201);
+        } catch (\Exception $e) {
+            return response()->json(['status' => 'error', 'pesan' => $e->getMessage()], 500);
         }
-
-        $laporan->judul_laporan = $request->judul_laporan;
-        $laporan->penulis_laporan = $request->penulis_laporan;
-        $laporan->tahun_laporan = $request->tahun_laporan;
-        $laporan->save(); 
-
-        return response()->json([
-            'status' => 'success',
-            'pesan' => 'Data laporan berhasil diubah!',
-            'data' => $laporan
-        ], 200);
     }
 
     public function destroy($id)
     {
-        $laporan = MstKoleksiLaporan::find($id);
+        try {
+            $laporan = MstKoleksiLaporan::find($id);
 
-        if (!$laporan) {
-            return response()->json(['status' => 'error', 'pesan' => 'Data laporan tidak ditemukan!'], 404);
-        }
-        $dipakai = \App\Models\CpKoleksi::where('id_mst_laporan', $id)->exists();
-        if ($dipakai) {
-            return response()->json([
-                'status' => 'error', 
-                'pesan' => 'Gagal! Laporan tidak bisa dihapus karena sedang terhubung dengan buku fisik.'
-            ], 400); 
-        }
+            if (!$laporan) {
+                return response()->json(['status' => 'error', 'pesan' => 'Data tidak ditemukan!'], 404);
+            }
 
-        if (Storage::exists('public/laporan/' . $laporan->file_path)) {
-            Storage::delete('public/laporan/' . $laporan->file_path);
-        }
+            // Cek relasi ke tabel cp_koleksi
+            $dipakai = DB::table('cp_koleksi')->where('id_mst_laporan', $id)->exists();
+            if ($dipakai) {
+                return response()->json(['status' => 'error', 'pesan' => 'Gagal! Laporan sedang terhubung dengan buku fisik.'], 400); 
+            }
 
-        $laporan->is_delete = 1;
-        $laporan->save();
-        return response()->json([
-            'status' => 'success',
-            'pesan' => 'Data laporan berhasil dihapus!'
-        ], 200);
+            $laporan->is_delete = 1;
+            $laporan->save();
+
+            return response()->json(['status' => 'success', 'pesan' => 'Berhasil dihapus!'], 200);
+        } catch (\Exception $e) {
+            return response()->json(['status' => 'error', 'pesan' => $e->getMessage()], 500);
+        }
     }
 }
