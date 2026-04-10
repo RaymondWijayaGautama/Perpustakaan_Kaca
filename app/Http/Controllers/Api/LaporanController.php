@@ -46,7 +46,9 @@ class LaporanController extends Controller
     {
         // Validator sekarang sudah dikenali karena import di atas
         $validator = Validator::make($request->all(), [
-            'id_mst_laporan' => 'required|integer|unique:mst_koleksi_laporan,id_mst_laporan',
+            'judul_laporan' => 'required|string|max:255',
+            'penulis_laporan' => 'required|string|max:100',
+            'tahun_laporan' => 'required|digits:4',
             'file_laporan' => 'required|file|mimes:pdf,doc,docx|max:10240',
         ]);
 
