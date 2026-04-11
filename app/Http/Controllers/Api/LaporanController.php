@@ -10,6 +10,7 @@ use App\Models\MstKoleksiLaporan;
 use App\Models\CpKoleksi; // Pastikan model ini ada jika digunakan di destroy
 use Illuminate\Support\Facades\Storage;
 use Barryvdh\DomPDF\Facade\Pdf; 
+use App\Models\Siswa;
 
 class LaporanController extends Controller
 {
@@ -137,30 +138,36 @@ class LaporanController extends Controller
         }
     }
 
-    public function exportPdfSiswaTerajin()
+    public function siswaTerajin()
     {
+        
         $siswaTerajin = Siswa::withCount('peminjaman')
-            ->orderBy('peminjaman_count', 'desc')
-            ->take(10)
+            ->orderBy('peminjaman_count', 'desc') 
+            ->take(10) 
             ->get();
 
-        $juara1 = $siswaTerajin->get(0);
-        $juara2 = $siswaTerajin->get(1);
-        $juara3 = $siswaTerajin->get(2);
+        return view('laporan.siswa_terajin', compact('siswaTerajin'));
+    }
 
-        $data = [
-            'siswaTerajin' => $siswaTerajin,
-            'juara1' => $juara1,
-            'juara2' => $juara2,
-            'juara3' => $juara3,
-            'periode' => 'Maret - April 2026',
-            'tahun_ajaran' => '2025/2026'
-        ];
+    public function exportPdfSiswaTerajin()
+    {
+    
+    $siswaTerajin = Siswa::withCount('peminjaman')
+        ->orderBy('peminjaman_count', 'desc')
+        ->take(10)
+        ->get();
 
-        $pdf = Pdf::loadView('laporan.pdf_siswa_terajin', $data);
-        
-        $pdf->setPaper('A4', 'portrait');
+    
+    $data = [
+        'siswaTerajin' => $siswaTerajin,
+        'periode'      => 'Maret - April 2026',
+        'tahun_ajaran' => '2025/2026', 
+        'juara1'       => optional($siswaTerajin->get(0)),
+        'juara2'       => optional($siswaTerajin->get(1)),
+        'juara3'       => optional($siswaTerajin->get(2)),
+    ];
 
-        return $pdf->download('Laporan_Siswa_Terajin_WigatyLibrary.pdf');
+    // Lempar sebagai HTML murni
+    return view('laporan.pdf_siswa_terajin', $data);
     }
 }

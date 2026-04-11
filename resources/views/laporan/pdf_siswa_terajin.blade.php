@@ -72,8 +72,8 @@
             @forelse($siswaTerajin as $index => $siswa)
             <tr>
                 <td>{{ $index + 1 }}</td>
-                <td style="text-align: left;">{{ $siswa->nama_siswa ?? 'Nama tidak ditemukan' }}</td>
-                <td>{{ $siswa->nis ?? '-' }}</td>
+                <td style="text-align: left;">{{ $siswa->nama_siswa_tetap ?? 'Nama tidak ditemukan' }}</td>
+                <td>{{ $siswa->nisn_siswa ?? '-' }}</td>
                 <td>{{ $siswa->kelas ?? '-' }}</td>
                 <td>{{ $siswa->peminjaman_count }} Buku</td>
             </tr>
@@ -124,6 +124,10 @@
             <td class="bold">Dewi Wulansari, S.Pd.<br><span style="font-weight: normal;">NIY. -</span></td>
         </tr>
     </table>
-
+    <script>
+        window.onload = function() {
+            window.print();
+        }
+    </script>
 </body>
 </html>
