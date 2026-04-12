@@ -29,4 +29,9 @@ class Siswa extends Authenticatable
     {
         return $this->password_siswa;
     }
+
+    public function peminjaman()
+    {
+        return $this->hasMany(Peminjaman::class, 'id_siswa_tetap', 'id_siswa_tetap');
+    }
 }

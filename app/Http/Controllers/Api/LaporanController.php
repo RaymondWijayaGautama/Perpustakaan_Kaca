@@ -9,6 +9,8 @@ use Illuminate\Support\Facades\Validator; // WAJIB ADA untuk fungsi store
 use App\Models\MstKoleksiLaporan;
 use App\Models\CpKoleksi; // Pastikan model ini ada jika digunakan di destroy
 use Illuminate\Support\Facades\Storage;
+use Barryvdh\DomPDF\Facade\Pdf; 
+use App\Models\Siswa;
 
 class LaporanController extends Controller
 {
@@ -134,5 +136,38 @@ class LaporanController extends Controller
         } catch (\Exception $e) {
             return response()->json(['status' => 'error', 'pesan' => $e->getMessage()], 500);
         }
+    }
+
+    public function siswaTerajin()
+    {
+        
+        $siswaTerajin = Siswa::withCount('peminjaman')
+            ->orderBy('peminjaman_count', 'desc') 
+            ->take(10) 
+            ->get();
+
+        return view('laporan.siswa_terajin', compact('siswaTerajin'));
+    }
+
+    public function exportPdfSiswaTerajin()
+    {
+    
+    $siswaTerajin = Siswa::withCount('peminjaman')
+        ->orderBy('peminjaman_count', 'desc')
+        ->take(10)
+        ->get();
+
+    
+    $data = [
+        'siswaTerajin' => $siswaTerajin,
+        'periode'      => 'Maret - April 2026',
+        'tahun_ajaran' => '2025/2026', 
+        'juara1'       => optional($siswaTerajin->get(0)),
+        'juara2'       => optional($siswaTerajin->get(1)),
+        'juara3'       => optional($siswaTerajin->get(2)),
+    ];
+
+    // Lempar sebagai HTML murni
+    return view('laporan.pdf_siswa_terajin', $data);
     }
 }
