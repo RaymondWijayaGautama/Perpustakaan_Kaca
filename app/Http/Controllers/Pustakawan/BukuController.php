@@ -36,10 +36,7 @@ class BukuController extends Controller
 
     public function exportExcel(Request $request)
     {
-    // Mengambil waktu saat ini untuk nama file agar unik
         $nama_file = 'Data_Buku_Wigaty_' . date('Y-m-d_H-i-s') . '.xlsx';
-    
-    // Menjalankan proses export dengan membawa data request (filter)
         return Excel::download(new BukuExport($request), $nama_file);
     }
 }

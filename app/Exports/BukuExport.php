@@ -16,18 +16,15 @@ class BukuExport implements FromQuery, WithHeadings, WithMapping
         $this->request = $request;
     }
 
-    // 1. Logika Filter: Hanya mengambil data sesuai pencarian di web
     public function query()
     {
         $query = MstKoleksiBuku::query()->where('is_delete', 0);
 
-        // Jika ada filter pencarian judul/isbn
         if ($this->request->has('search')) {
             $query->where('judul_koleksi', 'like', '%' . $this->request->search . '%')
                   ->orWhere('ISBN', 'like', '%' . $this->request->search . '%');
         }
 
-        // Jika ada filter kategori
         if ($this->request->has('kategori') && $this->request->kategori != '') {
             $query->where('id_ref_koleksi', $this->request->kategori);
         }
@@ -35,7 +32,6 @@ class BukuExport implements FromQuery, WithHeadings, WithMapping
         return $query;
     }
 
-    // 2. Judul Kolom di Excel (Baris Pertama)
     public function headings(): array
     {
         return [
@@ -48,7 +44,6 @@ class BukuExport implements FromQuery, WithHeadings, WithMapping
         ];
     }
 
-    // 3. Pemetaan Data (Agar data yang keluar rapi)
     public function map($buku): array
     {
         return [
