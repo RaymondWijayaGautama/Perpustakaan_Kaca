@@ -22,17 +22,33 @@ class KoleksiController extends Controller
         $kodeSistemUnik = $koleksiBaru->ISBN . '-' . $koleksiBaru->id_cp_koleksi;
         $generator = new BarcodeGeneratorHTML();
         $gambarBarcode = $generator->getBarcode($kodeSistemUnik, $generator::TYPE_CODE_128, 2, 50, 'black');
+
         return "
-            <div style='text-align: center; margin-top: 50px; font-family: Arial;'>
-                <h2 style='color: green;'>Sukses! Buku Fisik Berhasil Didaftarkan</h2>
-                <div style='display: inline-block; padding: 20px; border: 1px solid #ccc; margin-top: 20px;'>
-                    {$gambarBarcode}
-                    <p style='letter-spacing: 2px; margin-top: 10px;'><b>{$kodeSistemUnik}</b></p>
-                </div>
-                <p>Data tersimpan di tabel <b>cp_koleksi</b> dengan ID: <b>{$koleksiBaru->id_cp_koleksi}</b></p>
-                <br>
-                <a href='/generate-barcode' style='padding: 10px 20px; background: #007bff; color: white; text-decoration: none; border-radius: 5px;'>Input Buku Lainnya</a>
+        <style>
+            @media print {
+                /* Paksa browser nge-print warna background (hitam) barcodenya */
+                .force-print-color, .force-print-color * {
+                    -webkit-print-color-adjust: exact !important;
+                    print-color-adjust: exact !important;
+                }
+            }
+        </style>
+
+        <div class='flex flex-col items-center justify-center w-full pb-2 force-print-color'>
+            
+            <div class='bg-green-50 text-green-700 px-4 py-2 rounded-lg text-sm font-bold mb-5 w-full text-center border border-green-200 shadow-sm print:hidden'>
+                ✅ Buku Fisik Berhasil Didaftarkan
             </div>
+            
+            <div class='bg-white p-5 rounded-xl border border-gray-200 shadow-sm flex flex-col items-center w-max'>
+                <div class='mix-blend-multiply'>{$gambarBarcode}</div>
+                <p class='tracking-[0.15em] font-mono text-[#1A1A1A] font-bold mt-3 text-sm'>{$kodeSistemUnik}</p>
+            </div>
+            
+            <p class='text-[10px] text-gray-400 mt-5 uppercase tracking-wider font-bold print:hidden'>
+                Tersimpan dengan ID Data: <span class='text-gray-600'>{$koleksiBaru->id_cp_koleksi}</span>
+            </p>
+        </div>
         ";
     }
 }

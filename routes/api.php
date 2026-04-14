@@ -5,8 +5,10 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\LaporanController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\KoleksiController;
 
 
+Route::post('/generate-barcode', [KoleksiController::class, 'generate']);
 Route::get('/laporan', [LaporanController::class, 'getLaporan']); 
 Route::delete('/laporan/hapus/{id}', [LaporanController::class, 'destroy']);
 Route::post('/laporan/ubah/{id}', [LaporanController::class, 'update']);
