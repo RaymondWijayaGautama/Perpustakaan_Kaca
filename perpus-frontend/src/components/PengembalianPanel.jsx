@@ -2,12 +2,20 @@ import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Html5Qrcode } from 'html5-qrcode';
 
-const PengembalianPanel = ({ user }) => {
+const PengembalianPanel = () => {
   const [idPinjam, setIdPinjam] = useState('');
   const [status, setStatus] = useState({ type: '', msg: '' });
   const [isScanning, setIsScanning] = useState(false);
   const [cameras, setCameras] = useState([]);
   const [selectedCameraId, setSelectedCameraId] = useState('');
+
+  const stopScanner = (scannerInstance) => {
+    if (scannerInstance) {
+      scannerInstance.stop().then(() => {
+        setIsScanning(false);
+      }).catch(err => console.error("Gagal stop scanner:", err));
+    }
+  };
 
   // 1. Ambil daftar kamera saat pertama kali dimuat
   useEffect(() => {
@@ -40,7 +48,7 @@ const PengembalianPanel = ({ user }) => {
           setIdPinjam(decodedText);
           stopScanner(html5QrCode);
         },
-        (errorMessage) => { /* Scanning... */ }
+        () => { /* Scanning... */ }
       ).catch(err => {
         console.error("Gagal start kamera:", err);
         setIsScanning(false);
@@ -53,14 +61,6 @@ const PengembalianPanel = ({ user }) => {
       }
     };
   }, [isScanning, selectedCameraId]);
-
-  const stopScanner = (scannerInstance) => {
-    if (scannerInstance) {
-      scannerInstance.stop().then(() => {
-        setIsScanning(false);
-      }).catch(err => console.error("Gagal stop scanner:", err));
-    }
-  };
 
   const handleReturn = async (e) => {
     e.preventDefault();

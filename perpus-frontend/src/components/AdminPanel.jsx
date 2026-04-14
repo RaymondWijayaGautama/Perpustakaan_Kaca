@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import ManajemenBuku from './ManajemenBuku';
+import ManajemenBukuPanel from './ManajemenBukuPanel';
 import PengembalianPanel from './PengembalianPanel';
 
 const AdminPanel = ({ user, onLogout }) => {
@@ -106,7 +106,7 @@ const AdminPanel = ({ user, onLogout }) => {
                     </div>
                 )}
                 
-                {activeTab === 'buku' && <ManajemenBuku />}
+                {activeTab === 'buku' && <ManajemenBukuPanel user={user} />}
 
                 {activeTab === 'anggota' && (
                     <div className="bg-white rounded-xl shadow p-6 border border-gray-100 text-[#1A1A1A]">
