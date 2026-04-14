@@ -92,6 +92,8 @@ class DashboardController extends Controller
             'kategori' => 'ref_koleksi.deskripsi',
         ];
 
+        $search = trim((string) $request->get('search', ''));
+
         $query = DB::table('mst_koleksi_buku')
             ->join('ref_koleksi', 'mst_koleksi_buku.id_ref_koleksi', '=', 'ref_koleksi.id_ref_koleksi')
             ->where('mst_koleksi_buku.is_delete', 0)
@@ -109,11 +111,50 @@ class DashboardController extends Controller
                 'ref_koleksi.deskripsi as kategori'
             );
 
-        if ($request->filled('search')) {
-            $query->where(function($q) use ($request) {
-                $q->where('mst_koleksi_buku.judul_koleksi', 'like', '%' . $request->search . '%')
-                  ->orWhere('mst_koleksi_buku.pengarang', 'like', '%' . $request->search . '%');
+        if ($search !== '') {
+            $keywords = preg_split('/\s+/', $search, -1, PREG_SPLIT_NO_EMPTY);
+
+            $query->where(function ($q) use ($keywords) {
+                foreach ($keywords as $keyword) {
+                    $q->where(function ($inner) use ($keyword) {
+                        $inner->where('mst_koleksi_buku.judul_koleksi', 'like', '%' . $keyword . '%')
+                            ->orWhere('mst_koleksi_buku.pengarang', 'like', '%' . $keyword . '%')
+                            ->orWhere('mst_koleksi_buku.ISBN', 'like', '%' . $keyword . '%');
+                    });
+                }
             });
+
+            $escapedSearch = addcslashes($search, '%_');
+            $prefixSearch = $escapedSearch . '%';
+            $containsSearch = '%' . $escapedSearch . '%';
+
+            $query->selectRaw(
+                "(
+                    CASE
+                        WHEN mst_koleksi_buku.ISBN = ? THEN 120
+                        WHEN mst_koleksi_buku.judul_koleksi = ? THEN 110
+                        WHEN mst_koleksi_buku.pengarang = ? THEN 100
+                        WHEN mst_koleksi_buku.ISBN LIKE ? THEN 90
+                        WHEN mst_koleksi_buku.judul_koleksi LIKE ? THEN 80
+                        WHEN mst_koleksi_buku.pengarang LIKE ? THEN 70
+                        WHEN mst_koleksi_buku.judul_koleksi LIKE ? THEN 60
+                        WHEN mst_koleksi_buku.pengarang LIKE ? THEN 50
+                        WHEN mst_koleksi_buku.ISBN LIKE ? THEN 40
+                        ELSE 0
+                    END
+                ) as relevance_score",
+                [
+                    $search,
+                    $search,
+                    $search,
+                    $prefixSearch,
+                    $prefixSearch,
+                    $prefixSearch,
+                    $containsSearch,
+                    $containsSearch,
+                    $containsSearch,
+                ]
+            );
         }
 
         if ($request->filled('kategori')) {
@@ -126,6 +167,11 @@ class DashboardController extends Controller
         $sortBy = $request->get('sort_by', 'judul_koleksi');
         $sortOrder = strtolower((string) $request->get('sort_order', 'asc')) === 'desc' ? 'desc' : 'asc';
         $sortColumn = $allowedSortFields[$sortBy] ?? $allowedSortFields['judul_koleksi'];
+
+        if ($search !== '') {
+            $query->orderByDesc('relevance_score');
+        }
+
         $query->orderBy($sortColumn, $sortOrder);
 
         $perPage = (int) $request->get('per_page', 10);

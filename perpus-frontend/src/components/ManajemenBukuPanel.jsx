@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useDeferredValue, useEffect, useState } from 'react';
 import axios from 'axios';
 
 const API_BASE_URL = 'http://localhost:8000/api';
@@ -42,9 +42,10 @@ const ManajemenBukuPanel = ({ user }) => {
     const [editForm, setEditForm] = useState(emptyEditForm);
     const [formErrors, setFormErrors] = useState({});
     const [feedback, setFeedback] = useState({ type: '', message: '' });
+    const deferredBookSearch = useDeferredValue(bookSearch);
 
     const loadBooks = async ({
-        search = bookSearch,
+        search = deferredBookSearch,
         sortBy = bookSortBy,
         sortOrder = bookSortOrder,
         kategori = bookKategori,
@@ -68,7 +69,7 @@ const ManajemenBukuPanel = ({ user }) => {
             setLoading(true);
             try {
                 const res = await fetchBooksRequest({
-                    search: bookSearch,
+                    search: deferredBookSearch,
                     sortBy: bookSortBy,
                     sortOrder: bookSortOrder,
                     kategori: bookKategori,
@@ -85,7 +86,7 @@ const ManajemenBukuPanel = ({ user }) => {
         };
 
         run();
-    }, [bookPage, bookSearch, bookSortBy, bookSortOrder, bookKategori]);
+    }, [bookPage, deferredBookSearch, bookSortBy, bookSortOrder, bookKategori]);
 
     useEffect(() => {
         const fetchKategori = async () => {
@@ -251,6 +252,11 @@ const ManajemenBukuPanel = ({ user }) => {
                     <p className="text-sm text-[#585858] mt-1">
                         Pustakawan dapat mengubah metadata koleksi dan pembaruan langsung tersimpan ke database.
                     </p>
+                    {bookSearch && (
+                        <p className="text-xs text-[#265F9C] mt-2">
+                            Pencarian aktif untuk keyword: <span className="font-bold">{bookSearch}</span>
+                        </p>
+                    )}
                 </div>
                 <div className="flex gap-3 flex-1 justify-end">
                     <input
