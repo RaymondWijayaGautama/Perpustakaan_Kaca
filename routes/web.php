@@ -12,7 +12,8 @@ Route::get('/laporan/siswa-terajin', [LaporanController::class, 'siswaTerajin'])
 Route::get('/laporan/siswa-terajin/pdf', [LaporanController::class, 'exportPdfSiswaTerajin']);
 Route::get('/pustakawan/buku/import', [BukuController::class, 'halamanImport'])->name('pustakawan.buku.halaman_import');
 Route::post('/pustakawan/buku/import', [BukuController::class, 'importExcel'])->name('pustakawan.buku.import');
-
+Route::get('/laporan/kunjungan-bulanan', [LaporanController::class, 'kunjunganBulanan']);
+Route::get('/laporan/kunjungan-bulanan/pdf', [LaporanController::class, 'exportPdfKunjungan']);
 Route::get('/', function () {
     return view('welcome');
 });
