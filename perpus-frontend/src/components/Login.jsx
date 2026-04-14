@@ -1,28 +1,43 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
-import InputField from '../components/InputField'; // Pastikan path sesuai dengan letak file
+import InputField from '../components/InputField'; 
 
 const Login = ({ setLoggedInUser }) => {
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
-  const [role, setRole] = useState('karyawan'); 
+  const [role, setRole] = useState('siswa'); 
   const [error, setError] = useState('');
+  
+  // State baru untuk melacak error spesifik per field
+  const [fieldErrors, setFieldErrors] = useState({
+    identifier: false,
+    password: false
+  });
 
-  // Auto-detect role berdasarkan input identifier
+  // Reset error field saat user mengetik ulang
   useEffect(() => {
-    if (identifier.includes('@')) {
-      setRole('karyawan');
-    } else if (/^\d+$/.test(identifier)) {
-      setRole('siswa');
+    setFieldErrors({ identifier: false, password: false });
+  }, [identifier, password]);
+
+  // --- LOGIKA DETEKSI OTOMATIS ROLE ---
+  useEffect(() => {
+    const digitsOnly = /^\d+$/.test(identifier);
+    if (digitsOnly) {
+      if (identifier.length > 10) {
+        setRole('karyawan');
+      } else {
+        setRole('siswa');
+      }
     }
   }, [identifier]);
 
   const handleLogin = async (e) => {
     e.preventDefault();
     setError('');
+    setFieldErrors({ identifier: false, password: false });
 
     if (typeof window.grecaptcha === 'undefined') {
-      setError("Layanan keamanan sedang dimuat, silakan tunggu sebentar.");
+      setError("Layanan keamanan sedang dimuat...");
       return;
     }
 
@@ -40,60 +55,98 @@ const Login = ({ setLoggedInUser }) => {
             localStorage.setItem('token', response.data.token);
             setLoggedInUser(response.data.user);
           } catch (err) {
-            setError(err.response?.data?.message || 'Identitas atau Password salah.');
+            const status = err.response?.status;
+            const backendData = err.response?.data;
+            const message = backendData?.message || 'Terjadi kesalahan.';
+            const attemptsLeft = backendData?.attempts_left;
+
+            // --- LOGIKA EXCEPTION FIELD ---
+            if (status === 404) {
+              // Identitas tidak ditemukan
+              setFieldErrors({ identifier: true, password: false });
+              setError(message);
+            } else if (status === 401) {
+              // Password salah
+              setFieldErrors({ identifier: false, password: true });
+              setError(attemptsLeft !== undefined ? `${message} (Sisa: ${attemptsLeft}x)` : message);
+            } else {
+              setError(message);
+            }
           }
         });
     });
   };
 
   return (
-    /* Background Default: #F6F7F9  */
-    <div className="min-h-screen flex items-center justify-center bg-background-default font-roboto">
-      
-      {/* Container: Radius Medium (8px) & Elevation-1 [cite: 137, 134] */}
-      <div className="bg-white p-space-5 rounded-medium shadow-elevation-1 max-w-sm w-full border border-gray-100">
+    <div className="min-h-screen flex items-center justify-center bg-brand-primary-500 font-roboto p-space-4">
+      <div className="container max-w-6xl flex flex-col lg:flex-row items-center justify-between gap-10">
         
-        <div className="text-center mb-space-4">
-          {/* Brand Primary: #265F9C & Font Montserrat [cite: 30, 68] */}
-          <h2 className="text-brand-primary-500 text-h3 font-bold font-montserrat tracking-tight">KitaBaca</h2>
-          {/* Metadata Style: Roboto 12px [cite: 74, 100] */}
-          <p className="text-text-low text-[12px] mt-1 uppercase tracking-[0.2em]">SMK BOPKRI 2 Yogyakarta</p>
+        {/* --- BAGIAN KIRI: INFORMASI --- */}
+        <div className="flex-1 text-white hidden lg:block pr-10">
+          <div className="bg-white p-3 w-fit rounded-medium mb-space-3 shadow-lg border-2 border-brand-secondary-500">
+             <img 
+                src="https://www.smabopkri2yk.sch.id/images/2021/10/13/logo_baru2__100x134.png" 
+                alt="Logo SMK BOPKRI 2 Yogyakarta" 
+                className="h-20 w-auto object-contain"
+             />
+          </div>
+          <h1 className="text-[36px] font-bold font-montserrat leading-tight mb-1">Halaman Login</h1>
+          <p className="text-[16px] opacity-90 font-roboto mb-10">SMK BOPKRI 2 Yogyakarta</p>
         </div>
 
-        <form onSubmit={handleLogin}>
-          {/* Menggunakan Komponen Reusable InputField */}
-          <InputField 
-            label="Identitas"
-            type="text"
-            identifier="identifier"
-            value={identifier}
-            onChange={(e) => setIdentifier(e.target.value)}
-          />
-
-          <InputField 
-            label="Kata Sandi"
-            type="password"
-            identifier="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-          />
-
-          {/* Button: Montserrat Bold, Radius 8px [cite: 68, 137] */}
-          <button 
-            type="submit"
-            className="w-full bg-brand-primary-500 text-text-invert py-space-2 rounded-medium font-bold font-montserrat 
-                       hover:shadow-elevation-2 hover:translate-y-[-1px] active:scale-[0.98] transition-all mt-space-3"
-          >
-            MASUK
-          </button>
-        </form>
-
-        {/* Error Respond: Warna #C62828 [cite: 30, 33] */}
-        {error && (
-          <div className="mt-space-3 p-space-1 bg-red-50 border-l-4 border-error text-text-alert text-[12px] font-bold font-roboto">
-            {error}
+        {/* --- BAGIAN KANAN: KARTU LOGIN --- */}
+        <div className="bg-white p-space-5 rounded-medium shadow-elevation-2 max-w-md w-full">
+          <div className="mb-space-4">
+            <h2 className="text-neutral-900 text-[28px] font-bold font-montserrat leading-tight mb-2">Selamat Datang di KACA</h2>
+            <p className="text-[#585858] text-[14px] font-roboto">
+                Masuk ke dashboard untuk mengelola akun dan data anda.
+            </p>
           </div>
-        )}
+
+          <form onSubmit={handleLogin} className="space-y-space-3">
+            <InputField 
+              label={role === 'karyawan' ? "Identitas (NIP)" : "Identitas (NISN)"}
+              type="text"
+              identifier="identifier"
+              value={identifier}
+              onChange={(e) => setIdentifier(e.target.value)}
+              placeholder="Masukkan identitas anda"
+              // Tambahkan props error jika InputField mendukungnya
+              isError={fieldErrors.identifier} 
+            />
+
+            <InputField 
+              label="Kata Kunci"
+              type="password"
+              identifier="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Masukkan kata sandi"
+              // Tambahkan props error jika InputField mendukungnya
+              isError={fieldErrors.password}
+            />
+
+            <button 
+              type="submit"
+              className="w-full bg-brand-primary-500 text-white py-space-2 rounded-medium font-bold font-montserrat 
+                         hover:shadow-elevation-2 hover:brightness-110 active:scale-[0.98] transition-all duration-150 mt-space-3 text-sm tracking-widest"
+            >
+              MASUK
+            </button>
+          </form>
+
+          {/* Alert Error Global & Exception */}
+          {error && (
+            <div className="mt-space-3 p-space-2 bg-red-50 border-l-4 border-[#C62828] text-[#C62828] text-[12px] font-roboto animate-pulse">
+              <span className="font-bold block">{error.split(' (')[0]}</span>
+              {error.includes('Sisa percobaan') && (
+                  <span className="text-[10px] uppercase mt-1 block opacity-70 font-medium italic">
+                      {error.match(/\(([^)]+)\)/)[1]}
+                  </span>
+              )}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

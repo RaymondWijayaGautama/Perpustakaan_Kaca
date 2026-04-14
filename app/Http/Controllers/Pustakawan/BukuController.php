@@ -7,7 +7,7 @@ use Illuminate\Http\Request;
 use App\Models\MstKoleksiBuku;
 use App\Imports\BukuImport;
 use Maatwebsite\Excel\Facades\Excel;
-
+use App\Exports\BukuExport;
 class BukuController extends Controller
 {
     public function index()
@@ -32,5 +32,11 @@ class BukuController extends Controller
     public function halamanImport()
     {
         return view('bukuimport');
+    }
+
+    public function exportExcel(Request $request)
+    {
+        $nama_file = 'Data_Buku_Wigaty_' . date('Y-m-d_H-i-s') . '.xlsx';
+        return Excel::download(new BukuExport($request), $nama_file);
     }
 }
