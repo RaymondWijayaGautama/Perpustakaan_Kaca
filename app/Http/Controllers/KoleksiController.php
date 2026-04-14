@@ -12,6 +12,7 @@ class KoleksiController extends Controller
     {
         return view('tambah_barcode'); 
     }
+
     public function generate(Request $request)
     {
         $koleksiBaru = CpKoleksi::create([
@@ -19,35 +20,26 @@ class KoleksiController extends Controller
             'ISBN' => $request->isbn,
             'id_mst_laporan' => 1 
         ]);
-        $kodeSistemUnik = $koleksiBaru->ISBN . '-' . $koleksiBaru->id_cp_koleksi;
         $generator = new BarcodeGeneratorHTML();
-        $gambarBarcode = $generator->getBarcode($kodeSistemUnik, $generator::TYPE_CODE_128, 2, 50, 'black');
+        $gambarBarcode = $generator->getBarcode($koleksiBaru->ISBN, $generator::TYPE_CODE_128, 2, 60, 'black');
 
         return "
-        <style>
-            @media print {
-                /* Paksa browser nge-print warna background (hitam) barcodenya */
-                .force-print-color, .force-print-color * {
-                    -webkit-print-color-adjust: exact !important;
-                    print-color-adjust: exact !important;
-                }
-            }
-        </style>
-
-        <div class='flex flex-col items-center justify-center w-full pb-2 force-print-color'>
-            
-            <div class='bg-green-50 text-green-700 px-4 py-2 rounded-lg text-sm font-bold mb-5 w-full text-center border border-green-200 shadow-sm print:hidden'>
+        <div style='width: 100%; display: flex; flex-direction: column; align-items: center;'>
+            <div style='width: 100%; padding: 10px; background-color: #f0fdf4; border: 1px solid #bbf7d0; color: #166534; border-radius: 8px; font-weight: bold; font-size: 14px; margin-bottom: 24px; text-align: center;'>
                 Buku Berhasil Didaftarkan
             </div>
             
-            <div class='bg-white p-5 rounded-xl border border-gray-200 shadow-sm flex flex-col items-center w-max'>
-                <div class='mix-blend-multiply'>{$gambarBarcode}</div>
-                <p class='tracking-[0.15em] font-mono text-[#1A1A1A] font-bold mt-3 text-sm'>{$kodeSistemUnik}</p>
+            <div style='display: flex; justify-content: center; width: 100%; margin-bottom: 12px; background: white; padding: 10px;'>
+                {$gambarBarcode}
             </div>
             
-            <p class='text-[10px] text-gray-400 mt-5 uppercase tracking-wider font-bold print:hidden'>
-                Tersimpan dengan ID Data: <span class='text-gray-600'>{$koleksiBaru->id_cp_koleksi}</span>
+            <p style='font-family: monospace; letter-spacing: 4px; font-weight: bold; font-size: 15px; color: #1a1a1a; margin-top: 0; margin-bottom: 20px;'>
+                {$koleksiBaru->ISBN}
             </p>
+            
+            <div style='margin-top: 10px; border-top: 1px dashed #d1d5db; width: 100%; padding-top: 15px; font-size: 10px; color: #6b7280; text-transform: uppercase; font-weight: bold; letter-spacing: 1px; text-align: center;'>
+                Tersimpan dengan ID Data: <span style='color: #1f2937;'>{$koleksiBaru->id_cp_koleksi}</span>
+            </div>
         </div>
         ";
     }
