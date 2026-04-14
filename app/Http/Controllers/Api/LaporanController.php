@@ -11,9 +11,65 @@ use App\Models\CpKoleksi; // Pastikan model ini ada jika digunakan di destroy
 use Illuminate\Support\Facades\Storage;
 use Barryvdh\DomPDF\Facade\Pdf; 
 use App\Models\Siswa;
+use Carbon\Carbon;
 
 class LaporanController extends Controller
 {
+    public function statistikPeminjamanBulanan(Request $request)
+    {
+        try {
+            $tahun = (int) ($request->get('tahun', date('Y')));
+            $bulan = $request->filled('bulan') ? (int) $request->get('bulan') : null;
+
+            $query = DB::table('tr_peminjaman')
+                ->whereYear('tgl_peminjaman', $tahun);
+
+            if ($bulan !== null) {
+                $query->whereMonth('tgl_peminjaman', $bulan);
+            }
+
+            $rows = (clone $query)
+                ->selectRaw('MONTH(tgl_peminjaman) as nomor_bulan')
+                ->selectRaw('COUNT(*) as jumlah_peminjaman')
+                ->groupBy('nomor_bulan')
+                ->orderBy('nomor_bulan')
+                ->get()
+                ->map(function ($item) use ($tahun) {
+                    $tanggal = Carbon::create($tahun, $item->nomor_bulan, 1);
+
+                    return [
+                        'nomor_bulan' => (int) $item->nomor_bulan,
+                        'nama_bulan' => $tanggal->locale('id')->translatedFormat('F'),
+                        'jumlah_peminjaman' => (int) $item->jumlah_peminjaman,
+                    ];
+                })
+                ->values();
+
+            $totalPeminjaman = (clone $query)->count();
+
+            $periodeLabel = $bulan !== null
+                ? Carbon::create($tahun, $bulan, 1)->locale('id')->translatedFormat('F Y')
+                : 'Tahun ' . $tahun;
+
+            return response()->json([
+                'filter' => [
+                    'tahun' => $tahun,
+                    'bulan' => $bulan,
+                    'periode_label' => $periodeLabel,
+                ],
+                'summary' => [
+                    'total_peminjaman' => $totalPeminjaman,
+                    'jumlah_bulan_aktif' => $rows->count(),
+                ],
+                'data' => $rows,
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
     public function getLaporan(Request $request)
     {
         try {

@@ -13,6 +13,7 @@ Route::post('/peminjaman', [PeminjamanController::class, 'store']);
 
 Route::post('/generate-barcode', [KoleksiController::class, 'generate']);
 Route::get('/laporan', [LaporanController::class, 'getLaporan']); 
+Route::get('/laporan/peminjaman-bulanan', [LaporanController::class, 'statistikPeminjamanBulanan']);
 Route::delete('/laporan/hapus/{id}', [LaporanController::class, 'destroy']);
 Route::post('/laporan/ubah/{id}', [LaporanController::class, 'update']);
 Route::post('/laporan/tambah', [LaporanController::class, 'store']);
