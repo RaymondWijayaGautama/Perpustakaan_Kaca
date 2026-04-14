@@ -5,7 +5,6 @@ import MemberPanel from './components/MemberPanel';
 
 function App() {
   const [user, setUser] = useState(null);
-  console.log("Data User Login:", user);
   const handleLogout = () => {
     localStorage.removeItem('token');
     setUser(null);
