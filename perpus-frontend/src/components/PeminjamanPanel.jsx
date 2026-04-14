@@ -29,11 +29,14 @@ const PeminjamanPanel = ({ user }) => {
         const scanner = new Html5QrcodeScanner("reader", {
             fps: 10,
             qrbox: { width: 250, height: 150 },
+            
         });
 
         scanner.render((data) => {
-            const idBaru = data.split("-").pop();
-            setIdCpKoleksi(idBaru);
+            const parts = data.split("-");
+            const idSaja = parts[parts.length - 1]; 
+            
+            setIdCpKoleksi(idSaja);
             scanner.clear(); 
         }, () => {});
 
@@ -61,19 +64,19 @@ const PeminjamanPanel = ({ user }) => {
 
                 <form onSubmit={handlePinjam} className="space-y-5">
                     <div>
-                        <label className="block text-sm font-bold mb-2">ID Koleksi Buku Terisi Otomatis</label>
+                        <label className="block text-sm font-bold mb-2">ISBN Koleksi Buku Terisi Otomatis</label>
                         <input 
                             type="text" value={idCpKoleksi} onChange={(e) => setIdCpKoleksi(e.target.value)}
-                            placeholder="Scan barcode atau ketik ID..."
+                            placeholder="Scan barcode atau ketik ISBN buku"
                             className="w-full p-4 bg-gray-50 border rounded-xl focus:ring-2 focus:ring-[#265F9C] outline-none font-mono"
                         />
                     </div>
 
                     <div>
-                        <label className="block text-sm font-bold mb-2">ID Siswa Peminjam</label>
+                        <label className="block text-sm font-bold mb-2">NISN Peminjam</label>
                         <input 
                             type="text" value={idSiswa} onChange={(e) => setIdSiswa(e.target.value)}
-                            placeholder="Masukkan ID/NISN siswa..."
+                            placeholder="Masukkan NISN siswa"
                             className="w-full p-4 bg-gray-50 border rounded-xl focus:ring-2 focus:ring-[#265F9C] outline-none"
                             required
                         />
