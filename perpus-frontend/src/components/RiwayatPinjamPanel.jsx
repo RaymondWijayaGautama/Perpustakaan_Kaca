@@ -35,7 +35,7 @@ const RiwayatPinjamPanel = () => {
             <div className="flex justify-between items-center mb-8">
                 <div>
                     <h1 className="text-2xl font-bold font-montserrat">Daftar Peminjaman</h1>
-                    <p className="text-sm text-gray-500">Data sirkulasi buku fisik</p>
+                    <p className="text-sm text-gray-500">Data keluar masuk buku </p>
                 </div>
                 
                 <select 
