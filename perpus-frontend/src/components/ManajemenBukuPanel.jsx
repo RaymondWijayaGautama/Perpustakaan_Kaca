@@ -2,6 +2,7 @@ import React, { useDeferredValue, useEffect, useState } from 'react';
 import axios from 'axios';
 
 const API_BASE_URL = 'http://localhost:8000/api';
+const EXPORT_URL = 'http://localhost:8000/pustakawan/buku/export';
 
 const emptyEditForm = {
     ISBN: '',
@@ -244,6 +245,23 @@ const ManajemenBukuPanel = ({ user }) => {
         }
     };
 
+    const handleExportExcel = () => {
+        const params = new URLSearchParams();
+
+        if (bookSearch.trim()) {
+            params.set('search', bookSearch.trim());
+        }
+
+        if (bookKategori) {
+            params.set('kategori', bookKategori);
+        }
+
+        const queryString = params.toString();
+        const targetUrl = queryString ? `${EXPORT_URL}?${queryString}` : EXPORT_URL;
+
+        window.open(targetUrl, '_blank', 'noopener,noreferrer');
+    };
+
     return (
         <div className="bg-white rounded-xl shadow p-6 border border-gray-100">
             <div className="flex justify-between items-center mb-8 gap-4">
@@ -258,7 +276,14 @@ const ManajemenBukuPanel = ({ user }) => {
                         </p>
                     )}
                 </div>
-                <div className="flex gap-3 flex-1 justify-end">
+                <div className="flex gap-3 flex-1 justify-end items-start">
+                    <button
+                        type="button"
+                        onClick={handleExportExcel}
+                        className="bg-[#2E7D32] text-white px-5 py-3 rounded-xl text-sm font-bold shadow hover:bg-[#1b5e20] transition-colors whitespace-nowrap"
+                    >
+                        Export Excel
+                    </button>
                     <input
                         type="text"
                         placeholder="Cari Judul atau Penulis..."

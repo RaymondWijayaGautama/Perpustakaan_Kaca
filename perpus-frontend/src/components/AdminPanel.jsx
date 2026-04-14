@@ -5,6 +5,7 @@ import PengembalianPanel from './PengembalianPanel';
 import PeminjamanPanel from './PeminjamanPanel';
 import RiwayatPinjamPanel from './RiwayatPinjamPanel';
 import PemusnahanPanel from './PemusnahanPanel'; // Import PemusnahanPanel
+import LaporanPeminjamanBulananPanel from './LaporanPeminjamanBulananPanel';
 
 const AdminPanel = ({ user, onLogout }) => {
     const [activeTab, setActiveTab] = useState('dashboard');
@@ -84,6 +85,7 @@ const AdminPanel = ({ user, onLogout }) => {
                     {/* Sidebar item baru: Pemusnahan Buku diletakkan di bawah Peminjaman Buku */}
                     <div onClick={() => setActiveTab('pemusnahan')} className={`p-3 rounded cursor-pointer transition-all ${activeTab === 'pemusnahan' ? 'bg-white/20 font-bold border-l-4 border-white' : 'hover:bg-white/10'}`}>Pemusnahan Buku</div>
                     <div onClick={() => setActiveTab('riwayat_pinjam')}className={`p-3 rounded cursor-pointer transition-all ${activeTab === 'riwayat_pinjam' ? 'bg-white/20 font-bold border-l-4 border-white' : 'hover:bg-white/10'}`}>Riwayat Peminjaman</div>
+                    <div onClick={() => setActiveTab('laporan_peminjaman_bulanan')} className={`p-3 rounded cursor-pointer transition-all ${activeTab === 'laporan_peminjaman_bulanan' ? 'bg-white/20 font-bold border-l-4 border-white' : 'hover:bg-white/10'}`}>Statistik Peminjaman</div>
                 </nav>
                 <button onClick={onLogout} className="mt-auto p-2 text-red-200 font-bold hover:text-white transition-colors text-left">Keluar Sistem</button>
             </aside>
@@ -206,6 +208,7 @@ const AdminPanel = ({ user, onLogout }) => {
                 {activeTab === 'peminjaman' && <PeminjamanPanel user={user} />}
                 {activeTab === 'pemusnahan' && <PemusnahanPanel user={user} />} {/* Render PemusnahanPanel */}
                 {activeTab === 'riwayat_pinjam' && <RiwayatPinjamPanel user={user} />}
+                {activeTab === 'laporan_peminjaman_bulanan' && <LaporanPeminjamanBulananPanel />}
 
             </main>
         </div>
