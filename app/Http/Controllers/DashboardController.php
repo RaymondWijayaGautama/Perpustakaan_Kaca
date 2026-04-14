@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 
 use Illuminate\Pagination\LengthAwarePaginator;
 
@@ -92,9 +93,12 @@ class DashboardController extends Controller
                 'mst_koleksi_buku.ISBN',
                 'mst_koleksi_buku.judul_koleksi',
                 'mst_koleksi_buku.pengarang',
+                'mst_koleksi_buku.penerbit',
                 'mst_koleksi_buku.tahun',
                 'mst_koleksi_buku.jumlah_ekslempar',
+                'mst_koleksi_buku.no_rak_buku',
                 'mst_koleksi_buku.keterangan_buku', 
+                'mst_koleksi_buku.id_ref_koleksi',
                 'ref_koleksi.deskripsi as kategori'
             );
 
@@ -115,5 +119,98 @@ class DashboardController extends Controller
 
         // Menggunakan default 10 data per halaman
         return response()->json($query->paginate($request->get('per_page', 10)));
+    }
+
+    public function getKategoriBuku()
+    {
+        $kategori = DB::table('ref_koleksi')
+            ->where('is_delete', 0)
+            ->where('id_ref_koleksi', '!=', 4)
+            ->orderBy('deskripsi')
+            ->get(['id_ref_koleksi', 'deskripsi']);
+
+        return response()->json($kategori);
+    }
+
+    public function updateBuku(Request $request, string $isbn)
+    {
+        $validator = validator($request->all(), [
+            'editor_nip_karyawan' => ['required', 'string', 'max:20'],
+            'judul_koleksi' => ['required', 'string', 'max:255'],
+            'pengarang' => ['required', 'string', 'max:25'],
+            'penerbit' => ['required', 'string', 'max:25'],
+            'tahun' => ['required', 'digits:4'],
+            'jumlah_ekslempar' => ['required', 'integer', 'min:0'],
+            'no_rak_buku' => ['required', 'string', 'max:100'],
+            'keterangan_buku' => ['nullable', 'string', 'max:255'],
+            'id_ref_koleksi' => ['required', 'integer', Rule::exists('ref_koleksi', 'id_ref_koleksi')->where('is_delete', 0)],
+        ], [
+            'editor_nip_karyawan.required' => 'Identitas pustakawan wajib dikirim.',
+            'id_ref_koleksi.exists' => 'Kategori buku tidak valid.',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'message' => 'Validasi data gagal.',
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
+        $pustakawan = DB::table('mst_karyawan')
+            ->where('nip_karyawan', $request->editor_nip_karyawan)
+            ->where('is_delete', 0)
+            ->first();
+
+        if (!$pustakawan || strtolower((string) $pustakawan->jabatan_fungsional) !== 'pustakawan') {
+            return response()->json([
+                'message' => 'Hanya pustakawan yang dapat mengubah koleksi buku.',
+            ], 403);
+        }
+
+        $buku = DB::table('mst_koleksi_buku')
+            ->where('ISBN', $isbn)
+            ->where('is_delete', 0)
+            ->first();
+
+        if (!$buku) {
+            return response()->json([
+                'message' => 'Data buku tidak ditemukan.',
+            ], 404);
+        }
+
+        DB::table('mst_koleksi_buku')
+            ->where('ISBN', $isbn)
+            ->update([
+                'judul_koleksi' => $request->judul_koleksi,
+                'pengarang' => $request->pengarang,
+                'penerbit' => $request->penerbit,
+                'tahun' => $request->tahun,
+                'jumlah_ekslempar' => $request->jumlah_ekslempar,
+                'no_rak_buku' => $request->no_rak_buku,
+                'keterangan_buku' => $request->keterangan_buku ?: '',
+                'id_ref_koleksi' => $request->id_ref_koleksi,
+            ]);
+
+        $updatedBook = DB::table('mst_koleksi_buku')
+            ->join('ref_koleksi', 'mst_koleksi_buku.id_ref_koleksi', '=', 'ref_koleksi.id_ref_koleksi')
+            ->where('mst_koleksi_buku.ISBN', $isbn)
+            ->select(
+                'mst_koleksi_buku.ISBN',
+                'mst_koleksi_buku.judul_koleksi',
+                'mst_koleksi_buku.pengarang',
+                'mst_koleksi_buku.penerbit',
+                'mst_koleksi_buku.tahun',
+                'mst_koleksi_buku.jumlah_ekslempar',
+                'mst_koleksi_buku.no_rak_buku',
+                'mst_koleksi_buku.keterangan_buku',
+                'mst_koleksi_buku.id_ref_koleksi',
+                'ref_koleksi.deskripsi as kategori'
+            )
+            ->first();
+
+        return response()->json([
+            'message' => 'Koleksi buku berhasil diperbarui.',
+            'data' => $updatedBook,
+        ]);
     }
 }

@@ -1,35 +1,18 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import axios from 'axios';
 import InputField from '../components/InputField'; 
 
 const Login = ({ setLoggedInUser }) => {
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
-  const [role, setRole] = useState('siswa'); 
   const [error, setError] = useState('');
-  
-  // State baru untuk melacak error spesifik per field
   const [fieldErrors, setFieldErrors] = useState({
     identifier: false,
     password: false
   });
 
-  // Reset error field saat user mengetik ulang
-  useEffect(() => {
-    setFieldErrors({ identifier: false, password: false });
-  }, [identifier, password]);
-
-  // --- LOGIKA DETEKSI OTOMATIS ROLE ---
-  useEffect(() => {
-    const digitsOnly = /^\d+$/.test(identifier);
-    if (digitsOnly) {
-      if (identifier.length > 10) {
-        setRole('karyawan');
-      } else {
-        setRole('siswa');
-      }
-    }
-  }, [identifier]);
+  const digitsOnly = /^\d+$/.test(identifier);
+  const resolvedRole = digitsOnly && identifier.length > 10 ? 'karyawan' : 'siswa';
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -48,7 +31,7 @@ const Login = ({ setLoggedInUser }) => {
             const response = await axios.post('http://localhost:8000/api/login', {
               identifier, 
               password, 
-              role,
+              role: resolvedRole,
               'g-recaptcha-response': token
             });
             
@@ -105,11 +88,14 @@ const Login = ({ setLoggedInUser }) => {
 
           <form onSubmit={handleLogin} className="space-y-space-3">
             <InputField 
-              label={role === 'karyawan' ? "Identitas (NIP)" : "Identitas (NISN)"}
+              label={resolvedRole === 'karyawan' ? "Identitas (NIP)" : "Identitas (NISN)"}
               type="text"
               identifier="identifier"
               value={identifier}
-              onChange={(e) => setIdentifier(e.target.value)}
+              onChange={(e) => {
+                setIdentifier(e.target.value);
+                setFieldErrors({ identifier: false, password: false });
+              }}
               placeholder="Masukkan identitas anda"
               // Tambahkan props error jika InputField mendukungnya
               isError={fieldErrors.identifier} 
@@ -120,7 +106,10 @@ const Login = ({ setLoggedInUser }) => {
               type="password"
               identifier="password"
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={(e) => {
+                setPassword(e.target.value);
+                setFieldErrors({ identifier: false, password: false });
+              }}
               placeholder="Masukkan kata sandi"
               // Tambahkan props error jika InputField mendukungnya
               isError={fieldErrors.password}
