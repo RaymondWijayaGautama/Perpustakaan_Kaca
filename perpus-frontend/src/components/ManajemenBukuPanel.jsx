@@ -15,9 +15,9 @@ const emptyEditForm = {
     id_ref_koleksi: '',
 };
 
-const fetchBooksRequest = async ({ search, sortBy, page }) => {
+const fetchBooksRequest = async ({ search, sortBy, sortOrder, kategori, page }) => {
     return axios.get(`${API_BASE_URL}/buku`, {
-        params: { search, sort_by: sortBy, page, per_page: 10 },
+        params: { search, sort_by: sortBy, sort_order: sortOrder, kategori, page, per_page: 10 },
     });
 };
 
@@ -26,6 +26,8 @@ const ManajemenBukuPanel = ({ user }) => {
     const [kategoriBuku, setKategoriBuku] = useState([]);
     const [bookSearch, setBookSearch] = useState('');
     const [bookSortBy, setBookSortBy] = useState('judul_koleksi');
+    const [bookSortOrder, setBookSortOrder] = useState('asc');
+    const [bookKategori, setBookKategori] = useState('');
     const [bookPage, setBookPage] = useState(1);
     const [bookPagination, setBookPagination] = useState({});
     const [loading, setLoading] = useState(false);
@@ -34,14 +36,23 @@ const ManajemenBukuPanel = ({ user }) => {
     const [isGenerating, setIsGenerating] = useState(false);
     const [showEditModal, setShowEditModal] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [isDeleting, setIsDeleting] = useState(false);
+    const [selectedBook, setSelectedBook] = useState(null);
     const [editForm, setEditForm] = useState(emptyEditForm);
     const [formErrors, setFormErrors] = useState({});
     const [feedback, setFeedback] = useState({ type: '', message: '' });
 
-    const loadBooks = async ({ search = bookSearch, sortBy = bookSortBy, page = bookPage } = {}) => {
+    const loadBooks = async ({
+        search = bookSearch,
+        sortBy = bookSortBy,
+        sortOrder = bookSortOrder,
+        kategori = bookKategori,
+        page = bookPage,
+    } = {}) => {
         setLoading(true);
         try {
-            const res = await fetchBooksRequest({ search, sortBy, page });
+            const res = await fetchBooksRequest({ search, sortBy, sortOrder, kategori, page });
             setBooks(res.data.data);
             setBookPagination(res.data);
         } catch (error) {
@@ -56,7 +67,13 @@ const ManajemenBukuPanel = ({ user }) => {
         const run = async () => {
             setLoading(true);
             try {
-                const res = await fetchBooksRequest({ search: bookSearch, sortBy: bookSortBy, page: bookPage });
+                const res = await fetchBooksRequest({
+                    search: bookSearch,
+                    sortBy: bookSortBy,
+                    sortOrder: bookSortOrder,
+                    kategori: bookKategori,
+                    page: bookPage,
+                });
                 setBooks(res.data.data);
                 setBookPagination(res.data);
             } catch (error) {
@@ -68,7 +85,7 @@ const ManajemenBukuPanel = ({ user }) => {
         };
 
         run();
-    }, [bookPage, bookSearch, bookSortBy]);
+    }, [bookPage, bookSearch, bookSortBy, bookSortOrder, bookKategori]);
 
     useEffect(() => {
         const fetchKategori = async () => {
@@ -92,6 +109,12 @@ const ManajemenBukuPanel = ({ user }) => {
     const closeEditModal = () => {
         setShowEditModal(false);
         resetEditState();
+    };
+
+    const closeDeleteModal = () => {
+        setShowDeleteModal(false);
+        setSelectedBook(null);
+        setIsDeleting(false);
     };
 
     const openEditModal = (buku) => {
@@ -142,6 +165,12 @@ const ManajemenBukuPanel = ({ user }) => {
         }
     };
 
+    const openDeleteModal = (buku) => {
+        setSelectedBook(buku);
+        setShowDeleteModal(true);
+        setFeedback({ type: '', message: '' });
+    };
+
     const handleSaveEdit = async (event) => {
         event.preventDefault();
         setIsSaving(true);
@@ -180,6 +209,40 @@ const ManajemenBukuPanel = ({ user }) => {
         }
     };
 
+    const handleDeleteBook = async () => {
+        if (!selectedBook) {
+            return;
+        }
+
+        setIsDeleting(true);
+        setFeedback({ type: '', message: '' });
+
+        try {
+            await axios.delete(`${API_BASE_URL}/buku/${selectedBook.ISBN}`, {
+                data: {
+                    editor_nip_karyawan: user?.nip_karyawan,
+                },
+            });
+
+            closeDeleteModal();
+            setFeedback({ type: 'success', message: 'Koleksi buku berhasil dihapus.' });
+            if (books.length === 1 && bookPage > 1) {
+                setBookPage(bookPage - 1);
+            } else {
+                loadBooks();
+            }
+        } catch (error) {
+            console.error(error);
+            closeDeleteModal();
+            setFeedback({
+                type: 'error',
+                message: error.response?.data?.message || 'Koleksi buku gagal dihapus.',
+            });
+        } finally {
+            setIsDeleting(false);
+        }
+    };
+
     return (
         <div className="bg-white rounded-xl shadow p-6 border border-gray-100">
             <div className="flex justify-between items-center mb-8 gap-4">
@@ -195,17 +258,49 @@ const ManajemenBukuPanel = ({ user }) => {
                         placeholder="Cari Judul atau Penulis..."
                         className="p-3 border rounded-xl text-sm outline-none w-2/3 focus:ring-2 focus:ring-[#265F9C] transition-all shadow-sm"
                         value={bookSearch}
-                        onChange={(event) => setBookSearch(event.target.value)}
-                        onKeyDown={(event) => event.key === 'Enter' && loadBooks({ search: event.currentTarget.value, page: 1 })}
+                        onChange={(event) => {
+                            setBookSearch(event.target.value);
+                            setBookPage(1);
+                        }}
                     />
                     <select
                         className="p-3 border rounded-xl text-sm bg-gray-50 font-medium"
+                        value={bookKategori}
+                        onChange={(event) => {
+                            setBookKategori(event.target.value);
+                            setBookPage(1);
+                        }}
+                    >
+                        <option value="">Semua Kategori</option>
+                        {kategoriBuku.map((kategori) => (
+                            <option key={kategori.id_ref_koleksi} value={kategori.id_ref_koleksi}>
+                                {kategori.deskripsi}
+                            </option>
+                        ))}
+                    </select>
+                    <select
+                        className="p-3 border rounded-xl text-sm bg-gray-50 font-medium"
                         value={bookSortBy}
-                        onChange={(event) => setBookSortBy(event.target.value)}
+                        onChange={(event) => {
+                            setBookSortBy(event.target.value);
+                            setBookPage(1);
+                        }}
                     >
                         <option value="judul_koleksi">Urut: Judul</option>
                         <option value="pengarang">Urut: Penulis</option>
                         <option value="tahun">Urut: Tahun</option>
+                        <option value="kategori">Urut: Kategori</option>
+                    </select>
+                    <select
+                        className="p-3 border rounded-xl text-sm bg-gray-50 font-medium"
+                        value={bookSortOrder}
+                        onChange={(event) => {
+                            setBookSortOrder(event.target.value);
+                            setBookPage(1);
+                        }}
+                    >
+                        <option value="asc">A-Z / Lama-Baru</option>
+                        <option value="desc">Z-A / Baru-Lama</option>
                     </select>
                 </div>
             </div>
@@ -253,6 +348,12 @@ const ManajemenBukuPanel = ({ user }) => {
                                                 className="bg-amber-500 text-white text-[10px] px-3 py-1.5 rounded shadow hover:bg-amber-600 transition-colors"
                                             >
                                                 Edit
+                                            </button>
+                                            <button
+                                                onClick={() => openDeleteModal(buku)}
+                                                className="bg-[#C62828] text-white text-[10px] px-3 py-1.5 rounded shadow hover:bg-red-700 transition-colors"
+                                            >
+                                                Hapus
                                             </button>
                                             <button
                                                 onClick={() => handleGenerateBarcode(buku)}
@@ -356,6 +457,43 @@ const ManajemenBukuPanel = ({ user }) => {
                                 </button>
                             </div>
                         </form>
+                    </div>
+                </div>
+            )}
+
+            {showDeleteModal && selectedBook && (
+                <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+                    <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-lg relative">
+                        <button onClick={closeDeleteModal} className="absolute top-4 right-4 text-gray-400 hover:text-red-500 font-bold text-xl transition-colors">
+                            &times;
+                        </button>
+                        <h2 className="text-xl font-bold font-montserrat mb-2 text-[#C62828]">Hapus Koleksi Buku</h2>
+                        <p className="text-sm text-[#585858] leading-6">
+                            Anda akan menghapus koleksi <span className="font-bold text-[#1A1A1A]">{selectedBook.judul_koleksi}</span>.
+                            Tindakan ini memerlukan konfirmasi pustakawan dan tidak bisa dilakukan jika buku sedang dipinjam.
+                        </p>
+                        <div className="mt-4 rounded-xl bg-gray-50 border p-4 text-sm">
+                            <p><span className="font-bold">ISBN:</span> {selectedBook.ISBN}</p>
+                            <p><span className="font-bold">Penulis:</span> {selectedBook.pengarang}</p>
+                            <p><span className="font-bold">Kategori:</span> {selectedBook.kategori}</p>
+                        </div>
+                        <div className="mt-6 flex justify-end gap-3">
+                            <button
+                                type="button"
+                                onClick={closeDeleteModal}
+                                className="px-5 py-2 bg-gray-100 text-gray-700 rounded-xl text-sm font-bold hover:bg-gray-200 transition-colors"
+                            >
+                                Batal
+                            </button>
+                            <button
+                                type="button"
+                                onClick={handleDeleteBook}
+                                disabled={isDeleting}
+                                className="px-5 py-2 bg-[#C62828] text-white rounded-xl text-sm font-bold hover:bg-red-700 shadow-md transition-all disabled:opacity-50"
+                            >
+                                {isDeleting ? 'Menghapus...' : 'Ya, Hapus Buku'}
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}

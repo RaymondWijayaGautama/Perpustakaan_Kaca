@@ -20,6 +20,7 @@ Route::get('/anggota', [DashboardController::class, 'getAnggota']);
 Route::get('/buku', [DashboardController::class, 'getBuku']);
 Route::get('/buku/kategori', [DashboardController::class, 'getKategoriBuku']);
 Route::put('/buku/{isbn}', [DashboardController::class, 'updateBuku']);
+Route::delete('/buku/{isbn}', [DashboardController::class, 'destroyBuku']);
 Route::get('/pengembalian', [DashboardController::class, 'getPengembalian']);
 
 Route::get('/user', function (Request $request) {
