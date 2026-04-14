@@ -5,8 +5,8 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
-
 use Illuminate\Pagination\LengthAwarePaginator;
+use Carbon\Carbon; // Tambahan untuk pengolahan tanggal
 
 class DashboardController extends Controller
 {
@@ -335,5 +335,116 @@ class DashboardController extends Controller
         return response()->json([
             'message' => 'Koleksi buku berhasil dihapus.',
         ]);
+    }
+
+    /**
+     * ==========================================
+     * TAMBAHAN FITUR: PEMUSNAHAN BUKU (ISBN)
+     * ==========================================
+     */
+
+    public function storePemusnahan(Request $request)
+    {
+        $request->validate([
+            'isbn' => 'required|string',
+            'alasan' => 'required|string',
+            'nip_karyawan' => 'required|string'
+        ]);
+
+        try {
+            DB::beginTransaction();
+
+            $buku = DB::table('mst_koleksi_buku')
+                ->where('ISBN', $request->isbn)
+                ->where('is_delete', 0)
+                ->first();
+
+            if (!$buku) {
+                return response()->json(['message' => 'ISBN tidak ditemukan atau sudah dihapus.'], 404);
+            }
+
+            // Simpan ke tabel riwayat pemusnahan
+            DB::table('tr_pemusnahan')->insert([
+                'isbn' => $request->isbn,
+                'alasan' => $request->alasan,
+                'nip_karyawan' => $request->nip_karyawan,
+                'tanggal_pemusnahan' => Carbon::now(),
+                'status' => 'dimusnahkan',
+                'created_at' => Carbon::now(),
+                'updated_at' => Carbon::now(),
+            ]);
+
+            // Kurangi stok fisik di mst_koleksi_buku
+            if ($buku->jumlah_ekslempar > 0) {
+                DB::table('mst_koleksi_buku')
+                    ->where('ISBN', $request->isbn)
+                    ->decrement('jumlah_ekslempar', 1);
+            }
+
+            DB::commit();
+            return response()->json(['message' => 'Berhasil mencatat pemusnahan buku.'], 201);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json(['message' => 'Error: ' . $e->getMessage()], 500);
+        }
+    }
+
+    public function getHistoryPemusnahan(Request $request)
+    {
+        $search = $request->get('search');
+
+        $query = DB::table('tr_pemusnahan')
+            ->join('mst_koleksi_buku', 'tr_pemusnahan.isbn', '=', 'mst_koleksi_buku.ISBN')
+            ->select(
+                'tr_pemusnahan.*', 
+                'mst_koleksi_buku.judul_koleksi as judul'
+            )
+            ->where('tr_pemusnahan.status', '!=', 'soft_deleted');
+
+        if ($search) {
+            $query->where(function($q) use ($search) {
+                $q->where('tr_pemusnahan.isbn', 'like', "%$search%")
+                  ->orWhere('mst_koleksi_buku.judul_koleksi', 'like', "%$search%");
+            });
+        }
+
+        return response()->json($query->orderBy('tr_pemusnahan.created_at', 'desc')->get());
+    }
+
+    public function getBukuRusak()
+    {
+        return response()->json(
+            DB::table('mst_koleksi_buku')
+                ->where('is_delete', 0)
+                ->where('keterangan_buku', 'like', '%Rusak%')
+                ->select('ISBN as isbn', 'judul_koleksi as judul', 'keterangan_buku as kondisi')
+                ->get()
+        );
+    }
+
+    public function getBukuOverdue()
+    {
+        return response()->json(
+            DB::table('tr_peminjaman')
+                ->join('cp_koleksi', 'tr_peminjaman.id_cp_koleksi', '=', 'cp_koleksi.id_cp_koleksi')
+                ->join('mst_koleksi_buku', 'cp_koleksi.ISBN', '=', 'mst_koleksi_buku.ISBN')
+                ->whereNull('tr_peminjaman.tgl_kembali')
+                ->where('tr_peminjaman.tgl_harus_kembali', '<', Carbon::now()->subDays(30))
+                ->select(
+                    'mst_koleksi_buku.ISBN as isbn', 
+                    'mst_koleksi_buku.judul_koleksi as judul',
+                    DB::raw('DATEDIFF(NOW(), tr_peminjaman.tgl_harus_kembali) as hari_terlambat')
+                )
+                ->get()
+        );
+    }
+
+    public function updateStatusPemusnahan(Request $request, $id)
+    {
+        DB::table('tr_pemusnahan')->where('id', $id)->update([
+            'status' => $request->get('status', 'soft_deleted'),
+            'updated_at' => Carbon::now()
+        ]);
+        return response()->json(['message' => 'Data berhasil diperbarui.']);
     }
 }
