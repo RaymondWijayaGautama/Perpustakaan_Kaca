@@ -56,7 +56,7 @@ const PeminjamanPanel = ({ user }) => {
                 <div>
                     <label className="block text-xs font-black uppercase text-gray-400 mb-2 tracking-widest">Langkah 1: Scan Barcode Buku</label>
                     <div id="reader" className="overflow-hidden rounded-2xl border-2 border-dashed border-gray-200 bg-gray-50"></div>
-                    <p className="text-[10px] text-gray-500 mt-2 text-center italic">Arahkan barcode buku ke scanner</p>
+                    <p className="text-[20px] text-gray-500 mt-2 text-center ">Arahkan barcode buku ke scanner</p>
                 </div>
 
                 <form onSubmit={handlePinjam} className="space-y-5">

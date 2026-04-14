@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import ManajemenBuku from './ManajemenBuku';
 import PengembalianPanel from './PengembalianPanel';
+import PeminjamanPanel from './PeminjamanPanel';
 
 const AdminPanel = ({ user, onLogout }) => {
     const [activeTab, setActiveTab] = useState('dashboard');
