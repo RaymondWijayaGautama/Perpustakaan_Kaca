@@ -9,7 +9,39 @@ use Carbon\Carbon;
 
 class PeminjamanController extends Controller
 {
-   public function store(Request $request)
+    // =================================================================
+    // 1. FUNGSI UNTUK MENAMPILKAN DATA DI TABEL RIWAYAT
+    // =================================================================
+    public function index(Request $request)
+    {
+        try {
+            $query = DB::table('tr_peminjaman')
+                ->join('mst_siswa', 'tr_peminjaman.id_siswa_tetap', '=', 'mst_siswa.id_siswa_tetap')
+                ->join('cp_koleksi', 'tr_peminjaman.id_cp_koleksi', '=', 'cp_koleksi.id_cp_koleksi')
+                ->join('mst_koleksi_buku', 'cp_koleksi.ISBN', '=', 'mst_koleksi_buku.ISBN')
+                ->select(
+                    'tr_peminjaman.*', 
+                    'mst_siswa.nama_siswa_tetap as nama_peminjam', 
+                    'mst_koleksi_buku.judul_koleksi as judul_buku' 
+                );
+
+            // Filter Status (Aktif / Selesai)
+            if ($request->status && $request->status !== 'Semua') {
+                $query->where('tr_peminjaman.status_peminjaman', $request->status);
+            }
+
+            return response()->json($query->orderBy('tgl_peminjaman', 'desc')->get());
+            
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
+
+
+    // =================================================================
+    // 2. FUNGSI UNTUK MENYIMPAN TRANSAKSI BARU (DARI SCAN BARCODE)
+    // =================================================================
+    public function store(Request $request)
     {
         $request->validate([
             'id_cp_koleksi' => 'required', // Ini menerima ISBN 
