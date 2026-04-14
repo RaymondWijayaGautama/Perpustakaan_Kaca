@@ -85,6 +85,13 @@ class DashboardController extends Controller
 
     public function getBuku(Request $request)
     {
+        $allowedSortFields = [
+            'judul_koleksi' => 'mst_koleksi_buku.judul_koleksi',
+            'pengarang' => 'mst_koleksi_buku.pengarang',
+            'tahun' => 'mst_koleksi_buku.tahun',
+            'kategori' => 'ref_koleksi.deskripsi',
+        ];
+
         $query = DB::table('mst_koleksi_buku')
             ->join('ref_koleksi', 'mst_koleksi_buku.id_ref_koleksi', '=', 'ref_koleksi.id_ref_koleksi')
             ->where('mst_koleksi_buku.is_delete', 0)
@@ -102,7 +109,7 @@ class DashboardController extends Controller
                 'ref_koleksi.deskripsi as kategori'
             );
 
-        if ($request->has('search')) {
+        if ($request->filled('search')) {
             $query->where(function($q) use ($request) {
                 $q->where('mst_koleksi_buku.judul_koleksi', 'like', '%' . $request->search . '%')
                   ->orWhere('mst_koleksi_buku.pengarang', 'like', '%' . $request->search . '%');
@@ -110,15 +117,21 @@ class DashboardController extends Controller
         }
 
         if ($request->filled('kategori')) {
-            $query->where('ref_koleksi.deskripsi', $request->kategori);
+            $query->where(function ($q) use ($request) {
+                $q->where('ref_koleksi.deskripsi', $request->kategori)
+                  ->orWhere('mst_koleksi_buku.id_ref_koleksi', $request->kategori);
+            });
         }
 
         $sortBy = $request->get('sort_by', 'judul_koleksi');
-        $sortOrder = $request->get('sort_order', 'asc');
-        $query->orderBy($sortBy, $sortOrder);
+        $sortOrder = strtolower((string) $request->get('sort_order', 'asc')) === 'desc' ? 'desc' : 'asc';
+        $sortColumn = $allowedSortFields[$sortBy] ?? $allowedSortFields['judul_koleksi'];
+        $query->orderBy($sortColumn, $sortOrder);
 
-        // Menggunakan default 10 data per halaman
-        return response()->json($query->paginate($request->get('per_page', 10)));
+        $perPage = (int) $request->get('per_page', 10);
+        $perPage = max(1, min($perPage, 50));
+
+        return response()->json($query->paginate($perPage));
     }
 
     public function getKategoriBuku()
@@ -211,6 +224,70 @@ class DashboardController extends Controller
         return response()->json([
             'message' => 'Koleksi buku berhasil diperbarui.',
             'data' => $updatedBook,
+        ]);
+    }
+
+    public function destroyBuku(Request $request, string $isbn)
+    {
+        $validator = validator($request->all(), [
+            'editor_nip_karyawan' => ['required', 'string', 'max:20'],
+        ], [
+            'editor_nip_karyawan.required' => 'Identitas pustakawan wajib dikirim.',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'message' => 'Validasi data gagal.',
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
+        $pustakawan = DB::table('mst_karyawan')
+            ->where('nip_karyawan', $request->editor_nip_karyawan)
+            ->where('is_delete', 0)
+            ->first();
+
+        if (!$pustakawan || strtolower((string) $pustakawan->jabatan_fungsional) !== 'pustakawan') {
+            return response()->json([
+                'message' => 'Hanya pustakawan yang dapat menghapus koleksi buku.',
+            ], 403);
+        }
+
+        $buku = DB::table('mst_koleksi_buku')
+            ->where('ISBN', $isbn)
+            ->where('is_delete', 0)
+            ->first();
+
+        if (!$buku) {
+            return response()->json([
+                'message' => 'Data buku tidak ditemukan.',
+            ], 404);
+        }
+
+        $sedangDipinjam = DB::table('cp_koleksi')
+            ->join('tr_peminjaman', 'cp_koleksi.id_cp_koleksi', '=', 'tr_peminjaman.id_cp_koleksi')
+            ->where('cp_koleksi.ISBN', $isbn)
+            ->whereNull('tr_peminjaman.tgl_kembali')
+            ->exists();
+
+        if ($sedangDipinjam) {
+            return response()->json([
+                'message' => 'Buku tidak bisa dihapus karena sedang dipinjam.',
+            ], 409);
+        }
+
+        DB::table('mst_koleksi_buku')
+            ->where('ISBN', $isbn)
+            ->update([
+                'is_delete' => 1,
+            ]);
+
+        DB::table('cp_koleksi')
+            ->where('ISBN', $isbn)
+            ->delete();
+
+        return response()->json([
+            'message' => 'Koleksi buku berhasil dihapus.',
         ]);
     }
 }
