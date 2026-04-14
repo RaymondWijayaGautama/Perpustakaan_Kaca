@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import ManajemenBukuPanel from './ManajemenBukuPanel';
 import PengembalianPanel from './PengembalianPanel';
+import PeminjamanPanel from './PeminjamanPanel';
 
 const AdminPanel = ({ user, onLogout }) => {
     const [activeTab, setActiveTab] = useState('dashboard');
@@ -77,6 +78,7 @@ const AdminPanel = ({ user, onLogout }) => {
                     <div onClick={() => { setActiveTab('anggota'); setAnggotaPage(1); }} className={`p-3 rounded cursor-pointer transition-all ${activeTab === 'anggota' ? 'bg-white/20 font-bold border-l-4 border-white' : 'hover:bg-white/10'}`}>Data Anggota</div>
                     <div onClick={() => { setActiveTab('laporan'); setLaporanPage(1); }} className={`p-3 rounded cursor-pointer transition-all ${activeTab === 'laporan' ? 'bg-white/20 font-bold border-l-4 border-white' : 'hover:bg-white/10'}`}>Laporan PKL</div>
                     <div onClick={() => setActiveTab('pengembalian')} className={`p-3 rounded cursor-pointer transition-all ${activeTab === 'pengembalian' ? 'bg-white/20 font-bold border-l-4 border-white' : 'hover:bg-white/10'}`}>Pengembalian</div>
+                    <div onClick={() => setActiveTab('peminjaman')} className={`p-3 rounded cursor-pointer transition-all ${activeTab === 'peminjaman' ? 'bg-white/20 font-bold border-l-4 border-white' : 'hover:bg-white/10'}`}>Peminjaman Buku</div>
                 </nav>
                 <button onClick={onLogout} className="mt-auto p-2 text-red-200 font-bold hover:text-white transition-colors text-left">Keluar Sistem</button>
             </aside>
@@ -196,6 +198,7 @@ const AdminPanel = ({ user, onLogout }) => {
                 )}
 
                 {activeTab === 'pengembalian' && <PengembalianPanel user={user} />}
+                {activeTab === 'peminjaman' && <PeminjamanPanel user={user} />}
 
             </main>
         </div>
