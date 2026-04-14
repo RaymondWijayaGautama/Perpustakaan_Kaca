@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useDeferredValue, useEffect, useState } from 'react';
 import axios from 'axios';
 
 const API_BASE_URL = 'http://localhost:8000/api';
@@ -27,6 +27,7 @@ const MemberPanel = ({ user, onLogout }) => {
   const [pagination, setPagination] = useState({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const deferredSearch = useDeferredValue(search);
 
   useEffect(() => {
     const fetchKategori = async () => {
@@ -47,7 +48,7 @@ const MemberPanel = ({ user, onLogout }) => {
       setError('');
 
       try {
-        const res = await fetchBooksRequest({ search, sortBy, sortOrder, kategori, page });
+        const res = await fetchBooksRequest({ search: deferredSearch, sortBy, sortOrder, kategori, page });
         setBooks(res.data.data);
         setPagination(res.data);
       } catch (err) {
@@ -59,7 +60,7 @@ const MemberPanel = ({ user, onLogout }) => {
     };
 
     fetchBooks();
-  }, [search, sortBy, sortOrder, kategori, page]);
+  }, [deferredSearch, sortBy, sortOrder, kategori, page]);
 
   const displayName = user.nama_siswa_tetap || user.nama_karyawan;
   const displayRole = user.nama_siswa_tetap ? 'Pemustaka Siswa' : 'Pemustaka Karyawan';
@@ -90,6 +91,11 @@ const MemberPanel = ({ user, onLogout }) => {
               <p className="text-[#585858] leading-7">
                 Data koleksi diambil langsung dari database dan dapat difilter berdasarkan judul, penulis, kategori, serta diurutkan sesuai kebutuhan.
               </p>
+              {search && (
+                <p className="text-sm text-[#265F9C] mt-3">
+                  Menampilkan hasil pencarian untuk keyword <span className="font-bold">{search}</span>.
+                </p>
+              )}
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3 w-full lg:max-w-4xl">
               <input
