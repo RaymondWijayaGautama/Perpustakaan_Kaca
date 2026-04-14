@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class Kunjungan extends Model
 {
-    protected $table = 'tr_kunjungan_perpus'; 
-    protected $primaryKey = 'id_kunjungan_perpus'; 
+    protected $table = 'tr_kunjungan_perpus';
+    protected $primaryKey = 'id_kunjungan';
     public $timestamps = false;
 }

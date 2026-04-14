@@ -204,4 +204,39 @@ class LaporanController extends Controller
 
     return $pdf->download('Laporan_Jumlah_Kunjungan_Perpus.pdf');
 }
+
+   public function peminjamanBulanan()
+{
+    $tahun = date('Y');
+
+    $laporanPeminjaman = \App\Models\Peminjaman::select(
+            DB::raw('MONTHNAME(tgl_peminjaman) as bulan'),
+            DB::raw('MONTH(tgl_peminjaman) as urutan_bulan'),
+            DB::raw('COUNT(*) as total_peminjaman')
+        )
+        ->whereYear('tgl_peminjaman', $tahun)
+        ->groupBy('bulan', 'urutan_bulan')
+        ->orderBy('urutan_bulan', 'asc')
+        ->get();
+
+    return view('laporan.peminjaman_bulanan', compact('laporanPeminjaman', 'tahun'));
+}
+
+public function exportPdfPeminjaman()
+{
+    $tahun = date('Y');
+
+    $laporanPeminjaman = \App\Models\Peminjaman::select(
+            DB::raw('MONTHNAME(tgl_peminjaman) as bulan'),
+            DB::raw('MONTH(tgl_peminjaman) as urutan_bulan'),
+            DB::raw('COUNT(*) as total_peminjaman')
+        )
+        ->whereYear('tgl_peminjaman', $tahun)
+        ->groupBy('bulan', 'urutan_bulan')
+        ->orderBy('urutan_bulan', 'asc')
+        ->get();
+
+    $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('laporan.peminjaman_bulanan_pdf', compact('laporanPeminjaman', 'tahun'));
+    return $pdf->download('Laporan_Peminjaman_Bulanan_'.$tahun.'.pdf');
+}
 }
