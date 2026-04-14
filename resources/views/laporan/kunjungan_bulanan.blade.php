@@ -8,7 +8,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         .card-header {
-            background-color: #4e73df; /* Biru Primary ala Siswa Terajin */
+            background-color: #4e73df;
             border-bottom: none;
         }
         .table thead {

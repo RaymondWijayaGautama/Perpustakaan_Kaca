@@ -173,7 +173,7 @@ class LaporanController extends Controller
 
     public function kunjunganBulanan()
     {
-        
+        $tahun = date('Y');
         $laporanKunjungan = \App\Models\Kunjungan::select(
                 DB::raw('MONTHNAME(start_kunjungan) as bulan'),
                 DB::raw('MONTH(start_kunjungan) as urutan_bulan'),
