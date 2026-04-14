@@ -6,12 +6,10 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Log;
 
 class PeminjamanController extends Controller
 {
-    // =================================================================
-    // 1. FUNGSI UNTUK MENAMPILKAN DATA DI TABEL RIWAYAT
-    // =================================================================
     public function index(Request $request)
     {
         try {
@@ -37,10 +35,6 @@ class PeminjamanController extends Controller
         }
     }
 
-
-    // =================================================================
-    // 2. FUNGSI UNTUK MENYIMPAN TRANSAKSI BARU (DARI SCAN BARCODE)
-    // =================================================================
     public function store(Request $request)
     {
         $request->validate([
@@ -49,28 +43,21 @@ class PeminjamanController extends Controller
         ]);
 
         $input_isbn = $request->id_cp_koleksi;
-
         // CARI BUKU BERDASARKAN ISBN
         $bukuTersedia = DB::table('cp_koleksi')
             ->where('ISBN', $input_isbn)
             ->where('status_buku', 'Tersedia')
             ->first();
-
         if (!$bukuTersedia) {
             return response()->json(['message' => "Gagal: Buku dengan ISBN $input_isbn tidak ditemukan atau stok sedang kosong/dipinjam semua!"], 404);
         }
-
         $id_koleksi_asli = $bukuTersedia->id_cp_koleksi; 
-
         // CARI SISWA BERDASARKAN NISN
         $siswa = DB::table('mst_siswa')->where('nisn_siswa', $request->id_siswa_tetap)->first();
-        
         if (!$siswa) {
             return response()->json(['message' => 'Gagal: Siswa dengan NISN tersebut tidak ditemukan!'], 404);
         }
-        
         $id_siswa_asli = $siswa->id_siswa_tetap; 
-
         try {
             DB::beginTransaction();
 
@@ -92,10 +79,79 @@ class PeminjamanController extends Controller
 
             DB::commit();
             return response()->json(['message' => 'Peminjaman berhasil dicatat!'], 201);
+        } catch (\Exception $e) {
+            
+            DB::rollBack();
+            return response()->json(['message' => 'Gagal: ' . $e->getMessage()], 500);
+        }
+    }
+
+    public function update(Request $request, $id)
+    {
+        $request->validate([
+            'status_peminjaman' => 'required',
+            'kondisi_buku' => 'required',
+        ]);
+
+        try {
+            DB::beginTransaction();
+
+            $peminjamanLama = DB::table('tr_peminjaman')->where('id_peminjaman', $id)->first();
+            if (!$peminjamanLama) {
+                return response()->json(['message' => 'Data tidak ditemukan'], 404);
+            }
+
+            DB::table('tr_peminjaman')
+                ->where('id_peminjaman', $id)
+                ->update([
+                    'status_peminjaman' => $request->status_peminjaman,
+                    'kondisi_buku'      => $request->kondisi_buku,
+                    'keterangan_peminjaman' => $request->keterangan ?? '-',
+                    'updated_at'        => now()
+                ]);
+
+            if ($request->status_peminjaman === 'Kembali') {
+                DB::table('cp_koleksi')
+                    ->where('id_cp_koleksi', $peminjamanLama->id_cp_koleksi)
+                    ->update(['status_buku' => 'Tersedia']);
+            }
+
+            DB::commit();
+            return response()->json(['message' => 'Data peminjaman berhasil diperbarui!']);
 
         } catch (\Exception $e) {
             DB::rollBack();
-            return response()->json(['message' => 'Gagal: ' . $e->getMessage()], 500);
+            return response()->json(['message' => 'Gagal update: ' . $e->getMessage()], 500);
+        }
+    }
+
+    public function destroy($id)
+    {
+        try {
+            DB::beginTransaction();
+            $peminjaman = DB::table('tr_peminjaman')->where('id_peminjaman', $id)->first();
+            if (!$peminjaman) {
+                return response()->json(['message' => 'Data tidak ditemukan'], 404);
+            }
+
+            DB::table('tr_peminjaman')
+                ->where('id_peminjaman', $id)
+                ->update([
+                    'status_peminjaman' => 'Dihapus', 
+                    'updated_at' => now()
+                ]);
+
+            if ($peminjaman->status_peminjaman === 'Dipinjam') {
+                DB::table('cp_koleksi')
+                    ->where('id_cp_koleksi', $peminjaman->id_cp_koleksi)
+                    ->update(['status_buku' => 'Tersedia']);
+            }
+            DB::commit();
+            return response()->json(['message' => 'Data transaksi berhasil diarsipkan (Soft Delete)!']);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json(['message' => 'Gagal menghapus: ' . $e->getMessage()], 500);
         }
     }
 }

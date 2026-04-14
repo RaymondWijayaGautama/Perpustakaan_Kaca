@@ -24,6 +24,44 @@ const RiwayatPinjamPanel = () => {
         fetchData();
     }, [fetchData]);
 
+    const handleUpdate = async (id, statusLama) => {
+        const statusBaru = statusLama === 'Dipinjam' ? 'Kembali' : 'Dipinjam';
+        const confirmMsg = `Ubah status transaksi ID #${id} menjadi "${statusBaru}"?`;
+
+        if (window.confirm(confirmMsg)) {
+            try {
+                setLoading(true);
+                await axios.put(`http://localhost:8000/api/peminjaman/${id}`, {
+                    status_peminjaman: statusBaru,
+                    kondisi_buku: 'Baik' 
+                });
+                alert("Data berhasil diupdate!");
+                fetchData(); 
+            } catch (error) {
+                alert("Gagal update data!");
+                console.error(error);
+            } finally {
+                setLoading(false);
+            }
+        }
+    };
+
+    const handleDelete = async (id) => {
+        if (window.confirm("Apakah anda yakin ingin menghapus (mengarsipkan) data ini?")) {
+            try {
+                setLoading(true);
+                await axios.delete(`http://localhost:8000/api/peminjaman/${id}`);
+                alert("Data berhasil dihapus dari daftar aktif!");
+                fetchData(); // Refresh tabel
+            } catch (error) {
+                alert("Gagal menghapus data!");
+                console.error(error);
+            } finally {
+                setLoading(false);
+            }
+        }
+    };
+
     return (
         <div className="bg-white rounded-2xl shadow-sm p-8 border border-gray-100 text-[#1A1A1A] relative">
             {loading && (
@@ -35,7 +73,7 @@ const RiwayatPinjamPanel = () => {
             <div className="flex justify-between items-center mb-8">
                 <div>
                     <h1 className="text-2xl font-bold font-montserrat">Daftar Peminjaman</h1>
-                    <p className="text-sm text-gray-500">Data keluar masuk buku </p>
+                    <p className="text-sm text-gray-500">Data keluar masuk buku (Raymond Mode)</p>
                 </div>
                 
                 <select 
@@ -57,6 +95,7 @@ const RiwayatPinjamPanel = () => {
                             <th className="p-4">Judul Buku</th>
                             <th className="p-4">Tgl Pinjam</th>
                             <th className="p-4 text-center">Status</th>
+                            <th className="p-4 text-center">Aksi</th> 
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100">
@@ -64,7 +103,7 @@ const RiwayatPinjamPanel = () => {
                             <tr key={i} className="text-sm hover:bg-blue-50/30 transition-colors">
                                 <td className="p-4 font-bold">{item.nama_peminjam}</td>
                                 <td className="p-4 text-[#265F9C] font-medium">{item.judul_buku}</td>
-                                <td className="p-4 font-mono text-xs">{item.tgl_pinjam}</td>
+                                <td className="p-4 font-mono text-xs">{item.tgl_peminjaman}</td>
                                 <td className="p-4 text-center">
                                     <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase ${
                                         item.status_peminjaman === 'Dipinjam' 
@@ -73,6 +112,21 @@ const RiwayatPinjamPanel = () => {
                                     }`}>
                                         {item.status_peminjaman}
                                     </span>
+                                </td>
+                                <td className="p-4 text-center">
+                                    <button 
+                                        onClick={() => handleUpdate(item.id_peminjaman, item.status_peminjaman)}
+                                        className="bg-white border border-gray-200 hover:border-[#265F9C] hover:text-[#265F9C] px-3 py-1 rounded-lg text-[10px] font-bold transition-all"
+                                    >
+                                        EDIT
+                                    </button>
+
+                                    <button 
+                                        onClick={() => handleDelete(item.id_peminjaman)}
+                                        className="ml-2 bg-red-50 text-red-600 border border-red-100 hover:bg-red-600 hover:text-white px-3 py-1 rounded-lg text-[10px] font-bold transition-all"
+                                    >
+                                        HAPUS
+                                    </button>
                                 </td>
                             </tr>
                         ))}
