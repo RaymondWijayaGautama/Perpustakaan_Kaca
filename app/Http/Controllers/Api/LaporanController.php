@@ -170,4 +170,38 @@ class LaporanController extends Controller
     // Lempar sebagai HTML murni
     return view('laporan.pdf_siswa_terajin', $data);
     }
+
+    public function kunjunganBulanan()
+    {
+        $tahun = date('Y');
+        $laporanKunjungan = \App\Models\Kunjungan::select(
+                DB::raw('MONTHNAME(start_kunjungan) as bulan'),
+                DB::raw('MONTH(start_kunjungan) as urutan_bulan'),
+                DB::raw('COUNT(*) as total_kunjungan')
+            )
+            ->groupBy('bulan', 'urutan_bulan')
+            ->orderBy('urutan_bulan', 'asc')
+            ->get();
+
+        return view('laporan.kunjungan_bulanan', compact('laporanKunjungan'));
+    }
+    
+    public function exportPdfKunjungan()
+{
+    $laporanKunjungan = \App\Models\Kunjungan::select(
+            DB::raw('MONTHNAME(start_kunjungan) as bulan'),
+            DB::raw('MONTH(start_kunjungan) as urutan_bulan'),
+            DB::raw('COUNT(*) as total_kunjungan')
+        )
+        ->groupBy('bulan', 'urutan_bulan')
+        ->orderBy('urutan_bulan', 'asc')
+        ->get();
+
+    $pdf = Pdf::loadView('laporan.kunjungan_bulanan_pdf', compact('laporanKunjungan'));
+    
+    // Set kertas A4
+    $pdf->setPaper('a4', 'portrait');
+
+    return $pdf->download('Laporan_Jumlah_Kunjungan_Perpus.pdf');
+}
 }
