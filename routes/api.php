@@ -18,6 +18,7 @@ Route::post('/login', [AuthController::class, 'login']);
 Route::get('/dashboard/stats', [DashboardController::class, 'getStats']);
 Route::get('/anggota', [DashboardController::class, 'getAnggota']);
 Route::get('/buku', [DashboardController::class, 'getBuku']);
+Route::get('/pengembalian', [DashboardController::class, 'getPengembalian']);
 
 Route::get('/user', function (Request $request) {
     return $request->user();

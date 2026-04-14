@@ -1,6 +1,7 @@
-    import React, { useState, useEffect } from 'react';
-    import axios from 'axios';
-    import ManajemenBuku from './ManajemenBuku';
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
+import ManajemenBuku from './ManajemenBuku';
+import PengembalianPanel from './PengembalianPanel';
 
     const AdminPanel = ({ user, onLogout }) => {
         const [activeTab, setActiveTab] = useState('dashboard');
@@ -86,6 +87,19 @@
                     </nav>
                     <button onClick={onLogout} className="mt-auto p-2 text-red-200 font-bold hover:text-white transition-colors text-left">Keluar Sistem</button>
                 </aside>
+    return (
+        <div className="min-h-screen bg-[#F6F7F9] flex font-roboto text-[#1A1A1A]">
+            <aside className="w-64 bg-[#265F9C] text-white p-6 flex flex-col shadow-xl print:hidden">
+                <h2 className="font-montserrat font-bold text-xl mb-10 tracking-tight text-center uppercase">Kaca Admin</h2>
+                <nav className="flex-1 space-y-2">
+                    <div onClick={() => setActiveTab('dashboard')} className={`p-3 rounded cursor-pointer transition-all ${activeTab === 'dashboard' ? 'bg-white/20 font-bold border-l-4 border-white' : 'hover:bg-white/10'}`}>Dashboard</div>
+                    <div onClick={() => { setActiveTab('buku'); setBookPage(1); }} className={`p-3 rounded cursor-pointer transition-all ${activeTab === 'buku' ? 'bg-white/20 font-bold border-l-4 border-white' : 'hover:bg-white/10'}`}>Manajemen Buku</div>
+                    <div onClick={() => { setActiveTab('anggota'); setAnggotaPage(1); }} className={`p-3 rounded cursor-pointer transition-all ${activeTab === 'anggota' ? 'bg-white/20 font-bold border-l-4 border-white' : 'hover:bg-white/10'}`}>Data Anggota</div>
+                    <div onClick={() => { setActiveTab('laporan'); setLaporanPage(1); }} className={`p-3 rounded cursor-pointer transition-all ${activeTab === 'laporan' ? 'bg-white/20 font-bold border-l-4 border-white' : 'hover:bg-white/10'}`}>Laporan PKL</div>
+                    <div onClick={() => setActiveTab('pengembalian')} className={`p-3 rounded cursor-pointer transition-all ${activeTab === 'pengembalian' ? 'bg-white/20 font-bold border-l-4 border-white' : 'hover:bg-white/10'}`}>Pengembalian</div>
+                </nav>
+                <button onClick={onLogout} className="mt-auto p-2 text-red-200 font-bold hover:text-white transition-colors text-left">Keluar Sistem</button>
+            </aside>
 
                 <main className="flex-1 p-10 overflow-y-auto print:p-0">
                     {activeTab === 'dashboard' && (
@@ -202,5 +216,45 @@
             </div>
         );
     };
+                        <div className="hidden print:block text-center mb-8 border-b-4 border-double border-black pb-4">
+                            <h1 className="text-2xl font-bold uppercase font-montserrat tracking-widest">Laporan Arsip PKL Perpustakaan</h1>
+                            <p className="text-sm mt-1 font-roboto">Dicetak pada: {new Date().toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
+                        </div>
+                        <table className="w-full text-left">
+                            <thead className="bg-gray-50 uppercase text-[10px] font-bold text-[#585858] border-b">
+                                <tr>
+                                    <th className="p-4 w-16 text-center">No</th>
+                                    <th className="p-4">Judul Laporan PKL</th>
+                                    <th className="p-4">Penulis (Siswa)</th>
+                                    <th className="p-4 text-center">Tahun</th>
+                                </tr>
+                            </thead>
+                            <tbody className="font-roboto">
+                                {dataLaporan.map((l, i) => (
+                                    <tr key={i} className="border-b text-sm hover:bg-gray-50 transition-colors">
+                                        <td className="p-4 text-center text-[#7D7D7E]">{(laporanPage-1)*10+i+1}</td>
+                                        <td className="p-4 font-bold text-[#265F9C] leading-relaxed">{l.judul_koleksi}</td>
+                                        <td className="p-4 font-medium text-[#1A1A1A]">{l.nama_siswa_tetap}</td>
+                                        <td className="p-4 text-center font-mono text-[#585858]">{l.tahun}</td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                        <div className="mt-8 flex justify-between items-center bg-gray-50 p-4 rounded-xl print:hidden">
+                            <button disabled={laporanPage === 1} onClick={() => setLaporanPage(laporanPage-1)} className="px-5 py-2 bg-white border rounded-lg disabled:opacity-50 text-xs font-bold shadow-sm">Prev</button>
+                            <span className="text-xs font-bold text-[#585858] uppercase">Halaman {laporanPage} / {laporanPagination.last_page || 1}</span>
+                            <button disabled={laporanPage === laporanPagination.last_page} onClick={() => setLaporanPage(laporanPage+1)} className="px-5 py-2 bg-white border rounded-lg disabled:opacity-50 text-xs font-bold shadow-sm">Next</button>
+                        </div>
+                        <div className="mt-8 flex justify-end print:hidden">
+                            <button onClick={() => window.print()} className="px-8 py-3 bg-[#2E7D32] text-white rounded-xl text-xs font-bold hover:bg-[#1b5e20] transition-all shadow-md active:scale-95">Cetak Laporan</button>
+                        </div>
+                    </div>
+                )}
+                {activeTab === 'pengembalian' && <PengembalianPanel user={user} />}
+
+            </main>
+        </div>
+    );
+};
 
     export default AdminPanel;
