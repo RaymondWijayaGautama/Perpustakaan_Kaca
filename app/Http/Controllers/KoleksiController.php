@@ -37,7 +37,7 @@ class KoleksiController extends Controller
         <div class='flex flex-col items-center justify-center w-full pb-2 force-print-color'>
             
             <div class='bg-green-50 text-green-700 px-4 py-2 rounded-lg text-sm font-bold mb-5 w-full text-center border border-green-200 shadow-sm print:hidden'>
-                ✅ Buku Fisik Berhasil Didaftarkan
+                Buku Berhasil Didaftarkan
             </div>
             
             <div class='bg-white p-5 rounded-xl border border-gray-200 shadow-sm flex flex-col items-center w-max'>

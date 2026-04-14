@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 
 const ManajemenBuku = () => {
-    // --- STATE BUKU --- dipindah ke sini semua
     const [books, setBooks] = useState([]);
     const [bookSearch, setBookSearch] = useState('');
     const [bookSortBy, setBookSortBy] = useState('judul_koleksi');
@@ -12,8 +11,6 @@ const ManajemenBuku = () => {
     const [showModal, setShowModal] = useState(false);
     const [barcodeData, setBarcodeData] = useState(null);
     const [isGenerating, setIsGenerating] = useState(false);
-
-    // --- FUNGSI FETCH ---
     const fetchBooks = async () => {
         setLoading(true);
         try {
@@ -29,22 +26,16 @@ const ManajemenBuku = () => {
         }
     };
 
-    // Jalankan fetch setiap kali page atau urutan berubah
     useEffect(() => {
         fetchBooks();
     }, [bookPage, bookSortBy]);
 
-    // --- FUNGSI BARCODE ---
-// --- FUNGSI BARCODE (VERSI POPUP) ---
 const handleGenerateBarcode = async (buku) => {
-        // 👇 PERBAIKAN: Tangkap berbagai kemungkinan nama kolom dari database-mu
         const identifier = buku.ISBN || buku.isbn || buku.id_mst_koleksi; 
-
-        // 👇 PASANG SATPAM: Cegah error 500 kalau data ISBN ternyata beneran kosong
         if (!identifier) {
             alert("Waduh, data ISBN untuk buku ini tidak ditemukan!");
-            console.log("Data buku bermasalah:", buku); // Biar gampang di-track di console
-            return; // Batalkan proses, jangan tembak ke Laravel
+            console.log("Data buku bermasalah:", buku); 
+            return; 
         }
 
         setShowModal(true);      
@@ -53,8 +44,6 @@ const handleGenerateBarcode = async (buku) => {
 
         try {
             const response = await axios.post('http://localhost:8000/api/generate-barcode', {
-                // Walaupun ditariknya pakai huruf besar, kita tetap kirim ke Laravel 
-                // dengan nama 'isbn' huruf kecil, supaya cocok dengan $request->isbn punyamu
                 isbn: identifier 
             });
             
@@ -88,7 +77,6 @@ const handleGenerateBarcode = async (buku) => {
                         <option value="pengarang">Urut: Penulis</option>
                         <option value="tahun">Urut: Tahun</option>
                     </select>
-                    {/* Nanti tombol "Tambah Buku" bisa ditaruh di sini bos */}
                 </div>
             </div>
 
@@ -120,7 +108,7 @@ const handleGenerateBarcode = async (buku) => {
                                             onClick={() => handleGenerateBarcode(b)} 
                                             className="bg-[#265F9C] text-white text-[10px] px-3 py-1.5 rounded shadow hover:bg-blue-700 transition-colors"
                                         >
-                                            🖨️ Barcode
+                                            Cetak Barcode
                                         </button>
                                     </td>
                                 </tr>
@@ -148,7 +136,7 @@ const handleGenerateBarcode = async (buku) => {
                             {isGenerating ? (
                                 <div className="text-gray-500 flex flex-col items-center">
                                     <span className="text-4xl animate-bounce mb-2">⏳</span>
-                                    <p className="text-sm font-medium animate-pulse">Merakit Barcode...</p>
+                                    <p className="text-sm font-medium animate-pulse">Membuat Barcode...</p>
                                 </div>
                             ) : (
                                 <div dangerouslySetInnerHTML={{ __html: barcodeData }} />
@@ -160,7 +148,7 @@ const handleGenerateBarcode = async (buku) => {
                                 Tutup
                             </button>
                             <button onClick={() => window.print()} disabled={isGenerating} className="px-5 py-2 bg-[#2E7D32] text-white rounded-xl text-sm font-bold hover:bg-[#1b5e20] shadow-md transition-all disabled:opacity-50">
-                                🖨️ Print Sekarang
+                                Print Sekarang
                             </button>
                         </div>
                     </div>
