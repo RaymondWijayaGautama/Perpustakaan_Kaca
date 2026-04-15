@@ -8,11 +8,15 @@ use Picqer\Barcode\BarcodeGeneratorHTML;
 
 class KoleksiController extends Controller
 {
+<<<<<<< Updated upstream
     public function index()
     {
         return view('tambah_barcode'); 
     }
     public function generate(Request $request)
+=======
+public function generate(Request $request)
+>>>>>>> Stashed changes
     {
         $koleksiBaru = CpKoleksi::create([
             'status_buku' => 'Tersedia', 
@@ -20,9 +24,15 @@ class KoleksiController extends Controller
             'id_mst_laporan' => 1 
         ]);
         $kodeSistemUnik = $koleksiBaru->ISBN . '-' . $koleksiBaru->id_cp_koleksi;
+<<<<<<< Updated upstream
         $generator = new BarcodeGeneratorHTML();
         $gambarBarcode = $generator->getBarcode($kodeSistemUnik, $generator::TYPE_CODE_128, 2, 50, 'black');
 
+=======
+        // Generate Barcode pakai Kode Unik tersebut
+        $generator = new BarcodeGeneratorHTML();
+        $gambarBarcode = $generator->getBarcode($kodeSistemUnik, $generator::TYPE_CODE_128, 2, 60, 'black');
+>>>>>>> Stashed changes
         return "
         <style>
             @media print {
@@ -45,9 +55,19 @@ class KoleksiController extends Controller
                 <p class='tracking-[0.15em] font-mono text-[#1A1A1A] font-bold mt-3 text-sm'>{$kodeSistemUnik}</p>
             </div>
             
+<<<<<<< Updated upstream
             <p class='text-[10px] text-gray-400 mt-5 uppercase tracking-wider font-bold print:hidden'>
                 Tersimpan dengan ID Data: <span class='text-gray-600'>{$koleksiBaru->id_cp_koleksi}</span>
             </p>
+=======
+            <p style='font-family: monospace; letter-spacing: 4px; font-weight: bold; font-size: 15px; color: #1a1a1a; margin-top: 0; margin-bottom: 20px;'>
+                {$kodeSistemUnik}
+            </p>
+            
+            <div style='margin-top: 10px; border-top: 1px dashed #d1d5db; width: 100%; padding-top: 15px; font-size: 10px; color: #6b7280; text-transform: uppercase; font-weight: bold; letter-spacing: 1px; text-align: center;'>
+                Tersimpan dengan ID Fisik: <span style='color: #1f2937;'>{$koleksiBaru->id_cp_koleksi}</span>
+            </div>
+>>>>>>> Stashed changes
         </div>
         ";
     }
