@@ -23,7 +23,6 @@ class PeminjamanController extends Controller
                     'mst_koleksi_buku.judul_koleksi as judul_buku' 
                 );
 
-            // Filter Status (Aktif / Selesai)
             if ($request->status && $request->status !== 'Semua') {
                 $query->where('tr_peminjaman.status_peminjaman', $request->status);
             }
@@ -37,52 +36,61 @@ class PeminjamanController extends Controller
 
     public function store(Request $request)
     {
-        $request->validate([
-            'id_cp_koleksi' => 'required', // Ini menerima ISBN 
-            'id_siswa_tetap' => 'required', // Ini menerima NISN
-        ]);
-
-        $input_isbn = $request->id_cp_koleksi;
-        // CARI BUKU BERDASARKAN ISBN
-        $bukuTersedia = DB::table('cp_koleksi')
-            ->where('ISBN', $input_isbn)
-            ->where('status_buku', 'Tersedia')
+        $hasil_scan = trim($request->isbn); 
+        $pecah = explode('-', $hasil_scan);
+        if (count($pecah) < 2) {
+            return response()->json(['message' => 'Gagal Format salah ! Harus mengandung ID fisik.'], 400);
+        }
+        
+        $id_fisik = array_pop($pecah);      
+        $isbn_murni = implode('-', $pecah); 
+        $bukuFisik = DB::table('cp_koleksi')
+            ->where('id_cp_koleksi', $id_fisik)
+            ->where('ISBN', $isbn_murni) 
             ->first();
-        if (!$bukuTersedia) {
-            return response()->json(['message' => "Gagal: Buku dengan ISBN $input_isbn tidak ditemukan atau stok sedang kosong/dipinjam semua!"], 404);
+            
+        if (!$bukuFisik) {
+            return response()->json([
+                'message' => "Gagal Buku ID '$id_fisik' & ISBN '$isbn_murni' tidak ada di database!"
+            ], 404);
         }
-        $id_koleksi_asli = $bukuTersedia->id_cp_koleksi; 
-        // CARI SISWA BERDASARKAN NISN
+
+        if ($bukuFisik->status_buku !== 'Tersedia') {
+            return response()->json([
+                'message' => "Gagal Buku ini sedang dipinjam"
+            ], 400);
+        }
+
         $siswa = DB::table('mst_siswa')->where('nisn_siswa', $request->id_siswa_tetap)->first();
+            
         if (!$siswa) {
-            return response()->json(['message' => 'Gagal: Siswa dengan NISN tersebut tidak ditemukan!'], 404);
+            return response()->json(['message' => 'Gagal: Siswa dengan NISN tersebut tidak terdaftar!'], 404);
         }
-        $id_siswa_asli = $siswa->id_siswa_tetap; 
+
         try {
             DB::beginTransaction();
-
             DB::table('tr_peminjaman')->insert([
-                'tgl_peminjaman'        => \Carbon\Carbon::now()->toDateString(),
-                'tgl_harus_kembali'     => \Carbon\Carbon::now()->addDays(7)->toDateString(),
+                'id_cp_koleksi'         => $bukuFisik->id_cp_koleksi,
+                'id_siswa_tetap'        => $siswa->id_siswa_tetap, 
+                'nip_karyawan'          => $request->nip_karyawan,
+                'tgl_peminjaman'        => now(),
+                'tgl_harus_kembali'     => now()->addDays(7), 
                 'status_peminjaman'     => 'Dipinjam',
-                'kondisi_buku'          => 'Baik',
-                'keterangan_peminjaman' => '-', 
-                'denda_peminjaman'      => 0,
-                'id_cp_koleksi'         => $id_koleksi_asli, 
-                'id_siswa_tetap'        => $id_siswa_asli,   
-                'nip_karyawan'          => $request->nip_karyawan ?? 'P001'
+                'kondisi_buku'          => 'Baik',  
+                'keterangan_peminjaman' => '-',   
+                'denda_peminjaman'      => 0        
             ]);
 
             DB::table('cp_koleksi')
-                ->where('id_cp_koleksi', $id_koleksi_asli)
+                ->where('id_cp_koleksi', $bukuFisik->id_cp_koleksi)
                 ->update(['status_buku' => 'Dipinjam']);
 
             DB::commit();
-            return response()->json(['message' => 'Peminjaman berhasil dicatat!'], 201);
+            return response()->json(['message' => 'Peminjaman berhasil dicatat!']);
+
         } catch (\Exception $e) {
-            
             DB::rollBack();
-            return response()->json(['message' => 'Gagal: ' . $e->getMessage()], 500);
+            return response()->json(['message' => 'Gagal sistem: ' . $e->getMessage()], 500);
         }
     }
 
@@ -104,10 +112,10 @@ class PeminjamanController extends Controller
             DB::table('tr_peminjaman')
                 ->where('id_peminjaman', $id)
                 ->update([
-                    'status_peminjaman' => $request->status_peminjaman,
-                    'kondisi_buku'      => $request->kondisi_buku,
+                    'status_peminjaman'     => $request->status_peminjaman,
+                    'kondisi_buku'          => $request->kondisi_buku,
                     'keterangan_peminjaman' => $request->keterangan ?? '-',
-                    'updated_at'        => now()
+                    'updated_at'            => now()
                 ]);
 
             if ($request->status_peminjaman === 'Kembali') {
@@ -138,7 +146,7 @@ class PeminjamanController extends Controller
                 ->where('id_peminjaman', $id)
                 ->update([
                     'status_peminjaman' => 'Dihapus', 
-                    'updated_at' => now()
+                    'updated_at'        => now()
                 ]);
 
             if ($peminjaman->status_peminjaman === 'Dipinjam') {
