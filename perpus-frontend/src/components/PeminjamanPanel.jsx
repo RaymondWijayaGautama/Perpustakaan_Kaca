@@ -13,7 +13,7 @@ const PeminjamanPanel = ({ user }) => {
 
         try {
             await axios.post("http://localhost:8000/api/peminjaman", {
-                id_cp_koleksi: idCpKoleksi,
+                isbn: idCpKoleksi,  
                 id_siswa_tetap: idSiswa,
                 nip_karyawan: user.nip_karyawan || "P001" 
             });
@@ -21,7 +21,7 @@ const PeminjamanPanel = ({ user }) => {
             setIdCpKoleksi("");
             setIdSiswa("");
         } catch (error) {
-            setMsg({ status: "error", text: error.response?.data?.message || "Gagal memproses. Cek ID Buku/Siswa." });
+            setMsg({ status: "error", text: error.response?.data?.message || "Gagal memproses." });
         }
     };
 
@@ -29,14 +29,10 @@ const PeminjamanPanel = ({ user }) => {
         const scanner = new Html5QrcodeScanner("reader", {
             fps: 10,
             qrbox: { width: 250, height: 150 },
-            
         });
 
         scanner.render((data) => {
-            const parts = data.split("-");
-            const idSaja = parts[parts.length - 1]; 
-            
-            setIdCpKoleksi(idSaja);
+            setIdCpKoleksi(data); 
             scanner.clear(); 
         }, () => {});
 

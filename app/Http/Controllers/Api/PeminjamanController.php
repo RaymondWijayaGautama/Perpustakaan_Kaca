@@ -40,7 +40,7 @@ class PeminjamanController extends Controller
         $hasil_scan = trim($request->isbn); 
         $pecah = explode('-', $hasil_scan);
         if (count($pecah) < 2) {
-            return response()->json(['message' => 'Gagal: Format Barcode salah! Harus mengandung ID fisik.'], 400);
+            return response()->json(['message' => 'Gagal Format Barcode salah ! Harus mengandung ID.'], 400);
         }
         
         $id_fisik = array_pop($pecah);      
@@ -51,17 +51,17 @@ class PeminjamanController extends Controller
             ->first();
             
         if (!$bukuFisik) {
-            return response()->json(['message' => "Gagal: Buku ID '$id_fisik' & ISBN '$isbn_murni' tidak ada di database!"], 404);
+            return response()->json(['message' => "Gagal Buku ID '$id_fisik' & ISBN '$isbn_murni' tidak ada di database!"], 404);
         }
 
         if ($bukuFisik->status_buku !== 'Tersedia') {
-            return response()->json(['message' => "Gagal: Buku fisik ini sedang tidak tersedia!"], 400);
+            return response()->json(['message' => "Gagal ! Buku ini sedang dipinjam !"], 400);
         }
 
-        $siswa = DB::table('mst_siswa')->where('GANTI_DENGAN_NAMA_KOLOM_NISN_YANG_BENAR', $request->id_siswa_tetap)->first();
+        $siswa = DB::table('mst_siswa')->where('nisn_siswa', $request->id_siswa_tetap)->first();
             
         if (!$siswa) {
-            return response()->json(['message' => 'Gagal: Siswa dengan NISN tersebut tidak terdaftar!'], 404);
+            return response()->json(['message' => 'Gagal Siswa dengan NISN tersebut tidak terdaftar!'], 404);
         }
 
         try {
@@ -153,11 +153,11 @@ class PeminjamanController extends Controller
                     ->update(['status_buku' => 'Tersedia']);
             }
             DB::commit();
-            return response()->json(['message' => 'Data transaksi berhasil diarsipkan (Soft Delete)!']);
+            return response()->json(['message' => 'Data transaksi berhasil diarsipkan !']);
 
         } catch (\Exception $e) {
             DB::rollBack();
-            return response()->json(['message' => 'Gagal menghapus: ' . $e->getMessage()], 500);
+            return response()->json(['message' => 'Gagal menghapus ' . $e->getMessage()], 500);
         }
     }
 }
