@@ -6,36 +6,37 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Log;
 
 class PeminjamanController extends Controller
 {
-   public function store(Request $request)
+    public function index(Request $request)
     {
-<<<<<<< Updated upstream
-        $request->validate([
-            'id_cp_koleksi' => 'required', // Ini menerima ISBN 
-            'id_siswa_tetap' => 'required', // Ini menerima NISN
-        ]);
+        try {
+            $query = DB::table('tr_peminjaman')
+                ->join('mst_siswa', 'tr_peminjaman.id_siswa_tetap', '=', 'mst_siswa.id_siswa_tetap')
+                ->join('cp_koleksi', 'tr_peminjaman.id_cp_koleksi', '=', 'cp_koleksi.id_cp_koleksi')
+                ->join('mst_koleksi_buku', 'cp_koleksi.ISBN', '=', 'mst_koleksi_buku.ISBN')
+                ->select(
+                    'tr_peminjaman.*', 
+                    'mst_siswa.nama_siswa_tetap as nama_peminjam', 
+                    'mst_koleksi_buku.judul_koleksi as judul_buku' 
+                );
 
-        $input_isbn = $request->id_cp_koleksi;
+            if ($request->status && $request->status !== 'Semua') {
+                $query->where('tr_peminjaman.status_peminjaman', $request->status);
+            }
 
-        // CARI BUKU BERDASARKAN ISBN
-        $bukuTersedia = DB::table('cp_koleksi')
-            ->where('ISBN', $input_isbn)
-            ->where('status_buku', 'Tersedia')
-            ->first();
-
-        if (!$bukuTersedia) {
-            return response()->json(['message' => "Gagal: Buku dengan ISBN $input_isbn tidak ditemukan atau stok sedang kosong/dipinjam semua!"], 404);
+            return response()->json($query->orderBy('tgl_peminjaman', 'desc')->get());
+            
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
         }
+    }
 
-        $id_koleksi_asli = $bukuTersedia->id_cp_koleksi; 
+    public function store(Request $request)
+    {
 
-        // CARI SISWA BERDASARKAN NISN
-        $siswa = DB::table('mst_siswa')->where('nisn_siswa', $request->id_siswa_tetap)->first();
-        
-=======
-        // 1. TANGKAP & PISAHKAN BARCODE
         $hasil_scan = trim($request->isbn); 
         $pecah = explode('-', $hasil_scan);
         if (count($pecah) < 2) {
@@ -44,39 +45,28 @@ class PeminjamanController extends Controller
         
         $id_fisik = array_pop($pecah);      
         $isbn_murni = implode('-', $pecah); 
-        
-        // 2. CEK BUKU DI DATABASE
         $bukuFisik = DB::table('cp_koleksi')
             ->where('id_cp_koleksi', $id_fisik)
             ->where('ISBN', $isbn_murni) 
             ->first();
             
         if (!$bukuFisik) {
-            return response()->json([
-                'message' => "Gagal: Buku ID '$id_fisik' & ISBN '$isbn_murni' tidak ada di database!"
-            ], 404);
+            return response()->json(['message' => "Gagal: Buku ID '$id_fisik' & ISBN '$isbn_murni' tidak ada di database!"], 404);
         }
 
         if ($bukuFisik->status_buku !== 'Tersedia') {
-            return response()->json([
-                'message' => "Gagal: Buku fisik ini sedang tidak tersedia!"
-            ], 400);
+            return response()->json(['message' => "Gagal: Buku fisik ini sedang tidak tersedia!"], 400);
         }
 
-        $siswa = DB::table('mst_siswa')->where('nisn_siswa', $request->id_siswa_tetap)->first();
+        $siswa = DB::table('mst_siswa')->where('GANTI_DENGAN_NAMA_KOLOM_NISN_YANG_BENAR', $request->id_siswa_tetap)->first();
             
->>>>>>> Stashed changes
         if (!$siswa) {
             return response()->json(['message' => 'Gagal: Siswa dengan NISN tersebut tidak terdaftar!'], 404);
         }
-<<<<<<< Updated upstream
-        
-        $id_siswa_asli = $siswa->id_siswa_tetap; 
-=======
->>>>>>> Stashed changes
 
         try {
             DB::beginTransaction();
+
             DB::table('tr_peminjaman')->insert([
                 'id_cp_koleksi'         => $bukuFisik->id_cp_koleksi,
                 'id_siswa_tetap'        => $siswa->id_siswa_tetap, 
@@ -94,19 +84,13 @@ class PeminjamanController extends Controller
                 ->update(['status_buku' => 'Dipinjam']);
 
             DB::commit();
-<<<<<<< Updated upstream
-            return response()->json(['message' => 'Peminjaman berhasil dicatat!'], 201);
-=======
             return response()->json(['message' => 'Peminjaman berhasil dicatat!']);
->>>>>>> Stashed changes
 
         } catch (\Exception $e) {
             DB::rollBack();
             return response()->json(['message' => 'Gagal sistem: ' . $e->getMessage()], 500);
         }
     }
-<<<<<<< Updated upstream
-=======
 
     public function update(Request $request, $id)
     {
@@ -176,5 +160,4 @@ class PeminjamanController extends Controller
             return response()->json(['message' => 'Gagal menghapus: ' . $e->getMessage()], 500);
         }
     }
->>>>>>> Stashed changes
 }
