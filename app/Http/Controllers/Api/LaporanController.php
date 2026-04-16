@@ -15,6 +15,70 @@ use Carbon\Carbon;
 
 class LaporanController extends Controller
 {
+    public function laporanPeminjamanGuru(Request $request)
+    {
+        try {
+            $tahun = (int) ($request->get('tahun', date('Y')));
+            $bulan = $request->filled('bulan') ? (int) $request->get('bulan') : null;
+
+            $query = DB::table('tr_peminjaman as peminjaman')
+                ->join('mst_karyawan as guru', 'peminjaman.nip_karyawan', '=', 'guru.nip_karyawan')
+                ->join('cp_koleksi as copy', 'peminjaman.id_cp_koleksi', '=', 'copy.id_cp_koleksi')
+                ->join('mst_koleksi_buku as buku', 'copy.ISBN', '=', 'buku.ISBN')
+                ->where('guru.is_delete', 0)
+                ->whereRaw('LOWER(guru.jabatan_fungsional) = ?', ['guru'])
+                ->where('buku.is_delete', 0)
+                ->where('peminjaman.status_peminjaman', '!=', 'Dihapus')
+                ->whereYear('peminjaman.tgl_peminjaman', $tahun);
+
+            if ($bulan !== null) {
+                $query->whereMonth('peminjaman.tgl_peminjaman', $bulan);
+            }
+
+            $data = (clone $query)
+                ->select(
+                    'peminjaman.id_peminjaman',
+                    'peminjaman.tgl_peminjaman',
+                    'peminjaman.tgl_harus_kembali',
+                    'peminjaman.tgl_kembali',
+                    'peminjaman.status_peminjaman',
+                    'guru.nip_karyawan',
+                    'guru.nama_karyawan as nama_guru',
+                    'guru.jabatan_fungsional',
+                    'buku.ISBN',
+                    'buku.judul_koleksi',
+                    'buku.pengarang',
+                    'buku.no_rak_buku'
+                )
+                ->orderBy('peminjaman.tgl_peminjaman', 'desc')
+                ->get()
+                ->values();
+
+            $periodeLabel = $bulan !== null
+                ? Carbon::create($tahun, $bulan, 1)->locale('id')->translatedFormat('F Y')
+                : 'Tahun ' . $tahun;
+
+            return response()->json([
+                'filter' => [
+                    'tahun' => $tahun,
+                    'bulan' => $bulan,
+                    'periode_label' => $periodeLabel,
+                ],
+                'summary' => [
+                    'total_transaksi' => $data->count(),
+                    'sedang_dipinjam' => $data->where('status_peminjaman', 'Dipinjam')->count(),
+                    'sudah_kembali' => $data->where('status_peminjaman', 'Kembali')->count(),
+                    'jumlah_guru' => $data->pluck('nip_karyawan')->unique()->count(),
+                ],
+                'data' => $data,
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
     public function inventarisasiBukuBaru(Request $request)
     {
         try {

@@ -17,6 +17,7 @@ Route::post('/peminjaman', [PeminjamanController::class, 'store']);
 Route::post('/generate-barcode', [KoleksiController::class, 'generate']);
 Route::get('/laporan', [LaporanController::class, 'getLaporan']); 
 Route::get('/laporan/peminjaman-bulanan', [LaporanController::class, 'statistikPeminjamanBulanan']);
+Route::get('/laporan/peminjaman-guru', [LaporanController::class, 'laporanPeminjamanGuru']);
 Route::get('/laporan/kunjungan-distribusi-kelas', [LaporanController::class, 'distribusiKunjunganKelas']);
 Route::get('/laporan/kunjungan-distribusi-hari', [LaporanController::class, 'distribusiKunjunganHari']);
 Route::get('/laporan/inventarisasi-buku-baru', [LaporanController::class, 'inventarisasiBukuBaru']);
@@ -41,6 +42,7 @@ Route::post('/pemusnahan', [DashboardController::class, 'storePemusnahan']);
 Route::get('/buku-rusak', [DashboardController::class, 'getBukuRusak']);
 Route::get('/buku-overdue', [DashboardController::class, 'getBukuOverdue']);
 Route::patch('/pemusnahan/{id}', [DashboardController::class, 'updateStatusPemusnahan']);
+Route::patch('/pemusnahan/{id}/konfirmasi', [DashboardController::class, 'confirmPemusnahan']);
 // ------------------------------------------
 
 Route::get('/user', function (Request $request) {
