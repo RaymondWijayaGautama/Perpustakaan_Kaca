@@ -12,12 +12,12 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('ref_ta', function (Blueprint $table) {
-            $table->integer('KODE_TA')->primary();
-            $table->string('TA', 10)->nullable();
-            $table->string('SEMESTER', 10)->nullable();
-            $table->boolean('IS_CURRENT')->nullable();
+            $table->integer('kode_ta')->primary();
+            $table->string('ta', 10)->nullable();
+            $table->string('semester', 10)->nullable();
+            $table->boolean('is_current')->nullable();
 
-            $table->unique(['KODE_TA'], 'ref_ta_pk');
+            $table->unique(['kode_ta'], 'ref_ta_pk');
         });
     }
 

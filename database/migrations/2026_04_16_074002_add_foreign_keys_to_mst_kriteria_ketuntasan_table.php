@@ -12,8 +12,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('mst_kriteria_ketuntasan', function (Blueprint $table) {
-            $table->foreign(['ID_ATP'], 'mst_kriteria_ketuntasan_ibfk_1')->references(['ID_ATP'])->on('mst_arah_tujuan_pembelajaran')->onUpdate('restrict')->onDelete('restrict');
-            $table->foreign(['ID_MODUL_AJAR'], 'mst_kriteria_ketuntasan_ibfk_2')->references(['ID_MODUL_AJAR'])->on('modul_ajar')->onUpdate('restrict')->onDelete('restrict');
+            $table->foreign(['id_atp'], 'mst_kriteria_ketuntasan_ibfk_1')->references(['id_atp'])->on('mst_arah_tujuan_pembelajaran')->onUpdate('restrict')->onDelete('restrict');
+            $table->foreign(['id_modul_ajar'], 'mst_kriteria_ketuntasan_ibfk_2')->references(['id_modul_ajar'])->on('modul_ajar')->onUpdate('restrict')->onDelete('restrict');
         });
     }
 

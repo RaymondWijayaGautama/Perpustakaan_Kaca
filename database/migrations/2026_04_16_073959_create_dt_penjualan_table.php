@@ -12,14 +12,14 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('dt_penjualan', function (Blueprint $table) {
-            $table->integer('ID_DT_PENJUALAN')->unique('dt_penjualan_pk');
-            $table->integer('ID_TR_PENJUALAN')->nullable()->index('relation_105_fk');
-            $table->integer('ID_MENU_COFFEESHOP')->nullable()->index('relation_104_fk');
-            $table->integer('ID_PROMO')->nullable()->index('relation_6922_fk');
-            $table->integer('JML_ITEM_PENJUALAN')->nullable();
-            $table->double('SUBTOTAL_PENJUALAN')->nullable();
+            $table->integer('id_dt_penjualan')->unique('dt_penjualan_pk');
+            $table->integer('id_tr_penjualan')->nullable()->index('relation_105_fk');
+            $table->integer('id_menu_coffeeshop')->nullable()->index('relation_104_fk');
+            $table->integer('id_promo')->nullable()->index('relation_6922_fk');
+            $table->integer('jml_item_penjualan')->nullable();
+            $table->double('subtotal_penjualan')->nullable();
 
-            $table->primary(['ID_DT_PENJUALAN']);
+            $table->primary(['id_dt_penjualan']);
         });
     }
 

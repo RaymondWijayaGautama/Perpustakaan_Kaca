@@ -12,11 +12,11 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('mst_koleksi_laporan', function (Blueprint $table) {
-            $table->integer('ID_MST_LAPORAN')->unique('mst_koleksi_laporan_pk');
-            $table->integer('ID_PKL_SISWA')->nullable()->index('relation_9834_fk');
-            $table->boolean('IS_DELETE')->nullable();
+            $table->integer('id_mst_laporan')->unique('mst_koleksi_laporan_pk');
+            $table->integer('id_pkl_siswa')->nullable()->index('relation_9834_fk');
+            $table->boolean('is_delete')->nullable();
 
-            $table->primary(['ID_MST_LAPORAN']);
+            $table->primary(['id_mst_laporan']);
         });
     }
 

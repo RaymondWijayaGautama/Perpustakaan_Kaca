@@ -209,7 +209,7 @@ class LaporanController extends Controller
     {
     
     $siswaTerajin = Siswa::withCount('peminjaman')
-        ->orderBy('peminjaman_count', 'desc')
+        ->orderBy('PEMINJAMAN_COUNT', 'desc')
         ->take(10)
         ->get();
 

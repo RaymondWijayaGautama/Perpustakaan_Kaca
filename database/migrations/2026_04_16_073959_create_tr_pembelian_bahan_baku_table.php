@@ -12,13 +12,13 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('tr_pembelian_bahan_baku', function (Blueprint $table) {
-            $table->integer('ID_TR_PEMBELIAN_BAHAN')->primary();
-            $table->integer('ID_JADWAL_COFFEESHOP')->nullable()->index('relation_3382_fk');
-            $table->dateTime('TGL_PEMBELIAN_BAHAN')->nullable();
-            $table->double('TOTAL_PEMBELIAN')->nullable();
-            $table->string('LINK_NOTA_PEMBELIAN')->nullable();
+            $table->integer('id_tr_pembelian_bahan')->primary();
+            $table->integer('id_jadwal_coffeeshop')->nullable()->index('relation_3382_fk');
+            $table->dateTime('tgl_pembelian_bahan')->nullable();
+            $table->double('total_pembelian')->nullable();
+            $table->string('link_nota_pembelian')->nullable();
 
-            $table->unique(['ID_TR_PEMBELIAN_BAHAN'], 'tr_pembelian_bahan_baku_pk');
+            $table->unique(['id_tr_pembelian_bahan'], 'tr_pembelian_bahan_baku_pk');
         });
     }
 

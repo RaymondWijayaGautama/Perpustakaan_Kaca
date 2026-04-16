@@ -12,13 +12,13 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('dt_nilai', function (Blueprint $table) {
-            $table->integer('ID_DT_NILAI')->unique('dt_nilai_pk');
-            $table->integer('ID_SISWA_KELAS')->nullable()->index('relation_4276_fk');
-            $table->char('KODE_MAPEL', 10)->nullable()->index('relation_4277_fk');
-            $table->string('JENIS_NILAI', 100)->nullable();
-            $table->float('NILAI_KOMPONEN')->nullable();
+            $table->integer('id_dt_nilai')->unique('dt_nilai_pk');
+            $table->integer('id_siswa_kelas')->nullable()->index('relation_4276_fk');
+            $table->char('kode_mapel', 10)->nullable()->index('relation_4277_fk');
+            $table->string('jenis_nilai', 100)->nullable();
+            $table->float('nilai_komponen')->nullable();
 
-            $table->primary(['ID_DT_NILAI']);
+            $table->primary(['id_dt_nilai']);
         });
     }
 

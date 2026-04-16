@@ -12,14 +12,14 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('mst_kriteria_ketuntasan', function (Blueprint $table) {
-            $table->integer('ID_KKTP')->unique('mst_kriteria_ketuntasan_pk');
-            $table->integer('ID_ATP')->nullable()->index('relation_5979_fk');
-            $table->integer('ID_MODUL_AJAR')->index('relation_6028_fk2');
-            $table->string('INTERVAL_NILAI', 100)->nullable();
-            $table->string('DESKRIPSI_INTERVAL')->nullable();
-            $table->boolean('IS_DELETE')->nullable();
+            $table->integer('id_kktp')->unique('mst_kriteria_ketuntasan_pk');
+            $table->integer('id_atp')->nullable()->index('relation_5979_fk');
+            $table->integer('id_modul_ajar')->index('relation_6028_fk2');
+            $table->string('interval_nilai', 100)->nullable();
+            $table->string('deskripsi_interval')->nullable();
+            $table->boolean('is_delete')->nullable();
 
-            $table->primary(['ID_KKTP']);
+            $table->primary(['id_kktp']);
         });
     }
 

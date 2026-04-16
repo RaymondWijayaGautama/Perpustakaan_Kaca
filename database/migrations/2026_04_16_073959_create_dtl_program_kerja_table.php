@@ -12,19 +12,19 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('dtl_program_kerja', function (Blueprint $table) {
-            $table->integer('ID_DT_PROGKER')->unique('dtl_program_kerja_pk');
-            $table->integer('ID_PROGRAM_KERJA')->nullable()->index('relation_1275_fk');
-            $table->integer('ID_REF_DANA')->nullable()->index('relation_1797_fk');
-            $table->double('NOMINAL')->nullable();
-            $table->dateTime('TGL_AWAL')->nullable();
-            $table->dateTime('TGL_AKHIR')->nullable();
-            $table->integer('QTY')->nullable();
-            $table->double('HARGA_SATUAN')->nullable();
-            $table->integer('VOLUME')->nullable();
-            $table->char('SATUAN', 10)->nullable();
-            $table->double('TOTAL_PROGKER')->nullable();
+            $table->integer('id_dt_progker')->unique('dtl_program_kerja_pk');
+            $table->integer('id_program_kerja')->nullable()->index('relation_1275_fk');
+            $table->integer('id_ref_dana')->nullable()->index('relation_1797_fk');
+            $table->double('nominal')->nullable();
+            $table->dateTime('tgl_awal')->nullable();
+            $table->dateTime('tgl_akhir')->nullable();
+            $table->integer('qty')->nullable();
+            $table->double('harga_satuan')->nullable();
+            $table->integer('volume')->nullable();
+            $table->char('satuan', 10)->nullable();
+            $table->double('total_progker')->nullable();
 
-            $table->primary(['ID_DT_PROGKER']);
+            $table->primary(['id_dt_progker']);
         });
     }
 

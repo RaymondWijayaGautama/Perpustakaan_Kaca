@@ -12,16 +12,16 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('dt_evaluasi_mandiri', function (Blueprint $table) {
-            $table->integer('ID_DT_EVALUASI_MANDIRI')->unique('dt_evaluasi_mandiri_pk');
-            $table->integer('ID_MST_EVALUASI_MANDIRI')->nullable()->index('relation_2513_fk');
-            $table->integer('ID_TR_EVALUASI_MANDIRI')->nullable()->index('relation_2517_fk');
-            $table->char('NILAI_EVALUASI_MANDIRI', 2)->nullable();
-            $table->string('CATATAN_KHUSUS_EVALUASI')->nullable();
-            $table->string('REKOMENDASI_EVALUASI')->nullable();
-            $table->string('TINDAKLANJUT_EVALUASI')->nullable();
-            $table->string('KETERANGAN_EVALUASI')->nullable();
+            $table->integer('id_dt_evaluasi_mandiri')->unique('dt_evaluasi_mandiri_pk');
+            $table->integer('id_mst_evaluasi_mandiri')->nullable()->index('relation_2513_fk');
+            $table->integer('id_tr_evaluasi_mandiri')->nullable()->index('relation_2517_fk');
+            $table->char('nilai_evaluasi_mandiri', 2)->nullable();
+            $table->string('catatan_khusus_evaluasi')->nullable();
+            $table->string('rekomendasi_evaluasi')->nullable();
+            $table->string('tindaklanjut_evaluasi')->nullable();
+            $table->string('keterangan_evaluasi')->nullable();
 
-            $table->primary(['ID_DT_EVALUASI_MANDIRI']);
+            $table->primary(['id_dt_evaluasi_mandiri']);
         });
     }
 

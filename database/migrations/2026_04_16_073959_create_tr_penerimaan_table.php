@@ -12,15 +12,15 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('tr_penerimaan', function (Blueprint $table) {
-            $table->integer('ID_TR_PENERIMAAN')->primary();
-            $table->integer('ID_REF_PENERIMAAN')->nullable()->index('relation_5991_fk');
-            $table->integer('ID_REF_DANA')->nullable()->index('relation_6900_fk');
-            $table->string('DESKRIPSI_TR_PENERIMAAN', 100)->nullable();
-            $table->dateTime('TANGGAL_TR_PENERIMAAN')->nullable();
-            $table->double('JUMLAH_TR_PENERIMAAN')->nullable();
-            $table->string('NIP_PENERIMA', 20)->nullable();
+            $table->integer('id_tr_penerimaan')->primary();
+            $table->integer('id_ref_penerimaan')->nullable()->index('relation_5991_fk');
+            $table->integer('id_ref_dana')->nullable()->index('relation_6900_fk');
+            $table->string('deskripsi_tr_penerimaan', 100)->nullable();
+            $table->dateTime('tanggal_tr_penerimaan')->nullable();
+            $table->double('jumlah_tr_penerimaan')->nullable();
+            $table->string('nip_penerima', 20)->nullable();
 
-            $table->unique(['ID_TR_PENERIMAAN'], 'tr_penerimaan_pk');
+            $table->unique(['id_tr_penerimaan'], 'tr_penerimaan_pk');
         });
     }
 

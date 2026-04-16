@@ -12,15 +12,15 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('tr_ijin_cuti', function (Blueprint $table) {
-            $table->integer('ID_TR_IC')->primary();
-            $table->string('NIP_KARYAWAN', 20)->nullable()->index('relation_470_fk');
-            $table->dateTime('TGL_AWAL')->nullable();
-            $table->dateTime('TGL_SELESAI')->nullable();
-            $table->string('KETERANGAN_IJIN_CUTI')->nullable();
-            $table->string('LINK_BUKTI_IJIN_CUTI')->nullable();
-            $table->string('STATUS_IJIN_CUTI')->nullable();
+            $table->integer('id_tr_ic')->primary();
+            $table->string('nip_karyawan', 20)->nullable()->index('relation_470_fk');
+            $table->dateTime('tgl_awal')->nullable();
+            $table->dateTime('tgl_selesai')->nullable();
+            $table->string('keterangan_ijin_cuti')->nullable();
+            $table->string('link_bukti_ijin_cuti')->nullable();
+            $table->string('status_ijin_cuti')->nullable();
 
-            $table->unique(['ID_TR_IC'], 'tr_ijin_cuti_pk');
+            $table->unique(['id_tr_ic'], 'tr_ijin_cuti_pk');
         });
     }
 

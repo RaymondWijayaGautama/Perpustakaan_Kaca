@@ -12,13 +12,13 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('tr_pemusnahan_buku', function (Blueprint $table) {
-            $table->integer('ID_PEMUSNAHAN_BUKU')->primary();
-            $table->integer('ID_CP_KOLEKSI')->nullable()->index('relation_2598_fk');
-            $table->string('KET_PEMUSNAHAN_BUKU')->nullable();
-            $table->dateTime('TGL_PEMUSNAHAN_BUKU')->nullable();
-            $table->boolean('IS_DELETE')->nullable();
+            $table->integer('id_pemusnahan_buku')->primary();
+            $table->integer('id_cp_koleksi')->nullable()->index('relation_2598_fk');
+            $table->string('ket_pemusnahan_buku')->nullable();
+            $table->dateTime('tgl_pemusnahan_buku')->nullable();
+            $table->boolean('is_delete')->nullable();
 
-            $table->unique(['ID_PEMUSNAHAN_BUKU'], 'tr_pemusnahan_buku_pk');
+            $table->unique(['id_pemusnahan_buku'], 'tr_pemusnahan_buku_pk');
         });
     }
 

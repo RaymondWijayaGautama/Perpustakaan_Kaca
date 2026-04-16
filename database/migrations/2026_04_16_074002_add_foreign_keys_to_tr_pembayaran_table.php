@@ -12,11 +12,11 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('tr_pembayaran', function (Blueprint $table) {
-            $table->foreign(['ID_SISWA_TETAP'], 'tr_pembayaran_ibfk_1')->references(['ID_SISWA_TETAP'])->on('mst_siswa')->onUpdate('restrict')->onDelete('restrict');
-            $table->foreign(['KODE_TA'], 'tr_pembayaran_ibfk_2')->references(['KODE_TA'])->on('ref_ta')->onUpdate('restrict')->onDelete('restrict');
-            $table->foreign(['ID_JENIS_PEMBAYARAN'], 'tr_pembayaran_ibfk_3')->references(['ID_JENIS_PEMBAYARAN'])->on('ref_jenis_pembayaran')->onUpdate('restrict')->onDelete('restrict');
-            $table->foreign(['ID_TAGIHAN_SISWA'], 'tr_pembayaran_ibfk_4')->references(['ID_TAGIHAN_SISWA'])->on('tagihan_siswa')->onUpdate('restrict')->onDelete('restrict');
-            $table->foreign(['REF_ID_JENIS_PEMBAYARAN'], 'tr_pembayaran_ibfk_5')->references(['ID_JENIS_PEMBAYARAN'])->on('ref_jenis_pembayaran')->onUpdate('restrict')->onDelete('restrict');
+            $table->foreign(['id_siswa_tetap'], 'tr_pembayaran_ibfk_1')->references(['id_siswa_tetap'])->on('mst_siswa')->onUpdate('restrict')->onDelete('restrict');
+            $table->foreign(['kode_ta'], 'tr_pembayaran_ibfk_2')->references(['kode_ta'])->on('ref_ta')->onUpdate('restrict')->onDelete('restrict');
+            $table->foreign(['id_jenis_pembayaran'], 'tr_pembayaran_ibfk_3')->references(['id_jenis_pembayaran'])->on('ref_jenis_pembayaran')->onUpdate('restrict')->onDelete('restrict');
+            $table->foreign(['id_tagihan_siswa'], 'tr_pembayaran_ibfk_4')->references(['id_tagihan_siswa'])->on('tagihan_siswa')->onUpdate('restrict')->onDelete('restrict');
+            $table->foreign(['ref_id_jenis_pembayaran'], 'tr_pembayaran_ibfk_5')->references(['id_jenis_pembayaran'])->on('ref_jenis_pembayaran')->onUpdate('restrict')->onDelete('restrict');
         });
     }
 

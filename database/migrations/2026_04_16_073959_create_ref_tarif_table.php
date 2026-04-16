@@ -12,14 +12,14 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('ref_tarif', function (Blueprint $table) {
-            $table->integer('ID_REF_TARIF')->primary();
-            $table->integer('ID_JENIS_TARIF')->nullable()->index('relation_318_fk');
-            $table->integer('ID_TA_ANGGARAN')->nullable()->index('relation_6919_fk');
-            $table->string('DESKRIPSI_TARIF', 100)->nullable();
-            $table->double('NOMINAL')->nullable();
-            $table->dateTime('TGL_PENETAPAN')->nullable();
+            $table->integer('id_ref_tarif')->primary();
+            $table->integer('id_jenis_tarif')->nullable()->index('relation_318_fk');
+            $table->integer('id_ta_anggaran')->nullable()->index('relation_6919_fk');
+            $table->string('deskripsi_tarif', 100)->nullable();
+            $table->double('nominal')->nullable();
+            $table->dateTime('tgl_penetapan')->nullable();
 
-            $table->unique(['ID_REF_TARIF'], 'ref_tarif_pk');
+            $table->unique(['id_ref_tarif'], 'ref_tarif_pk');
         });
     }
 

@@ -12,14 +12,14 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('tr_pembelian_inventaris', function (Blueprint $table) {
-            $table->integer('ID_PEMBELIAN')->primary();
-            $table->integer('ID_REF_PEMBELIAN')->nullable()->index('relation_1205_fk');
-            $table->string('LINK_NOTA_BELI_INV')->nullable();
-            $table->dateTime('TGL_PESAN_INV')->nullable();
-            $table->dateTime('TGL_DATANG_INV')->nullable();
-            $table->string('STATUS_PEMBELIAN', 100)->nullable();
+            $table->integer('id_pembelian')->primary();
+            $table->integer('id_ref_pembelian')->nullable()->index('relation_1205_fk');
+            $table->string('link_nota_beli_inv')->nullable();
+            $table->dateTime('tgl_pesan_inv')->nullable();
+            $table->dateTime('tgl_datang_inv')->nullable();
+            $table->string('status_pembelian', 100)->nullable();
 
-            $table->unique(['ID_PEMBELIAN'], 'tr_pembelian_inventaris_pk');
+            $table->unique(['id_pembelian'], 'tr_pembelian_inventaris_pk');
         });
     }
 

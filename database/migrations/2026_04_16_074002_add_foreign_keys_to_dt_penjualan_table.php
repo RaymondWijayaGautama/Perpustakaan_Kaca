@@ -12,9 +12,9 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('dt_penjualan', function (Blueprint $table) {
-            $table->foreign(['ID_TR_PENJUALAN'], 'dt_penjualan_ibfk_1')->references(['ID_TR_PENJUALAN'])->on('tr_penjualan_coffeeshop')->onUpdate('restrict')->onDelete('restrict');
-            $table->foreign(['ID_MENU_COFFEESHOP'], 'dt_penjualan_ibfk_2')->references(['ID_MENU_COFFEESHOP'])->on('menu_coffeeshop')->onUpdate('restrict')->onDelete('restrict');
-            $table->foreign(['ID_PROMO'], 'dt_penjualan_ibfk_3')->references(['ID_PROMO'])->on('promo')->onUpdate('restrict')->onDelete('restrict');
+            $table->foreign(['id_tr_penjualan'], 'dt_penjualan_ibfk_1')->references(['id_tr_penjualan'])->on('tr_penjualan_coffeeshop')->onUpdate('restrict')->onDelete('restrict');
+            $table->foreign(['id_menu_coffeeshop'], 'dt_penjualan_ibfk_2')->references(['id_menu_coffeeshop'])->on('menu_coffeeshop')->onUpdate('restrict')->onDelete('restrict');
+            $table->foreign(['id_promo'], 'dt_penjualan_ibfk_3')->references(['id_promo'])->on('promo')->onUpdate('restrict')->onDelete('restrict');
         });
     }
 

@@ -12,15 +12,15 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('fpd_anggaran', function (Blueprint $table) {
-            $table->integer('ID_FPD')->unique('fpd_anggaran_pk');
-            $table->integer('ID_PROGRAM_KERJA')->nullable()->index('relation_1284_fk');
-            $table->dateTime('TGL_FPD')->nullable();
-            $table->double('NOMINAL_ANGGARAN')->nullable();
-            $table->double('NOMINAL_FPD')->nullable();
-            $table->double('NOMINAL_SISA')->nullable();
-            $table->string('NIP_VALIDATOR_FPD', 20)->nullable();
+            $table->integer('id_fpd')->unique('fpd_anggaran_pk');
+            $table->integer('id_program_kerja')->nullable()->index('relation_1284_fk');
+            $table->dateTime('tgl_fpd')->nullable();
+            $table->double('nominal_anggaran')->nullable();
+            $table->double('nominal_fpd')->nullable();
+            $table->double('nominal_sisa')->nullable();
+            $table->string('nip_validator_fpd', 20)->nullable();
 
-            $table->primary(['ID_FPD']);
+            $table->primary(['id_fpd']);
         });
     }
 

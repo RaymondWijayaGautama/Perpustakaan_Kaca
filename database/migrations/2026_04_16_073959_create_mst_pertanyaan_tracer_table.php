@@ -12,12 +12,12 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('mst_pertanyaan_tracer', function (Blueprint $table) {
-            $table->integer('ID_MST_PERTANYAAN')->unique('mst_pertanyaan_tracer_pk');
-            $table->integer('ID_TRACER')->nullable()->index('pertanyaan_tr_tracer_fk');
-            $table->string('PERTANYAAN_TRACER')->nullable();
-            $table->boolean('IS_DELETE')->nullable();
+            $table->integer('id_mst_pertanyaan')->unique('mst_pertanyaan_tracer_pk');
+            $table->integer('id_tracer')->nullable()->index('pertanyaan_tr_tracer_fk');
+            $table->string('pertanyaan_tracer')->nullable();
+            $table->boolean('is_delete')->nullable();
 
-            $table->primary(['ID_MST_PERTANYAAN']);
+            $table->primary(['id_mst_pertanyaan']);
         });
     }
 

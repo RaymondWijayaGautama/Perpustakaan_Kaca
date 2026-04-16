@@ -12,13 +12,13 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('dt_tr_pkg', function (Blueprint $table) {
-            $table->integer('ID_DT_TR_PKG')->unique('dt_tr_pkg_pk');
-            $table->integer('ID_TR_PKG')->nullable()->index('relation_2557_fk');
-            $table->integer('ID_MST_PKG')->nullable()->index('relation_2558_fk');
-            $table->char('NILAI_KOMPETENSI_PKG', 10)->nullable();
-            $table->boolean('IS_VALID_PKG')->nullable();
+            $table->integer('id_dt_tr_pkg')->unique('dt_tr_pkg_pk');
+            $table->integer('id_tr_pkg')->nullable()->index('relation_2557_fk');
+            $table->integer('id_mst_pkg')->nullable()->index('relation_2558_fk');
+            $table->char('nilai_kompetensi_pkg', 10)->nullable();
+            $table->boolean('is_valid_pkg')->nullable();
 
-            $table->primary(['ID_DT_TR_PKG']);
+            $table->primary(['id_dt_tr_pkg']);
         });
     }
 

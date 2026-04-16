@@ -12,15 +12,15 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('tr_jurnal_walikelas', function (Blueprint $table) {
-            $table->integer('ID_JURNAL_WALI')->primary();
-            $table->string('NIP_KARYAWAN', 20)->nullable()->index('relation_8811_fk');
-            $table->string('KETUGASAN_WALI')->nullable();
-            $table->string('MINGGU_WALI')->nullable();
-            $table->string('TGL_PENYERAHAN_WALI')->nullable();
-            $table->string('NIP_VALIDATOR_WALI', 20)->nullable();
-            $table->string('STATUS_JURNAL_WALI')->nullable();
+            $table->integer('id_jurnal_wali')->primary();
+            $table->string('nip_karyawan', 20)->nullable()->index('relation_8811_fk');
+            $table->string('ketugasan_wali')->nullable();
+            $table->string('minggu_wali')->nullable();
+            $table->string('tgl_penyerahan_wali')->nullable();
+            $table->string('nip_validator_wali', 20)->nullable();
+            $table->string('status_jurnal_wali')->nullable();
 
-            $table->unique(['ID_JURNAL_WALI'], 'tr_jurnal_walikelas_pk');
+            $table->unique(['id_jurnal_wali'], 'tr_jurnal_walikelas_pk');
         });
     }
 

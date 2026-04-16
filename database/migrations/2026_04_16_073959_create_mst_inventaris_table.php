@@ -12,25 +12,25 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('mst_inventaris', function (Blueprint $table) {
-            $table->integer('ID_INVENTARIS')->unique('mst_inventaris_pk');
-            $table->integer('ID_KAT_BARANG')->nullable()->index('relation_1156_fk');
-            $table->integer('ID_PEMBELIAN')->nullable()->index('relation_1199_fk');
-            $table->integer('ID_TR_LAPORAN')->nullable()->index('relation_5167_fk');
-            $table->char('KODE_INVENTARIS', 15)->nullable();
-            $table->string('NAMA_INVENTARIS', 25)->nullable();
-            $table->double('NILAI_INVENTARIS')->nullable();
-            $table->dateTime('TGL_HABIS_GARANSI')->nullable();
-            $table->string('LINK_FOTO_BARANG')->nullable();
-            $table->string('MEREK_INV', 100)->nullable();
-            $table->string('NO_SERI_INV', 100)->nullable();
-            $table->string('DIMENSI_INV', 100)->nullable();
-            $table->string('KETERANGAN_INV')->nullable();
-            $table->dateTime('TGL_BELI_INV')->nullable();
-            $table->string('KONDISI_TERAKHIR_INV')->nullable();
-            $table->string('STATUS_INV', 100)->nullable();
-            $table->boolean('IS_DELETE')->nullable();
+            $table->integer('id_inventaris')->unique('mst_inventaris_pk');
+            $table->integer('id_kat_barang')->nullable()->index('relation_1156_fk');
+            $table->integer('id_pembelian')->nullable()->index('relation_1199_fk');
+            $table->integer('id_tr_laporan')->nullable()->index('relation_5167_fk');
+            $table->char('kode_inventaris', 15)->nullable();
+            $table->string('nama_inventaris', 25)->nullable();
+            $table->double('nilai_inventaris')->nullable();
+            $table->dateTime('tgl_habis_garansi')->nullable();
+            $table->string('link_foto_barang')->nullable();
+            $table->string('merek_inv', 100)->nullable();
+            $table->string('no_seri_inv', 100)->nullable();
+            $table->string('dimensi_inv', 100)->nullable();
+            $table->string('keterangan_inv')->nullable();
+            $table->dateTime('tgl_beli_inv')->nullable();
+            $table->string('kondisi_terakhir_inv')->nullable();
+            $table->string('status_inv', 100)->nullable();
+            $table->boolean('is_delete')->nullable();
 
-            $table->primary(['ID_INVENTARIS']);
+            $table->primary(['id_inventaris']);
         });
     }
 

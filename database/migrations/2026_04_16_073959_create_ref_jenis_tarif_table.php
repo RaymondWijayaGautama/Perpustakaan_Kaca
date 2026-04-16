@@ -12,10 +12,10 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('ref_jenis_tarif', function (Blueprint $table) {
-            $table->integer('ID_JENIS_TARIF')->primary();
-            $table->string('DESKRIPSI_JENIS_TARIF', 100)->nullable();
+            $table->integer('id_jenis_tarif')->primary();
+            $table->string('deskripsi_jenis_tarif', 100)->nullable();
 
-            $table->unique(['ID_JENIS_TARIF'], 'ref_jenis_tarif_pk');
+            $table->unique(['id_jenis_tarif'], 'ref_jenis_tarif_pk');
         });
     }
 

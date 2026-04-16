@@ -12,19 +12,19 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('tr_peminjaman', function (Blueprint $table) {
-            $table->integer('ID_PEMINJAMAN')->primary();
-            $table->integer('ID_SISWA_TETAP')->nullable()->index('relation_1110_fk');
-            $table->integer('ID_CP_KOLEKSI')->nullable()->index('relation_1111_fk');
-            $table->string('NIP_KARYAWAN', 20)->nullable()->index('relation_2603_fk');
-            $table->dateTime('TGL_PINJAM')->nullable();
-            $table->dateTime('TGL_HARUS_KEMBALI')->nullable();
-            $table->dateTime('TGL_KEMBALI')->nullable();
-            $table->string('STATUS_PEMINJAMAN', 100)->nullable();
-            $table->string('KONDISI_BUKU', 25)->nullable();
-            $table->string('KETERANGAN_PEMINJAMAN')->nullable();
-            $table->double('DENDA_PEMINJAMAN')->nullable();
+            $table->integer('id_peminjaman')->primary();
+            $table->integer('id_siswa_tetap')->nullable()->index('relation_1110_fk');
+            $table->integer('id_cp_koleksi')->nullable()->index('relation_1111_fk');
+            $table->string('nip_karyawan', 20)->nullable()->index('relation_2603_fk');
+            $table->dateTime('tgl_pinjam')->nullable();
+            $table->dateTime('tgl_harus_kembali')->nullable();
+            $table->dateTime('tgl_kembali')->nullable();
+            $table->string('status_peminjaman', 100)->nullable();
+            $table->string('kondisi_buku', 25)->nullable();
+            $table->string('keterangan_peminjaman')->nullable();
+            $table->double('denda_peminjaman')->nullable();
 
-            $table->unique(['ID_PEMINJAMAN'], 'tr_peminjaman_pk');
+            $table->unique(['id_peminjaman'], 'tr_peminjaman_pk');
         });
     }
 

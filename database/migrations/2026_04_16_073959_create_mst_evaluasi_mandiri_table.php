@@ -12,12 +12,12 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('mst_evaluasi_mandiri', function (Blueprint $table) {
-            $table->integer('ID_MST_EVALUASI_MANDIRI')->unique('mst_evaluasi_mandiri_pk');
-            $table->string('NAMA_KOMPETENSI_EVALUASI')->nullable();
-            $table->boolean('IS_VALID_EVAL')->nullable();
-            $table->boolean('IS_DELETE')->nullable();
+            $table->integer('id_mst_evaluasi_mandiri')->unique('mst_evaluasi_mandiri_pk');
+            $table->string('nama_kompetensi_evaluasi')->nullable();
+            $table->boolean('is_valid_eval')->nullable();
+            $table->boolean('is_delete')->nullable();
 
-            $table->primary(['ID_MST_EVALUASI_MANDIRI']);
+            $table->primary(['id_mst_evaluasi_mandiri']);
         });
     }
 

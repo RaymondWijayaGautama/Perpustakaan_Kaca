@@ -12,13 +12,13 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('log_barang_coffeeshop', function (Blueprint $table) {
-            $table->integer('ID_LOG_BARANG_COFFEESHOP')->unique('log_barang_coffeeshop_pk');
-            $table->integer('ID_INVENTARIS_COFFEESHOP')->nullable()->index('relation_552_fk');
-            $table->dateTime('TGL_CEK_BARANG_COFFEESHOP')->nullable();
-            $table->string('KONDISI_BARANG_COFFEESHOP', 25)->nullable();
-            $table->string('KET_BARANG_COFFEESHOP', 100)->nullable();
+            $table->integer('id_log_barang_coffeeshop')->unique('log_barang_coffeeshop_pk');
+            $table->integer('id_inventaris_coffeeshop')->nullable()->index('relation_552_fk');
+            $table->dateTime('tgl_cek_barang_coffeeshop')->nullable();
+            $table->string('kondisi_barang_coffeeshop', 25)->nullable();
+            $table->string('ket_barang_coffeeshop', 100)->nullable();
 
-            $table->primary(['ID_LOG_BARANG_COFFEESHOP']);
+            $table->primary(['id_log_barang_coffeeshop']);
         });
     }
 

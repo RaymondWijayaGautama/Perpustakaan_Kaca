@@ -12,21 +12,21 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('tr_penjualan_coffeeshop', function (Blueprint $table) {
-            $table->integer('ID_TR_PENJUALAN')->primary();
-            $table->integer('ID_JADWAL_COFFEESHOP')->nullable()->index('relation_3381_fk');
-            $table->integer('ID_DISKON')->nullable()->index('relation_3413_fk');
-            $table->dateTime('TGL_TR_PENJUALAN')->nullable();
-            $table->string('NAMA_PEMBELI', 25)->nullable();
-            $table->dateTime('TGL_PEMESANAN')->nullable();
-            $table->string('JENIS_PENJUALAN', 100)->nullable();
-            $table->double('DP_PENJUALAN')->nullable();
-            $table->string('METODE_BAYAR', 100)->nullable();
-            $table->string('ALAMAT_PEMBELI', 100)->nullable();
-            $table->double('TOTAL_PENJUALAN')->nullable();
-            $table->double('POTONGAN_DISKON')->nullable();
-            $table->string('STATUS_TR_PENJUALAN')->nullable();
+            $table->integer('id_tr_penjualan')->primary();
+            $table->integer('id_jadwal_coffeeshop')->nullable()->index('relation_3381_fk');
+            $table->integer('id_diskon')->nullable()->index('relation_3413_fk');
+            $table->dateTime('tgl_tr_penjualan')->nullable();
+            $table->string('nama_pembeli', 25)->nullable();
+            $table->dateTime('tgl_pemesanan')->nullable();
+            $table->string('jenis_penjualan', 100)->nullable();
+            $table->double('dp_penjualan')->nullable();
+            $table->string('metode_bayar', 100)->nullable();
+            $table->string('alamat_pembeli', 100)->nullable();
+            $table->double('total_penjualan')->nullable();
+            $table->double('potongan_diskon')->nullable();
+            $table->string('status_tr_penjualan')->nullable();
 
-            $table->unique(['ID_TR_PENJUALAN'], 'tr_penjualan_coffeeshop_pk');
+            $table->unique(['id_tr_penjualan'], 'tr_penjualan_coffeeshop_pk');
         });
     }
 

@@ -12,16 +12,16 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('tagihan_siswa', function (Blueprint $table) {
-            $table->integer('ID_TAGIHAN_SISWA')->primary();
-            $table->integer('ID_SISWA_TETAP')->nullable()->index('relation_6902_fk');
-            $table->integer('ID_JENIS_PEMBAYARAN')->nullable()->index('relation_6905_fk');
-            $table->string('BULAN_TAGIHAN_SISWA', 25)->nullable();
-            $table->string('TAHUN_TAGIHAN_SISWA', 4)->nullable();
-            $table->double('JUMLAH_TAGIHAN_SISWA')->nullable();
-            $table->string('STATUS_TAGIHAN_SISWA', 100)->nullable();
-            $table->dateTime('DUEDATETIME_TAGIHAN_SISWA')->nullable();
+            $table->integer('id_tagihan_siswa')->primary();
+            $table->integer('id_siswa_tetap')->nullable()->index('relation_6902_fk');
+            $table->integer('id_jenis_pembayaran')->nullable()->index('relation_6905_fk');
+            $table->string('bulan_tagihan_siswa', 25)->nullable();
+            $table->string('tahun_tagihan_siswa', 4)->nullable();
+            $table->double('jumlah_tagihan_siswa')->nullable();
+            $table->string('status_tagihan_siswa', 100)->nullable();
+            $table->dateTime('duedatetime_tagihan_siswa')->nullable();
 
-            $table->unique(['ID_TAGIHAN_SISWA'], 'tagihan_siswa_pk');
+            $table->unique(['id_tagihan_siswa'], 'tagihan_siswa_pk');
         });
     }
 

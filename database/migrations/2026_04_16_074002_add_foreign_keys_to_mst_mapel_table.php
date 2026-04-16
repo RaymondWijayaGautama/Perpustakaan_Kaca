@@ -12,9 +12,9 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('mst_mapel', function (Blueprint $table) {
-            $table->foreign(['ID_KURIKULUM'], 'mst_mapel_ibfk_1')->references(['ID_KURIKULUM'])->on('mst_kurikulum')->onUpdate('restrict')->onDelete('restrict');
-            $table->foreign(['ID_PROG_KEAHLIAN'], 'mst_mapel_ibfk_2')->references(['ID_PROG_KEAHLIAN'])->on('ref_program_keahlian')->onUpdate('restrict')->onDelete('restrict');
-            $table->foreign(['ID_KONSENTRASI_KEAHLIAN'], 'mst_mapel_ibfk_3')->references(['ID_KONSENTRASI_KEAHLIAN'])->on('ref_konsentrasi_keahlian')->onUpdate('restrict')->onDelete('restrict');
+            $table->foreign(['id_kurikulum'], 'mst_mapel_ibfk_1')->references(['id_kurikulum'])->on('mst_kurikulum')->onUpdate('restrict')->onDelete('restrict');
+            $table->foreign(['id_prog_keahlian'], 'mst_mapel_ibfk_2')->references(['id_prog_keahlian'])->on('ref_program_keahlian')->onUpdate('restrict')->onDelete('restrict');
+            $table->foreign(['id_konsentrasi_keahlian'], 'mst_mapel_ibfk_3')->references(['id_konsentrasi_keahlian'])->on('ref_konsentrasi_keahlian')->onUpdate('restrict')->onDelete('restrict');
         });
     }
 

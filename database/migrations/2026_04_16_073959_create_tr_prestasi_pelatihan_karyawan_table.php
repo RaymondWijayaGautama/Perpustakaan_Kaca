@@ -12,17 +12,17 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('tr_prestasi_pelatihan_karyawan', function (Blueprint $table) {
-            $table->integer('ID_PRESTASI_PELATIHAN')->primary();
-            $table->string('NIP_KARYAWAN', 20)->nullable()->index('relation_7011_fk');
-            $table->string('JENIS_PRESTASI_PELATIHAN', 100)->nullable();
-            $table->string('NAMA_PRETASI_PELATIHAN', 100)->nullable();
-            $table->string('TEMPAT_PRESTASI_PELATIHAN', 100)->nullable();
-            $table->dateTime('TGL_PRESTASI_PELATIHAN')->nullable();
-            $table->string('KET_PRESTASI_PELATIHAN')->nullable();
-            $table->dateTime('TGL_LAPOR')->nullable();
-            $table->string('STATUS_PRESTASI_PELATIHAN')->nullable();
+            $table->integer('id_prestasi_pelatihan')->primary();
+            $table->string('nip_karyawan', 20)->nullable()->index('relation_7011_fk');
+            $table->string('jenis_prestasi_pelatihan', 100)->nullable();
+            $table->string('nama_pretasi_pelatihan', 100)->nullable();
+            $table->string('tempat_prestasi_pelatihan', 100)->nullable();
+            $table->dateTime('tgl_prestasi_pelatihan')->nullable();
+            $table->string('ket_prestasi_pelatihan')->nullable();
+            $table->dateTime('tgl_lapor')->nullable();
+            $table->string('status_prestasi_pelatihan')->nullable();
 
-            $table->unique(['ID_PRESTASI_PELATIHAN'], 'tr_prestasi_pelatihan_karyawan');
+            $table->unique(['id_prestasi_pelatihan'], 'tr_prestasi_pelatihan_karyawan');
         });
     }
 

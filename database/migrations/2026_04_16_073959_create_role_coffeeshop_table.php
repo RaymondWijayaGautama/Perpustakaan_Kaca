@@ -12,11 +12,11 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('role_coffeeshop', function (Blueprint $table) {
-            $table->integer('ID_ROLE_COFFEESHOP')->primary();
-            $table->string('NAMA_ROLE_COFFEESHOP', 100)->nullable();
-            $table->boolean('IS_DELETE')->nullable();
+            $table->integer('id_role_coffeeshop')->primary();
+            $table->string('nama_role_coffeeshop', 100)->nullable();
+            $table->boolean('is_delete')->nullable();
 
-            $table->unique(['ID_ROLE_COFFEESHOP'], 'role_coffeeshop_pk');
+            $table->unique(['id_role_coffeeshop'], 'role_coffeeshop_pk');
         });
     }
 

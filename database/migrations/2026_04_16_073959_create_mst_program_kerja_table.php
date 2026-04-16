@@ -12,23 +12,23 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('mst_program_kerja', function (Blueprint $table) {
-            $table->integer('ID_PROGRAM_KERJA')->unique('mst_program_kerja_pk');
-            $table->integer('ID_TA_ANGGARAN')->nullable()->index('relation_1264_fk');
-            $table->integer('ID_UNIT')->nullable()->index('relation_1265_fk');
-            $table->integer('ID_TAN')->nullable()->index('relation_1721_fk');
-            $table->integer('ID_MASTER_COA')->nullable()->index('relation_1722_fk');
-            $table->integer('ID_KEGIATAN')->nullable()->index('relation_1727_fk');
-            $table->double('NOMINAL')->nullable();
-            $table->string('INDIKATOR', 100)->nullable();
-            $table->string('SASARAN', 100)->nullable();
-            $table->dateTime('WAKTU_AWAL')->nullable();
-            $table->dateTime('WAKTU_AKHIR')->nullable();
-            $table->string('KELUARAN_PROGKER', 100)->nullable();
-            $table->string('PROGRAM_KERJA')->nullable();
-            $table->string('NIP_PENANGGUNG_JAWAB', 20)->nullable();
-            $table->boolean('IS_DELETE')->nullable();
+            $table->integer('id_program_kerja')->unique('mst_program_kerja_pk');
+            $table->integer('id_ta_anggaran')->nullable()->index('relation_1264_fk');
+            $table->integer('id_unit')->nullable()->index('relation_1265_fk');
+            $table->integer('id_tan')->nullable()->index('relation_1721_fk');
+            $table->integer('id_master_coa')->nullable()->index('relation_1722_fk');
+            $table->integer('id_kegiatan')->nullable()->index('relation_1727_fk');
+            $table->double('nominal')->nullable();
+            $table->string('indikator', 100)->nullable();
+            $table->string('sasaran', 100)->nullable();
+            $table->dateTime('waktu_awal')->nullable();
+            $table->dateTime('waktu_akhir')->nullable();
+            $table->string('keluaran_progker', 100)->nullable();
+            $table->string('program_kerja')->nullable();
+            $table->string('nip_penanggung_jawab', 20)->nullable();
+            $table->boolean('is_delete')->nullable();
 
-            $table->primary(['ID_PROGRAM_KERJA']);
+            $table->primary(['id_program_kerja']);
         });
     }
 

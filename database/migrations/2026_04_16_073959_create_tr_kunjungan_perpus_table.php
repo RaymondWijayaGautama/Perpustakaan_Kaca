@@ -12,12 +12,12 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('tr_kunjungan_perpus', function (Blueprint $table) {
-            $table->integer('ID_KUNJUNGAN')->primary();
-            $table->integer('ID_SISWA_TETAP')->nullable()->index('relation_1182_fk');
-            $table->dateTime('START_KUNJUNGAN')->nullable();
-            $table->dateTime('END_KUNJUNGAN')->nullable();
+            $table->integer('id_kunjungan')->primary();
+            $table->integer('id_siswa_tetap')->nullable()->index('relation_1182_fk');
+            $table->dateTime('start_kunjungan')->nullable();
+            $table->dateTime('end_kunjungan')->nullable();
 
-            $table->unique(['ID_KUNJUNGAN'], 'tr_kunjungan_perpus_pk');
+            $table->unique(['id_kunjungan'], 'tr_kunjungan_perpus_pk');
         });
     }
 

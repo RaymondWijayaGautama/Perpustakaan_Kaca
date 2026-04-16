@@ -12,14 +12,14 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('dokumen_calon_siswa', function (Blueprint $table) {
-            $table->integer('ID_DOKUMEN')->unique('dokumen_calon_siswa_pk');
-            $table->integer('ID_PENDAFTARAN')->nullable()->index('relation_2336_fk');
-            $table->string('NAMA_DOKUMEN', 100)->nullable();
-            $table->string('JENIS_DOKUMEN', 100)->nullable();
-            $table->string('LINK_DOKUMEN_CALON')->nullable();
-            $table->string('STATUS_VERIF_DOKUMEN')->nullable();
+            $table->integer('id_dokumen')->unique('dokumen_calon_siswa_pk');
+            $table->integer('id_pendaftaran')->nullable()->index('relation_2336_fk');
+            $table->string('nama_dokumen', 100)->nullable();
+            $table->string('jenis_dokumen', 100)->nullable();
+            $table->string('link_dokumen_calon')->nullable();
+            $table->string('status_verif_dokumen')->nullable();
 
-            $table->primary(['ID_DOKUMEN']);
+            $table->primary(['id_dokumen']);
         });
     }
 

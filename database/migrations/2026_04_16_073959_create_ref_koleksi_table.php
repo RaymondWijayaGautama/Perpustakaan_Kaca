@@ -12,12 +12,18 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('ref_koleksi', function (Blueprint $table) {
-            $table->integer('ID_REF_KOLEKSI')->primary();
-            $table->string('NO_KATEGORI_BUKU', 10)->nullable();
-            $table->string('DESKRIPSI_KATEGORI')->nullable();
-            $table->boolean('IS_DELETE')->nullable();
+            // Disesuaikan menjadi huruf kecil agar sesuai dengan seeder
+            $table->integer('id_ref_koleksi')->primary(); 
+            
+            $table->string('no_kategori_buku', 10)->nullable();
+            
+            // INI SOLUSINYA: Mengubah DESKRIPSI_KATEGORI menjadi deskripsi
+            $table->string('deskripsi')->nullable(); 
+            
+            // Disesuaikan menjadi huruf kecil agar sesuai dengan seeder
+            $table->boolean('is_delete')->nullable();
 
-            $table->unique(['ID_REF_KOLEKSI'], 'ref_koleksi_pk');
+            $table->unique(['id_ref_koleksi'], 'ref_koleksi_pk');
         });
     }
 

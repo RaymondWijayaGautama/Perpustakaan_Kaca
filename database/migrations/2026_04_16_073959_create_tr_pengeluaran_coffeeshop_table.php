@@ -12,12 +12,12 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('tr_pengeluaran_coffeeshop', function (Blueprint $table) {
-            $table->integer('ID_TR_PENGELUARAN')->primary();
-            $table->dateTime('TGL_TR_PENGELUARAN')->nullable();
-            $table->double('TOTAL_PENGELUARAN')->nullable();
-            $table->string('KET_PENGELUARAN')->nullable();
+            $table->integer('id_tr_pengeluaran')->primary();
+            $table->dateTime('tgl_tr_pengeluaran')->nullable();
+            $table->double('total_pengeluaran')->nullable();
+            $table->string('ket_pengeluaran')->nullable();
 
-            $table->unique(['ID_TR_PENGELUARAN'], 'tr_pengeluaran_coffeeshop_pk');
+            $table->unique(['id_tr_pengeluaran'], 'tr_pengeluaran_coffeeshop_pk');
         });
     }
 

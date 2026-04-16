@@ -12,14 +12,14 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('tr_stock_opname', function (Blueprint $table) {
-            $table->integer('ID_STOCK_OPNAME')->primary();
-            $table->integer('ID_INVENTARIS')->nullable()->index('relation_1207_fk');
-            $table->dateTime('TGL_STOCK_OPNAME')->nullable();
-            $table->string('KONDISI_AKTUAL')->nullable();
-            $table->string('KONDISI_DI_SISTEM')->nullable();
-            $table->string('TINDAK_LANJUT')->nullable();
+            $table->integer('id_stock_opname')->primary();
+            $table->integer('id_inventaris')->nullable()->index('relation_1207_fk');
+            $table->dateTime('tgl_stock_opname')->nullable();
+            $table->string('kondisi_aktual')->nullable();
+            $table->string('kondisi_di_sistem')->nullable();
+            $table->string('tindak_lanjut')->nullable();
 
-            $table->unique(['ID_STOCK_OPNAME'], 'tr_stock_opname_pk');
+            $table->unique(['id_stock_opname'], 'tr_stock_opname_pk');
         });
     }
 

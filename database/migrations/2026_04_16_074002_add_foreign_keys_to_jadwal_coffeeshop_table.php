@@ -12,10 +12,10 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('jadwal_coffeeshop', function (Blueprint $table) {
-            $table->foreign(['ID_ROLE_COFFEESHOP'], 'jadwal_coffeeshop_ibfk_1')->references(['ID_ROLE_COFFEESHOP'])->on('role_coffeeshop')->onUpdate('restrict')->onDelete('restrict');
-            $table->foreign(['ID_SISWA_TETAP'], 'jadwal_coffeeshop_ibfk_2')->references(['ID_SISWA_TETAP'])->on('mst_siswa')->onUpdate('restrict')->onDelete('restrict');
-            $table->foreign(['NIP_KARYAWAN'], 'jadwal_coffeeshop_ibfk_3')->references(['NIP_KARYAWAN'])->on('mst_karyawan')->onUpdate('restrict')->onDelete('restrict');
-            $table->foreign(['ID_NILAI_KINERJA'], 'jadwal_coffeeshop_ibfk_4')->references(['ID_NILAI_KINERJA'])->on('nilai_kinerja_coffeeshop')->onUpdate('restrict')->onDelete('restrict');
+            $table->foreign(['id_role_coffeeshop'], 'jadwal_coffeeshop_ibfk_1')->references(['id_role_coffeeshop'])->on('role_coffeeshop')->onUpdate('restrict')->onDelete('restrict');
+            $table->foreign(['id_siswa_tetap'], 'jadwal_coffeeshop_ibfk_2')->references(['id_siswa_tetap'])->on('mst_siswa')->onUpdate('restrict')->onDelete('restrict');
+            $table->foreign(['nip_karyawan'], 'jadwal_coffeeshop_ibfk_3')->references(['nip_karyawan'])->on('mst_karyawan')->onUpdate('restrict')->onDelete('restrict');
+            $table->foreign(['id_nilai_kinerja'], 'jadwal_coffeeshop_ibfk_4')->references(['id_nilai_kinerja'])->on('nilai_kinerja_coffeeshop')->onUpdate('restrict')->onDelete('restrict');
         });
     }
 

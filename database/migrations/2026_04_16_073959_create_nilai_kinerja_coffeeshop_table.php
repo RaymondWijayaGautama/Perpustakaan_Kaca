@@ -12,14 +12,14 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('nilai_kinerja_coffeeshop', function (Blueprint $table) {
-            $table->integer('ID_NILAI_KINERJA')->unique('nilai_kinerja_coffeeshop_pk');
-            $table->integer('ID_SISWA_TETAP')->nullable()->index('relation_3454_fk');
-            $table->integer('ID_JADWAL_COFFEESHOP')->nullable()->index('relation_6921_fk');
-            $table->string('KET_KINERJA')->nullable();
-            $table->float('NILAI_KINERJA')->nullable();
-            $table->string('NIP_VALIDATOR_KOORDINATOR', 20)->nullable();
+            $table->integer('id_nilai_kinerja')->unique('nilai_kinerja_coffeeshop_pk');
+            $table->integer('id_siswa_tetap')->nullable()->index('relation_3454_fk');
+            $table->integer('id_jadwal_coffeeshop')->nullable()->index('relation_6921_fk');
+            $table->string('ket_kinerja')->nullable();
+            $table->float('nilai_kinerja')->nullable();
+            $table->string('nip_validator_koordinator', 20)->nullable();
 
-            $table->primary(['ID_NILAI_KINERJA']);
+            $table->primary(['id_nilai_kinerja']);
         });
     }
 

@@ -201,5 +201,7 @@ class DummyDataSeeder extends Seeder
             ['id_cp_koleksi' => 103, 'status_buku' => 'Tersedia', 'ISBN' => 'PKL-2026-003', 'id_mst_laporan' => 12],
         ]);
 
+        
+
     }
 }

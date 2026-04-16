@@ -12,15 +12,15 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('tr_peminjaman_inventaris', function (Blueprint $table) {
-            $table->integer('ID_TR_PEMINJAMAN_INV')->primary();
-            $table->string('NIP_KARYAWAN', 20)->nullable()->index('relation_5145_fk');
-            $table->dateTime('TGL_MULAI_PINJAM')->nullable();
-            $table->dateTime('TGL_SELESAI_PINJAM')->nullable();
-            $table->string('STATUS_PEMINJAMAN_INV', 100)->nullable();
-            $table->string('KETERANGAN_PEMINJAMAN_INV')->nullable();
-            $table->string('NIP_VALIDATOR_PEMINJAMAN', 20)->nullable();
+            $table->integer('id_tr_peminjaman_inv')->primary();
+            $table->string('nip_karyawan', 20)->nullable()->index('relation_5145_fk');
+            $table->dateTime('tgl_mulai_pinjam')->nullable();
+            $table->dateTime('tgl_selesai_pinjam')->nullable();
+            $table->string('status_peminjaman_inv', 100)->nullable();
+            $table->string('keterangan_peminjaman_inv')->nullable();
+            $table->string('nip_validator_peminjaman', 20)->nullable();
 
-            $table->unique(['ID_TR_PEMINJAMAN_INV'], 'tr_peminjaman_inventaris_pk');
+            $table->unique(['id_tr_peminjaman_inv'], 'tr_peminjaman_inventaris_pk');
         });
     }
 

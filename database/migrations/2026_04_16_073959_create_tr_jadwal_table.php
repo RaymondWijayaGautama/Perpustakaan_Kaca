@@ -12,17 +12,17 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('tr_jadwal', function (Blueprint $table) {
-            $table->integer('ID_TR_JADWAL')->primary();
-            $table->string('NIP_KARYAWAN', 20)->nullable()->index('relation_4271_fk');
-            $table->char('KODE_MAPEL', 10)->nullable()->index('relation_4272_fk');
-            $table->integer('ID_KELAS')->nullable()->index('relation_9839_fk');
-            $table->string('HARI_JADWAL', 10)->nullable();
-            $table->dateTime('TGL_JADWAL')->nullable();
-            $table->string('RUANGAN_MAPEL', 100)->nullable();
-            $table->time('JAM_MULAI_MAPEL')->nullable();
-            $table->time('JAM_SELESAI_MAPEL')->nullable();
+            $table->integer('id_tr_jadwal')->primary();
+            $table->string('nip_karyawan', 20)->nullable()->index('relation_4271_fk');
+            $table->char('kode_mapel', 10)->nullable()->index('relation_4272_fk');
+            $table->integer('id_kelas')->nullable()->index('relation_9839_fk');
+            $table->string('hari_jadwal', 10)->nullable();
+            $table->dateTime('tgl_jadwal')->nullable();
+            $table->string('ruangan_mapel', 100)->nullable();
+            $table->time('jam_mulai_mapel')->nullable();
+            $table->time('jam_selesai_mapel')->nullable();
 
-            $table->unique(['ID_TR_JADWAL'], 'tr_jadwal_pk');
+            $table->unique(['id_tr_jadwal'], 'tr_jadwal_pk');
         });
     }
 

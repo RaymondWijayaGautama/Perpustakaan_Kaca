@@ -12,15 +12,15 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('tr_jurnal_mengajar', function (Blueprint $table) {
-            $table->integer('ID_JURNAL_MENGAJAR')->primary();
-            $table->string('NIP_KARYAWAN', 20)->nullable()->index('relation_8764_fk');
-            $table->string('KETUGASAN_GURU')->nullable();
-            $table->string('MINGGU_KE')->nullable();
-            $table->dateTime('TGL_PENYERAHAN')->nullable();
-            $table->string('NIP_VALIDATOR_PENGAJARAN', 20)->nullable();
-            $table->string('STATUS_JURNAL_MENGAJAR')->nullable();
+            $table->integer('id_jurnal_mengajar')->primary();
+            $table->string('nip_karyawan', 20)->nullable()->index('relation_8764_fk');
+            $table->string('ketugasan_guru')->nullable();
+            $table->string('minggu_ke')->nullable();
+            $table->dateTime('tgl_penyerahan')->nullable();
+            $table->string('nip_validator_pengajaran', 20)->nullable();
+            $table->string('status_jurnal_mengajar')->nullable();
 
-            $table->unique(['ID_JURNAL_MENGAJAR'], 'tr_jurnal_mengajar_pk');
+            $table->unique(['id_jurnal_mengajar'], 'tr_jurnal_mengajar_pk');
         });
     }
 

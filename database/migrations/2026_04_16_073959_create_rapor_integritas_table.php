@@ -12,12 +12,12 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('rapor_integritas', function (Blueprint $table) {
-            $table->integer('ID_R_INTEGRITAS')->primary();
-            $table->integer('ID_REF_INTEGRITAS')->nullable()->index('relation_1127_fk');
-            $table->integer('ID_SISWA_TETAP')->nullable()->index('relation_1129_fk');
-            $table->float('NILAI_INTEGRITAS')->nullable();
+            $table->integer('id_r_integritas')->primary();
+            $table->integer('id_ref_integritas')->nullable()->index('relation_1127_fk');
+            $table->integer('id_siswa_tetap')->nullable()->index('relation_1129_fk');
+            $table->float('nilai_integritas')->nullable();
 
-            $table->unique(['ID_R_INTEGRITAS'], 'rapor_integritas_pk');
+            $table->unique(['id_r_integritas'], 'rapor_integritas_pk');
         });
     }
 

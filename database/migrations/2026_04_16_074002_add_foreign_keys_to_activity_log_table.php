@@ -12,7 +12,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('activity_log', function (Blueprint $table) {
-            $table->foreign(['ID_ACCESS_LOG'], 'activity_log_ibfk_1')->references(['ID_ACCESS_LOG'])->on('access_log')->onUpdate('restrict')->onDelete('restrict');
+            $table->foreign(['id_access_log'], 'activity_log_ibfk_1')->references(['id_access_log'])->on('access_log')->onUpdate('restrict')->onDelete('restrict');
         });
     }
 

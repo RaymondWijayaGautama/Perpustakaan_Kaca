@@ -12,11 +12,11 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('guru_mapel', function (Blueprint $table) {
-            $table->integer('ID_GURU_MAPEL')->unique('guru_mapel_pk');
-            $table->string('NIP_KARYAWAN', 20)->nullable()->index('relation_477_fk');
-            $table->char('KODE_MAPEL', 10)->nullable()->index('relation_478_fk');
+            $table->integer('id_guru_mapel')->unique('guru_mapel_pk');
+            $table->string('nip_karyawan', 20)->nullable()->index('relation_477_fk');
+            $table->char('kode_mapel', 10)->nullable()->index('relation_478_fk');
 
-            $table->primary(['ID_GURU_MAPEL']);
+            $table->primary(['id_guru_mapel']);
         });
     }
 

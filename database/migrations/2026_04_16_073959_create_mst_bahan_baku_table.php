@@ -12,14 +12,14 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('mst_bahan_baku', function (Blueprint $table) {
-            $table->integer('ID_BAHAN_BAKU')->unique('mst_bahan_baku_pk');
-            $table->string('NAMA_BAHAN', 100)->nullable();
-            $table->float('KUANTITI_STOK_BAHAN')->nullable();
-            $table->double('HARGA_BELI')->nullable();
-            $table->string('SATUAN_BAHAN_BAKU', 25)->nullable();
-            $table->boolean('IS_DELETE')->nullable();
+            $table->integer('id_bahan_baku')->unique('mst_bahan_baku_pk');
+            $table->string('nama_bahan', 100)->nullable();
+            $table->float('kuantiti_stok_bahan')->nullable();
+            $table->double('harga_beli')->nullable();
+            $table->string('satuan_bahan_baku', 25)->nullable();
+            $table->boolean('is_delete')->nullable();
 
-            $table->primary(['ID_BAHAN_BAKU']);
+            $table->primary(['id_bahan_baku']);
         });
     }
 

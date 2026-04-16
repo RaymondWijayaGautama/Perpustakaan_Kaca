@@ -12,11 +12,11 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('ref_pembelian', function (Blueprint $table) {
-            $table->integer('ID_REF_PEMBELIAN')->primary();
-            $table->string('DESKRIPSI_PEMBELIAN')->nullable();
-            $table->char('KODE_COA', 10)->nullable();
+            $table->integer('id_ref_pembelian')->primary();
+            $table->string('deskripsi_pembelian')->nullable();
+            $table->char('kode_coa', 10)->nullable();
 
-            $table->unique(['ID_REF_PEMBELIAN'], 'ref_pembelian_pk');
+            $table->unique(['id_ref_pembelian'], 'ref_pembelian_pk');
         });
     }
 

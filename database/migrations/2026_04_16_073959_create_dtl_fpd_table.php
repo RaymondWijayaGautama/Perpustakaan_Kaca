@@ -12,17 +12,17 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('dtl_fpd', function (Blueprint $table) {
-            $table->integer('ID_DT_FPD')->unique('dtl_fpd_pk');
-            $table->integer('ID_FPD')->nullable()->index('relation_1753_fk');
-            $table->integer('ID_DT_PROGKER')->nullable()->index('relation_1761_fk');
-            $table->integer('QTY')->nullable();
-            $table->double('HARGA_SATUAN')->nullable();
-            $table->integer('VOLUME')->nullable();
-            $table->char('SATUAN', 10)->nullable();
-            $table->double('TOTAL')->nullable();
-            $table->string('LINK_BUKTI_NOTA_FPD')->nullable();
+            $table->integer('id_dt_fpd')->unique('dtl_fpd_pk');
+            $table->integer('id_fpd')->nullable()->index('relation_1753_fk');
+            $table->integer('id_dt_progker')->nullable()->index('relation_1761_fk');
+            $table->integer('qty')->nullable();
+            $table->double('harga_satuan')->nullable();
+            $table->integer('volume')->nullable();
+            $table->char('satuan', 10)->nullable();
+            $table->double('total')->nullable();
+            $table->string('link_bukti_nota_fpd')->nullable();
 
-            $table->primary(['ID_DT_FPD']);
+            $table->primary(['id_dt_fpd']);
         });
     }
 

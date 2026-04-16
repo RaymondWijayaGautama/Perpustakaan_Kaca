@@ -12,15 +12,15 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('modul_ajar', function (Blueprint $table) {
-            $table->integer('ID_MODUL_AJAR')->unique('modul_ajar_pk');
-            $table->integer('ID_KKTP')->nullable()->index('relation_6028_fk');
-            $table->string('JUDUL_MODUL')->nullable();
-            $table->char('KEGIATAN_AWAL', 254)->nullable();
-            $table->char('KEGIATAN_INTI', 254)->nullable();
-            $table->char('KEGIATAN_PENUTUP', 254)->nullable();
-            $table->char('LAMPIRAN_MODUL', 254)->nullable();
+            $table->integer('id_modul_ajar')->unique('modul_ajar_pk');
+            $table->integer('id_kktp')->nullable()->index('relation_6028_fk');
+            $table->string('judul_modul')->nullable();
+            $table->char('kegiatan_awal', 254)->nullable();
+            $table->char('kegiatan_inti', 254)->nullable();
+            $table->char('kegiatan_penutup', 254)->nullable();
+            $table->char('lampiran_modul', 254)->nullable();
 
-            $table->primary(['ID_MODUL_AJAR']);
+            $table->primary(['id_modul_ajar']);
         });
     }
 

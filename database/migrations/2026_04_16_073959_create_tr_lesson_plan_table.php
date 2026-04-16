@@ -12,17 +12,17 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('tr_lesson_plan', function (Blueprint $table) {
-            $table->integer('ID_LESSON_PLAN')->primary();
-            $table->integer('ID_ATP')->nullable()->index('relation_4317_fk');
-            $table->char('KODE_MAPEL', 10)->nullable()->index('relation_4318_fk');
-            $table->integer('ID_KELAS')->nullable()->index('relation_8749_fk');
-            $table->dateTime('TGL_MULAI_LESSON_PLAN')->nullable();
-            $table->dateTime('TGL_SELESAI_LESSON_PLAN')->nullable();
-            $table->string('MATERI_PELAJARAN')->nullable();
-            $table->string('STATUS_LESSON_PLAN', 100)->nullable();
-            $table->string('NIP_VALIDATOR_LESSON_PLAN', 20)->nullable();
+            $table->integer('id_lesson_plan')->primary();
+            $table->integer('id_atp')->nullable()->index('relation_4317_fk');
+            $table->char('kode_mapel', 10)->nullable()->index('relation_4318_fk');
+            $table->integer('id_kelas')->nullable()->index('relation_8749_fk');
+            $table->dateTime('tgl_mulai_lesson_plan')->nullable();
+            $table->dateTime('tgl_selesai_lesson_plan')->nullable();
+            $table->string('materi_pelajaran')->nullable();
+            $table->string('status_lesson_plan', 100)->nullable();
+            $table->string('nip_validator_lesson_plan', 20)->nullable();
 
-            $table->unique(['ID_LESSON_PLAN'], 'tr_lesson_plan_pk');
+            $table->unique(['id_lesson_plan'], 'tr_lesson_plan_pk');
         });
     }
 

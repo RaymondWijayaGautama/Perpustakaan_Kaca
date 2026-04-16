@@ -12,9 +12,9 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('siswa_kelas', function (Blueprint $table) {
-            $table->foreign(['ID_SISWA_TETAP'], 'siswa_kelas_ibfk_1')->references(['ID_SISWA_TETAP'])->on('mst_siswa')->onUpdate('restrict')->onDelete('restrict');
-            $table->foreign(['ID_KELAS'], 'siswa_kelas_ibfk_2')->references(['ID_KELAS'])->on('mst_kelas')->onUpdate('restrict')->onDelete('restrict');
-            $table->foreign(['KODE_TA'], 'siswa_kelas_ibfk_3')->references(['KODE_TA'])->on('ref_ta')->onUpdate('restrict')->onDelete('restrict');
+            $table->foreign(['id_siswa_tetap'], 'siswa_kelas_ibfk_1')->references(['id_siswa_tetap'])->on('mst_siswa')->onUpdate('restrict')->onDelete('restrict');
+            $table->foreign(['id_kelas'], 'siswa_kelas_ibfk_2')->references(['id_kelas'])->on('mst_kelas')->onUpdate('restrict')->onDelete('restrict');
+            $table->foreign(['kode_ta'], 'siswa_kelas_ibfk_3')->references(['kode_ta'])->on('ref_ta')->onUpdate('restrict')->onDelete('restrict');
         });
     }
 

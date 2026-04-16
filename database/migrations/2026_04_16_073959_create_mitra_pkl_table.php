@@ -12,15 +12,15 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('mitra_pkl', function (Blueprint $table) {
-            $table->integer('ID_MITRA_PKL')->unique('mitra_pkl_pk');
-            $table->string('NAMA_MITRA_PKL')->nullable();
-            $table->string('STATUS_MITRA_PKL', 100)->nullable();
-            $table->string('ALAMAT_MITRA_PKL')->nullable();
-            $table->string('NO_TELP_MITRA_PKL')->nullable();
-            $table->string('JARAK_TEMPAT_PKL', 100)->nullable();
-            $table->string('NO_MOU_PKL', 100)->nullable();
+            $table->integer('id_mitra_pkl')->unique('mitra_pkl_pk');
+            $table->string('nama_mitra_pkl')->nullable();
+            $table->string('status_mitra_pkl', 100)->nullable();
+            $table->string('alamat_mitra_pkl')->nullable();
+            $table->string('no_telp_mitra_pkl')->nullable();
+            $table->string('jarak_tempat_pkl', 100)->nullable();
+            $table->string('no_mou_pkl', 100)->nullable();
 
-            $table->primary(['ID_MITRA_PKL']);
+            $table->primary(['id_mitra_pkl']);
         });
     }
 

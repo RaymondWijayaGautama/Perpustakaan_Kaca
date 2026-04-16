@@ -12,19 +12,19 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('dt_jurnal_karyawan', function (Blueprint $table) {
-            $table->integer('ID_DT_JURNAL_KARYAWAN')->unique('dt_jurnal_karyawan_pk');
-            $table->integer('ID_TR_JURNAL_KARYAWAN')->nullable()->index('relation_8825_fk');
-            $table->dateTime('TGL_DT_KARYAWAN')->nullable();
-            $table->time('WAKTU_MULAI_KARYAWAN')->nullable();
-            $table->time('WAKTU_SELESAI_KARYAWAN')->nullable();
-            $table->string('KEGIATAN_KARYAWAN')->nullable();
-            $table->string('INDIKATOR_KARYAWAN')->nullable();
-            $table->string('STATUS_KEGIATAN_KARYAWAN')->nullable();
-            $table->string('SARAN_KEGIATAN_KARYAWAN')->nullable();
-            $table->string('SOLUSI_KEGIATAN_KARYAWAN')->nullable();
-            $table->string('KETERANGAN_KEGIATAN_KARYAWAN')->nullable();
+            $table->integer('id_dt_jurnal_karyawan')->unique('dt_jurnal_karyawan_pk');
+            $table->integer('id_tr_jurnal_karyawan')->nullable()->index('relation_8825_fk');
+            $table->dateTime('tgl_dt_karyawan')->nullable();
+            $table->time('waktu_mulai_karyawan')->nullable();
+            $table->time('waktu_selesai_karyawan')->nullable();
+            $table->string('kegiatan_karyawan')->nullable();
+            $table->string('indikator_karyawan')->nullable();
+            $table->string('status_kegiatan_karyawan')->nullable();
+            $table->string('saran_kegiatan_karyawan')->nullable();
+            $table->string('solusi_kegiatan_karyawan')->nullable();
+            $table->string('keterangan_kegiatan_karyawan')->nullable();
 
-            $table->primary(['ID_DT_JURNAL_KARYAWAN']);
+            $table->primary(['id_dt_jurnal_karyawan']);
         });
     }
 

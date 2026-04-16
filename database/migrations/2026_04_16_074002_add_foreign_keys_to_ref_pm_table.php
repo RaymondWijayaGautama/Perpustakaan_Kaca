@@ -12,7 +12,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('ref_pm', function (Blueprint $table) {
-            $table->foreign(['REF_ID_REF_PM'], 'ref_pm_ibfk_1')->references(['ID_REF_PM'])->on('ref_pm')->onUpdate('restrict')->onDelete('restrict');
+            $table->foreign(['ref_id_ref_pm'], 'ref_pm_ibfk_1')->references(['id_ref_pm'])->on('ref_pm')->onUpdate('restrict')->onDelete('restrict');
         });
     }
 

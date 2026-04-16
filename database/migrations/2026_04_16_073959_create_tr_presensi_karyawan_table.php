@@ -12,13 +12,13 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('tr_presensi_karyawan', function (Blueprint $table) {
-            $table->integer('ID_PRESENSI_KARYAWAN')->primary();
-            $table->string('NIP_KARYAWAN', 20)->nullable()->index('relation_9829_fk');
-            $table->string('STATUS_PRESENSI_KARYAWAN')->nullable();
-            $table->dateTime('WAKTU_MASUK')->nullable();
-            $table->dateTime('WAKTU_KELUAR')->nullable();
+            $table->integer('id_presensi_karyawan')->primary();
+            $table->string('nip_karyawan', 20)->nullable()->index('relation_9829_fk');
+            $table->string('status_presensi_karyawan')->nullable();
+            $table->dateTime('waktu_masuk')->nullable();
+            $table->dateTime('waktu_keluar')->nullable();
 
-            $table->unique(['ID_PRESENSI_KARYAWAN'], 'tr_presensi_karyawan_pk');
+            $table->unique(['id_presensi_karyawan'], 'tr_presensi_karyawan_pk');
         });
     }
 

@@ -12,12 +12,12 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('ref_tan', function (Blueprint $table) {
-            $table->integer('ID_TAN')->primary();
-            $table->char('TAHUN', 4)->nullable();
-            $table->boolean('IS_CURRENT')->nullable();
-            $table->string('DESKRIPSI_TAN', 100)->nullable();
+            $table->integer('id_tan')->primary();
+            $table->char('tahun', 4)->nullable();
+            $table->boolean('is_current')->nullable();
+            $table->string('deskripsi_tan', 100)->nullable();
 
-            $table->unique(['ID_TAN'], 'ref_tan_pk');
+            $table->unique(['id_tan'], 'ref_tan_pk');
         });
     }
 

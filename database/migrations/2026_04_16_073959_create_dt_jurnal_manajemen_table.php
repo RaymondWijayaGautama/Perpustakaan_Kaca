@@ -12,20 +12,20 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('dt_jurnal_manajemen', function (Blueprint $table) {
-            $table->integer('ID_DT_JURNAL_MANAJEMEN')->unique('dt_jurnal_manajemen_pk');
-            $table->integer('ID_JURNAL_MANAJEMEN')->nullable()->index('relation_8796_fk');
-            $table->dateTime('DT_TGL_JURNAL_MANAJEMEN')->nullable();
-            $table->string('DT_PROGRAM_MANAJEMEN')->nullable();
-            $table->string('DT_KEGIATAN_MANAJEMEN')->nullable();
-            $table->string('DT_INDIKATOR_MANAJEMEN')->nullable();
-            $table->string('DT_SASARAN_MANAJEMEN')->nullable();
-            $table->string('DT_TARGET_MANAJEMEN')->nullable();
-            $table->string('DT_KENDALA_MANAJEMEN')->nullable();
-            $table->string('DT_SARAN_MANAJEMEN')->nullable();
-            $table->string('DT_SOLUSI_MANAJEMEN')->nullable();
-            $table->string('DT_KET_MANAJEMEN')->nullable();
+            $table->integer('id_dt_jurnal_manajemen')->unique('dt_jurnal_manajemen_pk');
+            $table->integer('id_jurnal_manajemen')->nullable()->index('relation_8796_fk');
+            $table->dateTime('dt_tgl_jurnal_manajemen')->nullable();
+            $table->string('dt_program_manajemen')->nullable();
+            $table->string('dt_kegiatan_manajemen')->nullable();
+            $table->string('dt_indikator_manajemen')->nullable();
+            $table->string('dt_sasaran_manajemen')->nullable();
+            $table->string('dt_target_manajemen')->nullable();
+            $table->string('dt_kendala_manajemen')->nullable();
+            $table->string('dt_saran_manajemen')->nullable();
+            $table->string('dt_solusi_manajemen')->nullable();
+            $table->string('dt_ket_manajemen')->nullable();
 
-            $table->primary(['ID_DT_JURNAL_MANAJEMEN']);
+            $table->primary(['id_dt_jurnal_manajemen']);
         });
     }
 

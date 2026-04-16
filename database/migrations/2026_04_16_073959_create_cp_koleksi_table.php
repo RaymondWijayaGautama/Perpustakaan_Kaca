@@ -12,12 +12,12 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('cp_koleksi', function (Blueprint $table) {
-            $table->integer('ID_CP_KOLEKSI')->unique('cp_koleksi_pk');
-            $table->string('ISBN', 25)->nullable()->index('relation_1100_fk');
-            $table->integer('ID_MST_LAPORAN')->nullable()->index('relation_2595_fk');
-            $table->string('STATUS_BUKU', 100)->nullable();
+            $table->integer('id_cp_koleksi')->unique('cp_koleksi_pk');
+            $table->string('isbn', 25)->nullable()->index('relation_1100_fk');
+            $table->integer('id_mst_laporan')->nullable()->index('relation_2595_fk');
+            $table->string('status_buku', 100)->nullable();
 
-            $table->primary(['ID_CP_KOLEKSI']);
+            $table->primary(['id_cp_koleksi']);
         });
     }
 

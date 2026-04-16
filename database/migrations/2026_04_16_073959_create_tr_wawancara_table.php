@@ -12,15 +12,15 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('tr_wawancara', function (Blueprint $table) {
-            $table->integer('ID_WAWANCARA')->primary();
-            $table->integer('ID_PENDAFTARAN')->nullable()->index('relation_252_fk');
-            $table->string('NIP_KARYAWAN', 20)->nullable()->index('relation_265_fk');
-            $table->dateTime('TGL_WAWANCARA')->nullable();
-            $table->char('WAKTU_WAWANCARA', 10)->nullable();
-            $table->string('TEMPAT_WAWANCARA', 100)->nullable();
-            $table->string('HASIL_WAWANCARA', 500)->nullable();
+            $table->integer('id_wawancara')->primary();
+            $table->integer('id_pendaftaran')->nullable()->index('relation_252_fk');
+            $table->string('nip_karyawan', 20)->nullable()->index('relation_265_fk');
+            $table->dateTime('tgl_wawancara')->nullable();
+            $table->char('waktu_wawancara', 10)->nullable();
+            $table->string('tempat_wawancara', 100)->nullable();
+            $table->string('hasil_wawancara', 500)->nullable();
 
-            $table->unique(['ID_WAWANCARA'], 'tr_wawancara_pk');
+            $table->unique(['id_wawancara'], 'tr_wawancara_pk');
         });
     }
 

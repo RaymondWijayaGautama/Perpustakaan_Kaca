@@ -12,15 +12,15 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('tr_prestasi_pelanggaran_siswa', function (Blueprint $table) {
-            $table->integer('ID_PRESTASI_PELANGGARAN_SISWA')->primary();
-            $table->integer('KODE_TA')->nullable()->index('relation_2369_fk');
-            $table->integer('ID_SISWA_TERCATAT')->nullable();
-            $table->string('NAMA_PRESTASI_SISWA')->nullable();
-            $table->integer('POIN_PRESTASI_SISWA')->nullable();
-            $table->string('NAMA_PELANGGARAN_SISWA')->nullable();
-            $table->integer('POIN_PELANGGARAN')->nullable();
+            $table->integer('id_prestasi_pelanggaran_siswa')->primary();
+            $table->integer('kode_ta')->nullable()->index('relation_2369_fk');
+            $table->integer('id_siswa_tercatat')->nullable();
+            $table->string('nama_prestasi_siswa')->nullable();
+            $table->integer('poin_prestasi_siswa')->nullable();
+            $table->string('nama_pelanggaran_siswa')->nullable();
+            $table->integer('poin_pelanggaran')->nullable();
 
-            $table->unique(['ID_PRESTASI_PELANGGARAN_SISWA'], 'tr_prestasi_pelanggaran_siswa_');
+            $table->unique(['id_prestasi_pelanggaran_siswa'], 'tr_prestasi_pelanggaran_siswa_');
         });
     }
 

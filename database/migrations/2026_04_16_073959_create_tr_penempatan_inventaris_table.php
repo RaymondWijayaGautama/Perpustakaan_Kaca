@@ -12,13 +12,13 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('tr_penempatan_inventaris', function (Blueprint $table) {
-            $table->integer('ID_PENEMPATAN')->primary();
-            $table->integer('ID_INVENTARIS')->nullable()->index('relation_1159_fk');
-            $table->integer('ID_RUANG')->nullable()->index('relation_1166_fk');
-            $table->dateTime('TGL_MULAI_PENEMPATAN')->nullable();
-            $table->dateTime('TGL_SELESAI_PENEMPATAN')->nullable();
+            $table->integer('id_penempatan')->primary();
+            $table->integer('id_inventaris')->nullable()->index('relation_1159_fk');
+            $table->integer('id_ruang')->nullable()->index('relation_1166_fk');
+            $table->dateTime('tgl_mulai_penempatan')->nullable();
+            $table->dateTime('tgl_selesai_penempatan')->nullable();
 
-            $table->unique(['ID_PENEMPATAN'], 'tr_penempatan_inventaris_pk');
+            $table->unique(['id_penempatan'], 'tr_penempatan_inventaris_pk');
         });
     }
 

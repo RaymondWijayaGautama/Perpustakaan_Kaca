@@ -12,15 +12,15 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('menu_coffeeshop', function (Blueprint $table) {
-            $table->integer('ID_MENU_COFFEESHOP')->unique('menu_coffeeshop_pk');
-            $table->string('NAMA_MENU_COFFEESHOP', 100)->nullable();
-            $table->double('HARGA_JUAL_MENU')->nullable();
-            $table->double('HARGA_POKOK_MENU')->nullable();
-            $table->string('KATEGORI_MENU', 100)->nullable();
-            $table->string('LINK_FOTO_MENU')->nullable();
-            $table->boolean('IS_DELETE')->nullable();
+            $table->integer('id_menu_coffeeshop')->unique('menu_coffeeshop_pk');
+            $table->string('nama_menu_coffeeshop', 100)->nullable();
+            $table->double('harga_jual_menu')->nullable();
+            $table->double('harga_pokok_menu')->nullable();
+            $table->string('kategori_menu', 100)->nullable();
+            $table->string('link_foto_menu')->nullable();
+            $table->boolean('is_delete')->nullable();
 
-            $table->primary(['ID_MENU_COFFEESHOP']);
+            $table->primary(['id_menu_coffeeshop']);
         });
     }
 

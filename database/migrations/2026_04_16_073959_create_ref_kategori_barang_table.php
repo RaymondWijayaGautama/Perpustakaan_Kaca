@@ -12,11 +12,11 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('ref_kategori_barang', function (Blueprint $table) {
-            $table->integer('ID_KAT_BARANG')->primary();
-            $table->string('NAMA_KAT_BARANG', 100)->nullable();
-            $table->boolean('IS_DELETE')->nullable();
+            $table->integer('id_kat_barang')->primary();
+            $table->string('nama_kat_barang', 100)->nullable();
+            $table->boolean('is_delete')->nullable();
 
-            $table->unique(['ID_KAT_BARANG'], 'ref_kategori_barang_pk');
+            $table->unique(['id_kat_barang'], 'ref_kategori_barang_pk');
         });
     }
 

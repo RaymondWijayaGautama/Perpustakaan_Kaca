@@ -12,14 +12,14 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('mst_ruang', function (Blueprint $table) {
-            $table->integer('ID_RUANG')->unique('mst_ruang_pk');
-            $table->string('NAMA_RUANG', 20)->nullable();
-            $table->integer('LUAS')->nullable();
-            $table->integer('KAPASITAS')->nullable();
-            $table->string('KONDISI_RUANGAN')->nullable();
-            $table->boolean('IS_DELETE')->nullable();
+            $table->integer('id_ruang')->unique('mst_ruang_pk');
+            $table->string('nama_ruang', 20)->nullable();
+            $table->integer('luas')->nullable();
+            $table->integer('kapasitas')->nullable();
+            $table->string('kondisi_ruangan')->nullable();
+            $table->boolean('is_delete')->nullable();
 
-            $table->primary(['ID_RUANG']);
+            $table->primary(['id_ruang']);
         });
     }
 

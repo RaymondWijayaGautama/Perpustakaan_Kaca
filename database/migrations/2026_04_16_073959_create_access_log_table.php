@@ -12,13 +12,13 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('access_log', function (Blueprint $table) {
-            $table->integer('ID_ACCESS_LOG')->unique('access_log_pk');
-            $table->dateTime('START_LOGIN')->nullable();
-            $table->dateTime('END_LOGIN')->nullable();
-            $table->string('USERNAME', 25)->nullable();
-            $table->string('ROLE', 10)->nullable();
+            $table->integer('id_access_log')->unique('access_log_pk');
+            $table->dateTime('start_login')->nullable();
+            $table->dateTime('end_login')->nullable();
+            $table->string('username', 25)->nullable();
+            $table->string('role', 10)->nullable();
 
-            $table->primary(['ID_ACCESS_LOG']);
+            $table->primary(['id_access_log']);
         });
     }
 

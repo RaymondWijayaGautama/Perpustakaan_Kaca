@@ -12,20 +12,20 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('dt_jurnal_harian_guru', function (Blueprint $table) {
-            $table->integer('ID_DT_JURNAL_GURU')->unique('dt_jurnal_harian_guru_pk');
-            $table->integer('ID_JURNAL_MENGAJAR')->nullable()->index('relation_8765_fk');
-            $table->integer('ID_LESSON_PLAN')->nullable()->index('relation_8766_fk');
-            $table->dateTime('DT_TGL_JURNAL_GURU')->nullable();
-            $table->time('DT_WAKTU_MULAI_GURU')->nullable();
-            $table->time('DT_WAKTU_SELESAI_GURU')->nullable();
-            $table->string('DT_KEGIATAN_GURU')->nullable();
-            $table->string('DT_INDIKATOR_GURU')->nullable();
-            $table->string('DT_TARGET_GURU')->nullable();
-            $table->string('DT_KENDALA_GURU')->nullable();
-            $table->string('DT_SOLUSI_GURU')->nullable();
-            $table->string('DT_KET_GURU')->nullable();
+            $table->integer('id_dt_jurnal_guru')->unique('dt_jurnal_harian_guru_pk');
+            $table->integer('id_jurnal_mengajar')->nullable()->index('relation_8765_fk');
+            $table->integer('id_lesson_plan')->nullable()->index('relation_8766_fk');
+            $table->dateTime('dt_tgl_jurnal_guru')->nullable();
+            $table->time('dt_waktu_mulai_guru')->nullable();
+            $table->time('dt_waktu_selesai_guru')->nullable();
+            $table->string('dt_kegiatan_guru')->nullable();
+            $table->string('dt_indikator_guru')->nullable();
+            $table->string('dt_target_guru')->nullable();
+            $table->string('dt_kendala_guru')->nullable();
+            $table->string('dt_solusi_guru')->nullable();
+            $table->string('dt_ket_guru')->nullable();
 
-            $table->primary(['ID_DT_JURNAL_GURU']);
+            $table->primary(['id_dt_jurnal_guru']);
         });
     }
 

@@ -12,9 +12,9 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('dt_peminjaman_inventaris', function (Blueprint $table) {
-            $table->foreign(['ID_TR_PEMINJAMAN_INV'], 'dt_peminjaman_inventaris_ibfk_1')->references(['ID_TR_PEMINJAMAN_INV'])->on('tr_peminjaman_inventaris')->onUpdate('restrict')->onDelete('restrict');
-            $table->foreign(['ID_INVENTARIS'], 'dt_peminjaman_inventaris_ibfk_2')->references(['ID_INVENTARIS'])->on('mst_inventaris')->onUpdate('restrict')->onDelete('restrict');
-            $table->foreign(['ID_RUANG'], 'dt_peminjaman_inventaris_ibfk_3')->references(['ID_RUANG'])->on('mst_ruang')->onUpdate('restrict')->onDelete('restrict');
+            $table->foreign(['id_tr_peminjaman_inv'], 'dt_peminjaman_inventaris_ibfk_1')->references(['id_tr_peminjaman_inv'])->on('tr_peminjaman_inventaris')->onUpdate('restrict')->onDelete('restrict');
+            $table->foreign(['id_inventaris'], 'dt_peminjaman_inventaris_ibfk_2')->references(['id_inventaris'])->on('mst_inventaris')->onUpdate('restrict')->onDelete('restrict');
+            $table->foreign(['id_ruang'], 'dt_peminjaman_inventaris_ibfk_3')->references(['id_ruang'])->on('mst_ruang')->onUpdate('restrict')->onDelete('restrict');
         });
     }
 

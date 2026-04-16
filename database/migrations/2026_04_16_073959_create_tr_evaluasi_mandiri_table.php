@@ -12,13 +12,13 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('tr_evaluasi_mandiri', function (Blueprint $table) {
-            $table->integer('ID_TR_EVALUASI_MANDIRI')->primary();
-            $table->string('NIP_KARYAWAN', 20)->nullable()->index('relation_2518_fk');
-            $table->dateTime('TGL_EVALUASI_MANDIRI')->nullable();
-            $table->string('NIP_VALIDATOR_EVALUASI_MANDIRI', 20)->nullable();
-            $table->string('STATUS_EVAL_MANDIRI', 100)->nullable();
+            $table->integer('id_tr_evaluasi_mandiri')->primary();
+            $table->string('nip_karyawan', 20)->nullable()->index('relation_2518_fk');
+            $table->dateTime('tgl_evaluasi_mandiri')->nullable();
+            $table->string('nip_validator_evaluasi_mandiri', 20)->nullable();
+            $table->string('status_eval_mandiri', 100)->nullable();
 
-            $table->unique(['ID_TR_EVALUASI_MANDIRI'], 'tr_evaluasi_mandiri_pk');
+            $table->unique(['id_tr_evaluasi_mandiri'], 'tr_evaluasi_mandiri_pk');
         });
     }
 

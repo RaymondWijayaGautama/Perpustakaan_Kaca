@@ -12,7 +12,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('modul_ajar', function (Blueprint $table) {
-            $table->foreign(['ID_KKTP'], 'modul_ajar_ibfk_1')->references(['ID_KKTP'])->on('mst_kriteria_ketuntasan')->onUpdate('restrict')->onDelete('restrict');
+            $table->foreign(['id_kktp'], 'modul_ajar_ibfk_1')->references(['id_kktp'])->on('mst_kriteria_ketuntasan')->onUpdate('restrict')->onDelete('restrict');
         });
     }
 

@@ -12,12 +12,12 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('ref_prestasi', function (Blueprint $table) {
-            $table->integer('ID_REF_PRESTASI')->primary();
-            $table->string('NAMA_PRESTASI')->nullable();
-            $table->string('JENIS_PRESTASI', 100)->nullable();
-            $table->integer('POIN_PRESTASI')->nullable();
+            $table->integer('id_ref_prestasi')->primary();
+            $table->string('nama_prestasi')->nullable();
+            $table->string('jenis_prestasi', 100)->nullable();
+            $table->integer('poin_prestasi')->nullable();
 
-            $table->unique(['ID_REF_PRESTASI'], 'ref_prestasi_pk');
+            $table->unique(['id_ref_prestasi'], 'ref_prestasi_pk');
         });
     }
 

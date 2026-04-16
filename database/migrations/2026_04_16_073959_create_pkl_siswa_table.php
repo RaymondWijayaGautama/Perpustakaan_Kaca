@@ -12,18 +12,18 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('pkl_siswa', function (Blueprint $table) {
-            $table->integer('ID_PKL_SISWA')->unique('pkl_siswa_pk');
-            $table->integer('ID_PENDAF_PKL')->nullable()->index('relation_4262_fk');
-            $table->integer('ID_SISWA_TETAP')->nullable()->index('relation_4279_fk');
-            $table->integer('ID_MITRA_PKL')->nullable()->index('relation_4280_fk');
-            $table->string('NIP_KARYAWAN', 20)->nullable()->index('relation_6034_fk');
-            $table->string('STATUS_PKL', 100)->nullable();
-            $table->float('NILAI_PKL')->nullable();
-            $table->string('JUDUL_LAPORAN_PKL', 100)->nullable();
-            $table->string('LINK_LAPORAN_PKL')->nullable();
-            $table->string('LINK_GAMBAR_MAP')->nullable();
+            $table->integer('id_pkl_siswa')->unique('pkl_siswa_pk');
+            $table->integer('id_pendaf_pkl')->nullable()->index('relation_4262_fk');
+            $table->integer('id_siswa_tetap')->nullable()->index('relation_4279_fk');
+            $table->integer('id_mitra_pkl')->nullable()->index('relation_4280_fk');
+            $table->string('nip_karyawan', 20)->nullable()->index('relation_6034_fk');
+            $table->string('status_pkl', 100)->nullable();
+            $table->float('nilai_pkl')->nullable();
+            $table->string('judul_laporan_pkl', 100)->nullable();
+            $table->string('link_laporan_pkl')->nullable();
+            $table->string('link_gambar_map')->nullable();
 
-            $table->primary(['ID_PKL_SISWA']);
+            $table->primary(['id_pkl_siswa']);
         });
     }
 

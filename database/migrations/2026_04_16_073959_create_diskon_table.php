@@ -12,14 +12,14 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('diskon', function (Blueprint $table) {
-            $table->integer('ID_DISKON')->unique('diskon_pk');
-            $table->string('NAMA_DISKON', 100)->nullable();
-            $table->float('PERSEN_DISKON')->nullable();
-            $table->string('STATUS_DISKON', 100)->nullable();
-            $table->dateTime('TGL_MULAI_DISKON')->nullable();
-            $table->dateTime('TGL_SELESAI_DISKON')->nullable();
+            $table->integer('id_diskon')->unique('diskon_pk');
+            $table->string('nama_diskon', 100)->nullable();
+            $table->float('persen_diskon')->nullable();
+            $table->string('status_diskon', 100)->nullable();
+            $table->dateTime('tgl_mulai_diskon')->nullable();
+            $table->dateTime('tgl_selesai_diskon')->nullable();
 
-            $table->primary(['ID_DISKON']);
+            $table->primary(['id_diskon']);
         });
     }
 

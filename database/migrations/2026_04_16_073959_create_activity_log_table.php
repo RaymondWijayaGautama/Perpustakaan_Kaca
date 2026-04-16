@@ -12,16 +12,16 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('activity_log', function (Blueprint $table) {
-            $table->integer('ID_ACTIVITY_LOG')->unique('activity_log_pk');
-            $table->integer('ID_ACCESS_LOG')->nullable()->index('relation_6979_fk');
-            $table->dateTime('EVENT_TIME')->nullable();
-            $table->string('ACTOR_USERNAME', 25)->nullable();
-            $table->string('ACTOR_ROLE', 100)->nullable();
-            $table->string('ACTIVITY_NAME', 100)->nullable();
-            $table->string('RELATED_DATA', 100)->nullable();
-            $table->string('ACTIVITY_DESCRIPTION')->nullable();
+            $table->integer('id_activity_log')->unique('activity_log_pk');
+            $table->integer('id_access_log')->nullable()->index('relation_6979_fk');
+            $table->dateTime('event_time')->nullable();
+            $table->string('actor_username', 25)->nullable();
+            $table->string('actor_role', 100)->nullable();
+            $table->string('activity_name', 100)->nullable();
+            $table->string('related_data', 100)->nullable();
+            $table->string('activity_description')->nullable();
 
-            $table->primary(['ID_ACTIVITY_LOG']);
+            $table->primary(['id_activity_log']);
         });
     }
 

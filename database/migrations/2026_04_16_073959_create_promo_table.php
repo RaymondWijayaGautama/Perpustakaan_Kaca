@@ -12,14 +12,14 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('promo', function (Blueprint $table) {
-            $table->integer('ID_PROMO')->primary();
-            $table->string('NAMA_PROMO', 100)->nullable();
-            $table->double('HARGA_PROMO')->nullable();
-            $table->string('STATUS_PROMO', 100)->nullable();
-            $table->dateTime('TGL_MULAI_PROMO')->nullable();
-            $table->dateTime('TGL_SELESAI_PROMO')->nullable();
+            $table->integer('id_promo')->primary();
+            $table->string('nama_promo', 100)->nullable();
+            $table->double('harga_promo')->nullable();
+            $table->string('status_promo', 100)->nullable();
+            $table->dateTime('tgl_mulai_promo')->nullable();
+            $table->dateTime('tgl_selesai_promo')->nullable();
 
-            $table->unique(['ID_PROMO'], 'promo_pk');
+            $table->unique(['id_promo'], 'promo_pk');
         });
     }
 

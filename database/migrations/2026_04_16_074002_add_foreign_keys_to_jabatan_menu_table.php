@@ -12,8 +12,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('jabatan_menu', function (Blueprint $table) {
-            $table->foreign(['ID_SI_ROLE_MENU'], 'jabatan_menu_ibfk_1')->references(['ID_SI_ROLE_MENU'])->on('mst_si_menu')->onUpdate('restrict')->onDelete('restrict');
-            $table->foreign(['ID_JABATAN'], 'jabatan_menu_ibfk_2')->references(['ID_JABATAN'])->on('ref_jabatan_str')->onUpdate('restrict')->onDelete('restrict');
+            $table->foreign(['id_si_role_menu'], 'jabatan_menu_ibfk_1')->references(['id_si_role_menu'])->on('mst_si_menu')->onUpdate('restrict')->onDelete('restrict');
+            $table->foreign(['id_jabatan'], 'jabatan_menu_ibfk_2')->references(['id_jabatan'])->on('ref_jabatan_str')->onUpdate('restrict')->onDelete('restrict');
         });
     }
 

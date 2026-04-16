@@ -12,20 +12,20 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('dt_jurnal_walikelas', function (Blueprint $table) {
-            $table->integer('ID_DT_JURNAL_WALI')->unique('dt_jurnal_walikelas_pk');
-            $table->integer('ID_JURNAL_WALI')->nullable()->index('relation_8810_fk');
-            $table->dateTime('DT_TGL_JURNAL_WALI')->nullable();
-            $table->string('DT_PROGRAM_WALI')->nullable();
-            $table->string('DT_KEGIATAN_WALI')->nullable();
-            $table->string('DT_INDIKATOR_WALI')->nullable();
-            $table->string('DT_SASARAN_WALI')->nullable();
-            $table->string('DT_TARGET_WALI')->nullable();
-            $table->string('DT_KENDALA_WALI')->nullable();
-            $table->string('DT_SARAN_WALI')->nullable();
-            $table->string('DT_SOLUSI_WALI')->nullable();
-            $table->string('DT_KET_WALI')->nullable();
+            $table->integer('id_dt_jurnal_wali')->unique('dt_jurnal_walikelas_pk');
+            $table->integer('id_jurnal_wali')->nullable()->index('relation_8810_fk');
+            $table->dateTime('dt_tgl_jurnal_wali')->nullable();
+            $table->string('dt_program_wali')->nullable();
+            $table->string('dt_kegiatan_wali')->nullable();
+            $table->string('dt_indikator_wali')->nullable();
+            $table->string('dt_sasaran_wali')->nullable();
+            $table->string('dt_target_wali')->nullable();
+            $table->string('dt_kendala_wali')->nullable();
+            $table->string('dt_saran_wali')->nullable();
+            $table->string('dt_solusi_wali')->nullable();
+            $table->string('dt_ket_wali')->nullable();
 
-            $table->primary(['ID_DT_JURNAL_WALI']);
+            $table->primary(['id_dt_jurnal_wali']);
         });
     }
 

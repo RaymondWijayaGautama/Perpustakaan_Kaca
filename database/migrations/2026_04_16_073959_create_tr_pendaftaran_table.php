@@ -12,31 +12,31 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('tr_pendaftaran', function (Blueprint $table) {
-            $table->integer('ID_PENDAFTARAN')->primary();
-            $table->char('KODE_CALON', 20)->nullable()->index('relation_55_fk');
-            $table->integer('KODE_TA')->nullable()->index('relation_279_fk');
-            $table->string('NO_PENDAFTARAN', 20)->nullable();
-            $table->dateTime('TGL_DAFTAR')->nullable();
-            $table->string('BUKTI_BAYAR')->nullable();
-            $table->double('BAYAR_SPS')->nullable();
-            $table->float('NILAI_BHS_INDO')->nullable();
-            $table->float('NILAI_BHS_ING')->nullable();
-            $table->float('NILAI_MTK')->nullable();
-            $table->float('NILAI_IPA')->nullable();
-            $table->char('UKURAN_BAJU', 3)->nullable();
-            $table->string('PILIHAN_PRODI', 100)->nullable();
-            $table->string('SUMBER_INFO', 100)->nullable();
-            $table->string('ALASAN_DAFTAR')->nullable();
-            $table->string('ALASAN_PRODI')->nullable();
-            $table->string('HOBI')->nullable();
-            $table->string('CITA_CITA')->nullable();
-            $table->string('ORANG_DIHORMATI', 100)->nullable();
-            $table->string('ORGANISASI_DIIKUTI')->nullable();
-            $table->integer('JALUR_PENDAF')->nullable();
-            $table->string('STATUS_PENDAF')->nullable();
-            $table->string('STATUS_VERIF_BAYAR')->nullable();
+            $table->integer('id_pendaftaran')->primary();
+            $table->char('kode_calon', 20)->nullable()->index('relation_55_fk');
+            $table->integer('kode_ta')->nullable()->index('relation_279_fk');
+            $table->string('no_pendaftaran', 20)->nullable();
+            $table->dateTime('tgl_daftar')->nullable();
+            $table->string('bukti_bayar')->nullable();
+            $table->double('bayar_sps')->nullable();
+            $table->float('nilai_bhs_indo')->nullable();
+            $table->float('nilai_bhs_ing')->nullable();
+            $table->float('nilai_mtk')->nullable();
+            $table->float('nilai_ipa')->nullable();
+            $table->char('ukuran_baju', 3)->nullable();
+            $table->string('pilihan_prodi', 100)->nullable();
+            $table->string('sumber_info', 100)->nullable();
+            $table->string('alasan_daftar')->nullable();
+            $table->string('alasan_prodi')->nullable();
+            $table->string('hobi')->nullable();
+            $table->string('cita_cita')->nullable();
+            $table->string('orang_dihormati', 100)->nullable();
+            $table->string('organisasi_diikuti')->nullable();
+            $table->integer('jalur_pendaf')->nullable();
+            $table->string('status_pendaf')->nullable();
+            $table->string('status_verif_bayar')->nullable();
 
-            $table->unique(['ID_PENDAFTARAN'], 'tr_pendaftaran_pk');
+            $table->unique(['id_pendaftaran'], 'tr_pendaftaran_pk');
         });
     }
 

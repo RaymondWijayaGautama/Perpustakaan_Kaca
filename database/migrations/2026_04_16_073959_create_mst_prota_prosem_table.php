@@ -12,19 +12,19 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('mst_prota_prosem', function (Blueprint $table) {
-            $table->integer('ID_PROTA_PROSEM')->unique('mst_prota_prosem_pk');
-            $table->integer('ID_ATP')->nullable()->index('relation_5986_fk');
-            $table->char('KODE_MAPEL', 10)->nullable()->index('relation_6029_fk');
-            $table->string('POKOK_MATERI', 100)->nullable();
-            $table->float('ALOKASI_JP')->nullable();
-            $table->string('ALOKASI_TA', 10)->nullable();
-            $table->string('ALOKASI_SEMESTER', 10)->nullable();
-            $table->string('ALOKASI_BULAN', 100)->nullable();
-            $table->integer('ALOKASI_MINGGU')->nullable();
-            $table->string('NIP_VALIDATOR_PROTA_PROSEM', 20)->nullable();
-            $table->boolean('IS_DELETE')->nullable();
+            $table->integer('id_prota_prosem')->unique('mst_prota_prosem_pk');
+            $table->integer('id_atp')->nullable()->index('relation_5986_fk');
+            $table->char('kode_mapel', 10)->nullable()->index('relation_6029_fk');
+            $table->string('pokok_materi', 100)->nullable();
+            $table->float('alokasi_jp')->nullable();
+            $table->string('alokasi_ta', 10)->nullable();
+            $table->string('alokasi_semester', 10)->nullable();
+            $table->string('alokasi_bulan', 100)->nullable();
+            $table->integer('alokasi_minggu')->nullable();
+            $table->string('nip_validator_prota_prosem', 20)->nullable();
+            $table->boolean('is_delete')->nullable();
 
-            $table->primary(['ID_PROTA_PROSEM']);
+            $table->primary(['id_prota_prosem']);
         });
     }
 

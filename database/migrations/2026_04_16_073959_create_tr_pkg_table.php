@@ -12,17 +12,17 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('tr_pkg', function (Blueprint $table) {
-            $table->integer('ID_TR_PKG')->primary();
-            $table->string('NIP_KARYAWAN', 20)->nullable()->index('relation_456_fk');
-            $table->integer('KODE_TA')->nullable()->index('relation_797_fk');
-            $table->dateTime('TGL_TR_PKG')->nullable();
-            $table->string('NIP_EVALUATOR_PKG', 20)->nullable();
-            $table->char('CATATAN_EVALUATOR', 10)->nullable();
-            $table->string('NIP_VALIDATOR_PKG', 20)->nullable();
-            $table->float('NILAI_AKHIR_PKG')->nullable();
-            $table->string('STATUS_TR_PKG')->nullable();
+            $table->integer('id_tr_pkg')->primary();
+            $table->string('nip_karyawan', 20)->nullable()->index('relation_456_fk');
+            $table->integer('kode_ta')->nullable()->index('relation_797_fk');
+            $table->dateTime('tgl_tr_pkg')->nullable();
+            $table->string('nip_evaluator_pkg', 20)->nullable();
+            $table->char('catatan_evaluator', 10)->nullable();
+            $table->string('nip_validator_pkg', 20)->nullable();
+            $table->float('nilai_akhir_pkg')->nullable();
+            $table->string('status_tr_pkg')->nullable();
 
-            $table->unique(['ID_TR_PKG'], 'tr_pkg_pk');
+            $table->unique(['id_tr_pkg'], 'tr_pkg_pk');
         });
     }
 

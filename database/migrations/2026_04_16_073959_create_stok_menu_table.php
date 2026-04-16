@@ -12,12 +12,12 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('stok_menu', function (Blueprint $table) {
-            $table->integer('ID_STOK_MENU')->primary();
-            $table->integer('ID_MENU_COFFEESHOP')->nullable()->index('relation_93_fk');
-            $table->dateTime('TGL_STOK_MENU')->nullable();
-            $table->integer('JML_STOK_MENU')->nullable();
+            $table->integer('id_stok_menu')->primary();
+            $table->integer('id_menu_coffeeshop')->nullable()->index('relation_93_fk');
+            $table->dateTime('tgl_stok_menu')->nullable();
+            $table->integer('jml_stok_menu')->nullable();
 
-            $table->unique(['ID_STOK_MENU'], 'stok_menu_pk');
+            $table->unique(['id_stok_menu'], 'stok_menu_pk');
         });
     }
 

@@ -12,12 +12,12 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('dokumen_prestasi_pelatihan', function (Blueprint $table) {
-            $table->integer('ID_DOK_PRESTASI_PELATIHAN')->unique('dokumen_prestasi_pelatihan_pk');
-            $table->integer('ID_PRESTASI_PELATIHAN')->nullable()->index('relation_7010_fk');
-            $table->string('NAMA_DOK_PRESTASI_PELATIHAN', 100)->nullable();
-            $table->string('LINK_DOK_PRESTASI_PELATIHAN')->nullable();
+            $table->integer('id_dok_prestasi_pelatihan')->unique('dokumen_prestasi_pelatihan_pk');
+            $table->integer('id_prestasi_pelatihan')->nullable()->index('relation_7010_fk');
+            $table->string('nama_dok_prestasi_pelatihan', 100)->nullable();
+            $table->string('link_dok_prestasi_pelatihan')->nullable();
 
-            $table->primary(['ID_DOK_PRESTASI_PELATIHAN']);
+            $table->primary(['id_dok_prestasi_pelatihan']);
         });
     }
 
