@@ -19,6 +19,8 @@ Route::get('/laporan/buku-terpopuler', [LaporanController::class, 'bukuTerpopule
 Route::get('/laporan/buku-terpopuler/pdf', [LaporanController::class, 'exportPdfBukuTerpopuler']);
 Route::get('/laporan/kategori-populer', [LaporanController::class, 'kategoriPopuler']);
 Route::get('/laporan/kategori-populer/pdf', [LaporanController::class, 'exportPdfKategori']);
+Route::get('/laporan/statistik-kunjungan', [LaporanController::class, 'statistikKunjungan']);
+Route::get('/laporan/statistik-kunjungan/pdf', [LaporanController::class, 'exportPdfStatistikKunjungan']);
 Route::get('/', function () {
     return view('welcome');
 });
