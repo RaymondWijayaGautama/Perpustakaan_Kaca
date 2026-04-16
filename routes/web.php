@@ -15,6 +15,8 @@ Route::post('/pustakawan/buku/import', [BukuController::class, 'importExcel'])->
 Route::get('/laporan/kunjungan-bulanan', [LaporanController::class, 'kunjunganBulanan']);
 Route::get('/laporan/kunjungan-bulanan/pdf', [LaporanController::class, 'exportPdfKunjungan']);
 Route::get('/pustakawan/buku/export', [BukuController::class, 'exportExcel'])->name('pustakawan.buku.export');
+Route::get('/laporan/kategori-populer', [LaporanController::class, 'kategoriPopuler']);
+Route::get('/laporan/kategori-populer/pdf', [LaporanController::class, 'exportPdfKategori']);
 Route::get('/', function () {
     return view('welcome');
 });
