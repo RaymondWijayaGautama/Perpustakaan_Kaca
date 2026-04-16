@@ -52,7 +52,7 @@ const RiwayatPinjamPanel = () => {
                 setLoading(true);
                 await axios.delete(`http://localhost:8000/api/peminjaman/${id}`);
                 alert("Data berhasil dihapus dari daftar aktif!");
-                fetchData(); // Refresh tabel
+                fetchData();
             } catch (error) {
                 alert("Gagal menghapus data!");
                 console.error(error);
@@ -72,8 +72,8 @@ const RiwayatPinjamPanel = () => {
 
             <div className="flex justify-between items-center mb-8">
                 <div>
-                    <h1 className="text-2xl font-bold font-montserrat">Daftar Peminjaman</h1>
-                    <p className="text-sm text-gray-500">Data keluar masuk buku (Raymond Mode)</p>
+                    <h1 className="text-2xl font-bold font-montserrat">Riwayat Peminjaman</h1>
+                    <p className="text-sm text-gray-500">Data keluar masuk buku </p>
                 </div>
                 
                 <select 
