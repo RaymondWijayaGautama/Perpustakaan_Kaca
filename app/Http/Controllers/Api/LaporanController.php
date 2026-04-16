@@ -260,6 +260,49 @@ class LaporanController extends Controller
 
     return $pdf->download('Laporan_Jumlah_Kunjungan_Perpus.pdf');
 }
+
+    public function bukuTerpopuler()
+    {
+        $tahun = date('Y');
+
+        $laporanBuku = DB::table('tr_peminjaman as tp')
+            ->join('cp_koleksi as ck', 'tp.id_cp_koleksi', '=', 'ck.id_cp_koleksi')
+            ->join('mst_koleksi_buku as mkb', 'ck.ISBN', '=', 'mkb.ISBN')
+            ->select(
+                'mkb.judul_koleksi',
+                'mkb.ISBN',
+                'mkb.pengarang',
+                DB::raw('COUNT(tp.id_peminjaman) as total_dipinjam')
+            )
+            ->whereYear('tp.tgl_peminjaman', $tahun)
+            ->groupBy('mkb.ISBN', 'mkb.judul_koleksi', 'mkb.pengarang')
+            ->orderBy('total_dipinjam', 'desc')
+            ->take(20) 
+            ->get();
+
+        return view('laporan.buku_terpopuler', compact('laporanBuku', 'tahun'));
+    }
+
+    public function exportPdfBukuTerpopuler()
+    {
+        $tahun = date('Y');
+
+        $laporanBuku = DB::table('tr_peminjaman as tp')
+            ->join('cp_koleksi as ck', 'tp.id_cp_koleksi', '=', 'ck.id_cp_koleksi')
+            ->join('mst_koleksi_buku as mkb', 'ck.ISBN', '=', 'mkb.ISBN')
+            ->select(
+                'mkb.judul_koleksi',
+                'mkb.ISBN',
+                'mkb.pengarang',
+                DB::raw('COUNT(tp.id_peminjaman) as total_dipinjam')
+            )
+            ->whereYear('tp.tgl_peminjaman', $tahun)
+            ->groupBy('mkb.ISBN', 'mkb.judul_koleksi', 'mkb.pengarang')
+            ->orderBy('total_dipinjam', 'desc')
+            ->get();
+
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('laporan.buku_terpopuler_pdf', compact('laporanBuku', 'tahun'));
+        return $pdf->download('Laporan_Buku_Terpopuler_'.$tahun.'.pdf');
     // Fungsionalitas 56: Laporan Kategori Buku Paling Sering Dipinjam
     public function kategoriPopuler()
     {
