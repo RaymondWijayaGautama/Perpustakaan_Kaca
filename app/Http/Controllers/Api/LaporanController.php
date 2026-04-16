@@ -303,6 +303,7 @@ class LaporanController extends Controller
 
         $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('laporan.buku_terpopuler_pdf', compact('laporanBuku', 'tahun'));
         return $pdf->download('Laporan_Buku_Terpopuler_'.$tahun.'.pdf');
+    }
     // Fungsionalitas 56: Laporan Kategori Buku Paling Sering Dipinjam
     public function kategoriPopuler()
     {
