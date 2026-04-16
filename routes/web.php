@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\KoleksiController;
 use App\Http\Controllers\Api\LaporanController;
 use App\Http\Controllers\Pustakawan\BukuController;
+use App\Http\Controllers\DashboardController;
 
 
 Route::get('/generate-barcode', [KoleksiController::class, 'index']);
@@ -21,6 +22,7 @@ Route::get('/laporan/kategori-populer', [LaporanController::class, 'kategoriPopu
 Route::get('/laporan/kategori-populer/pdf', [LaporanController::class, 'exportPdfKategori']);
 Route::get('/laporan/statistik-kunjungan', [LaporanController::class, 'statistikKunjungan']);
 Route::get('/laporan/statistik-kunjungan/pdf', [LaporanController::class, 'exportPdfStatistikKunjungan']);
+Route::get('/pustakawan/pemusnahan/{id}/berita-acara', [DashboardController::class, 'printBeritaAcaraPemusnahan'])->name('pustakawan.pemusnahan.berita_acara');
 Route::get('/', function () {
     return view('welcome');
 });
