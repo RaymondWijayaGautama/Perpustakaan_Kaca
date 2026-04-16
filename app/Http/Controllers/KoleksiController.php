@@ -1,45 +1,96 @@
 <?php
 
-namespace App\Http\Controllers; // Sesuaikan jika ada di folder Api
+namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\CpKoleksi;
-use Picqer\Barcode\BarcodeGeneratorHTML;
+use App\Models\MstKoleksiBuku;
 
 class KoleksiController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        return view('tambah_barcode'); 
+        $query = CpKoleksi::with('buku')
+            ->where('is_delete', 0);
+
+        // 🔍 SEARCH
+        if ($request->search) {
+            $query->whereHas('buku', function ($q) use ($request) {
+                $q->where('judul', 'like', '%' . $request->search . '%')
+                  ->orWhere('kategori', 'like', '%' . $request->search . '%');
+            });
+        }
+
+        $koleksi = $query->paginate(10);
+
+        return view('koleksi.index', compact('koleksi'));
     }
 
-    public function generate(Request $request)
+    public function create()
     {
-        $koleksiBaru = CpKoleksi::create([
-            'status_buku' => 'Tersedia', 
-            'ISBN' => $request->isbn,
-            'id_mst_laporan' => 1 
+        $buku = MstKoleksiBuku::all();
+        return view('tambah_koleksi', compact('buku'));
+    }
+
+    public function store(Request $request)
+    {
+        $request->validate([
+            'ISBN' => 'required|exists:mst_koleksi_buku,ISBN',
+            'jumlah' => 'required|integer|min:1',
+            'lokasi_rak' => 'required',
+            'kondisi_buku' => 'required'
         ]);
 
-        $kodeSistemUnik = $koleksiBaru->ISBN . '-' . $koleksiBaru->id_cp_koleksi;
-        $generator = new BarcodeGeneratorHTML();
-        $gambarBarcode = $generator->getBarcode($kodeSistemUnik, $generator::TYPE_CODE_128, 2, 60, 'black');
+        for ($i = 0; $i < $request->jumlah; $i++) {
+            dd($request->all());
+            CpKoleksi::create([
+                'id_koleksi' => uniqid(),
+                'ISBN' => $request->ISBN,
+                'status_buku' => 'Tersedia',
+                'lokasi_rak' => $request->lokasi_rak,
+                'tanggal_masuk' => now(),
+                'kondisi_buku' => $request->kondisi_buku,
+                'is_delete' => 0,
+                'id_mst_laporan' => $request->id_mst_laporan // <- TAMBAH INI
+            ]);
+        }
 
-        return "
-        <div style='width: 100%; display: flex; flex-direction: column; align-items: center;'>
-            <div style='width: 100%; padding: 10px; background-color: #f0fdf4; border: 1px solid #bbf7d0; color: #166534; border-radius: 8px; font-weight: bold; font-size: 14px; margin-bottom: 24px; text-align: center;'>
-                Buku Berhasil Didaftarkan
-            </div>
-            <div style='display: flex; justify-content: center; width: 100%; margin-bottom: 12px; background: white; padding: 10px;'>
-                {$gambarBarcode}
-            </div>
-            <p style='font-family: monospace; letter-spacing: 4px; font-weight: bold; font-size: 15px; color: #1a1a1a; margin-top: 0; margin-bottom: 20px;'>
-                {$kodeSistemUnik}
-            </p>
-            <div style='margin-top: 10px; border-top: 1px dashed #d1d5db; width: 100%; padding-top: 15px; font-size: 10px; color: #6b7280; text-transform: uppercase; font-weight: bold; letter-spacing: 1px; text-align: center;'>
-                Tersimpan dengan ID Fisik: <span style='color: #1f2937;'>{$koleksiBaru->id_cp_koleksi}</span>
-            </div>
-        </div>
-        ";
+        return redirect()->route('koleksi.index')->with('success', 'Berhasil tambah banyak koleksi');
+    }
+
+    public function edit($id)
+    {
+        $koleksi = CpKoleksi::findOrFail($id);
+        return view('edit_koleksi', compact('koleksi'));
+    }
+
+    public function update(Request $request, $id)
+    {
+        $koleksi->update([
+            'status_buku' => $request->status_buku,
+            'lokasi_rak' => $request->lokasi_rak,
+            'kondisi_buku' => $request->kondisi_buku
+        ]);
+
+        $koleksi = CpKoleksi::findOrFail($id);
+        $koleksi->update($request->all());
+
+        return redirect()->route('koleksi.index')->with('success', 'Koleksi berhasil diupdate');
+    }
+
+    public function destroy($id)
+    {
+        $koleksi = CpKoleksi::findOrFail($id);
+        if ($koleksi->status_buku == 'Dipinjam') {
+            return back()->with('error', 'Tidak bisa dihapus, buku sedang dipinjam');
+        }
+
+        $koleksi->update(['is_delete' => 1]);
+
+        return back()->with('success', 'Koleksi berhasil dihapus');
+    }
+    public function buku()
+    {
+        return $this->belongsTo(MstKoleksiBuku::class, 'ISBN', 'ISBN');
     }
 }

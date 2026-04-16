@@ -8,12 +8,42 @@ use App\Models\MstKoleksiBuku;
 use App\Imports\BukuImport;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Exports\BukuExport;
+
 class BukuController extends Controller
 {
     public function index()
     {
         $buku = MstKoleksiBuku::where('is_delete', 0)->get();
         return view('pustakawan.buku.index', compact('buku'));
+    }
+
+    public function create()
+    {
+        return view('tambah_buku');
+    }
+
+    public function store(Request $request)
+    {
+        $request->validate([
+            'ISBN' => 'required|unique:mst_koleksi_buku,ISBN',
+            'judul' => 'required|string|max:255',
+            'penulis' => 'required|string|max:255',
+            'penerbit' => 'required|string|max:255',
+            'tahun_terbit' => 'required|numeric',
+            'kategori' => 'required|string|max:100'
+        ]);
+
+        MstKoleksiBuku::create([
+            'ISBN' => $request->ISBN,
+            'judul' => $request->judul,
+            'penulis' => $request->penulis,
+            'penerbit' => $request->penerbit,
+            'tahun_terbit' => $request->tahun_terbit,
+            'kategori' => $request->kategori,
+            'is_delete' => 0
+        ]);
+
+        return redirect()->back()->with('success', 'Buku berhasil ditambahkan');
     }
 
     public function importExcel(Request $request)
@@ -29,6 +59,7 @@ class BukuController extends Controller
             return redirect()->back()->with('error', 'Gagal: ' . $e->getMessage());
         }
     }
+
     public function halamanImport()
     {
         return view('bukuimport');
