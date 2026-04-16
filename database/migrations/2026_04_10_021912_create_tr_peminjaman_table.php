@@ -12,7 +12,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('tr_peminjaman', function (Blueprint $table) {
-            $table->integer('id_peminjaman')->primary();
+            $table->integer('id_peminjaman')->autoIncrement()->primary();
             $table->date('tgl_peminjaman');
             $table->date('tgl_harus_kembali');
             $table->date('tgl_kembali')->nullable();
