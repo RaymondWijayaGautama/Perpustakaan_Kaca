@@ -264,7 +264,7 @@ const ManajemenBukuPanel = ({ user }) => {
 
     return (
         <div className="bg-white rounded-xl shadow p-6 border border-gray-100">
-            <div className="flex justify-between items-center mb-8 gap-4">
+            <div className="flex items-start justify-between gap-4 mb-6">
                 <div>
                     <h1 className="text-2xl font-bold font-montserrat">Manajemen Buku</h1>
                     <p className="text-sm text-[#585858] mt-1">
@@ -276,64 +276,65 @@ const ManajemenBukuPanel = ({ user }) => {
                         </p>
                     )}
                 </div>
-                <div className="flex gap-3 flex-1 justify-end items-start">
-                    <button
-                        type="button"
-                        onClick={handleExportExcel}
-                        className="bg-[#2E7D32] text-white px-5 py-3 rounded-xl text-sm font-bold shadow hover:bg-[#1b5e20] transition-colors whitespace-nowrap"
-                    >
-                        Export Excel
-                    </button>
-                    <input
-                        type="text"
-                        placeholder="Cari Judul atau Penulis..."
-                        className="p-3 border rounded-xl text-sm outline-none w-2/3 focus:ring-2 focus:ring-[#265F9C] transition-all shadow-sm"
-                        value={bookSearch}
-                        onChange={(event) => {
-                            setBookSearch(event.target.value);
-                            setBookPage(1);
-                        }}
-                    />
-                    <select
-                        className="p-3 border rounded-xl text-sm bg-gray-50 font-medium"
-                        value={bookKategori}
-                        onChange={(event) => {
-                            setBookKategori(event.target.value);
-                            setBookPage(1);
-                        }}
-                    >
-                        <option value="">Semua Kategori</option>
-                        {kategoriBuku.map((kategori) => (
-                            <option key={kategori.id_ref_koleksi} value={kategori.id_ref_koleksi}>
-                                {kategori.deskripsi}
-                            </option>
-                        ))}
-                    </select>
-                    <select
-                        className="p-3 border rounded-xl text-sm bg-gray-50 font-medium"
-                        value={bookSortBy}
-                        onChange={(event) => {
-                            setBookSortBy(event.target.value);
-                            setBookPage(1);
-                        }}
-                    >
-                        <option value="judul_koleksi">Urut: Judul</option>
-                        <option value="pengarang">Urut: Penulis</option>
-                        <option value="tahun">Urut: Tahun</option>
-                        <option value="kategori">Urut: Kategori</option>
-                    </select>
-                    <select
-                        className="p-3 border rounded-xl text-sm bg-gray-50 font-medium"
-                        value={bookSortOrder}
-                        onChange={(event) => {
-                            setBookSortOrder(event.target.value);
-                            setBookPage(1);
-                        }}
-                    >
-                        <option value="asc">A-Z / Lama-Baru</option>
-                        <option value="desc">Z-A / Baru-Lama</option>
-                    </select>
-                </div>
+                <button
+                    type="button"
+                    onClick={handleExportExcel}
+                    className="bg-[#2E7D32] text-white px-5 py-3 rounded-xl text-sm font-bold shadow hover:bg-[#1b5e20] transition-colors whitespace-nowrap self-start"
+                >
+                    Export Excel
+                </button>
+            </div>
+
+            <div className="mb-8 flex flex-wrap gap-3 justify-end">
+                <input
+                    type="text"
+                    placeholder="Cari Judul atau Penulis..."
+                    className="p-3 border rounded-xl text-sm outline-none min-w-[260px] focus:ring-2 focus:ring-[#265F9C] transition-all shadow-sm"
+                    value={bookSearch}
+                    onChange={(event) => {
+                        setBookSearch(event.target.value);
+                        setBookPage(1);
+                    }}
+                />
+                <select
+                    className="p-3 border rounded-xl text-sm bg-gray-50 font-medium"
+                    value={bookKategori}
+                    onChange={(event) => {
+                        setBookKategori(event.target.value);
+                        setBookPage(1);
+                    }}
+                >
+                    <option value="">Semua Kategori</option>
+                    {kategoriBuku.map((kategori) => (
+                        <option key={kategori.id_ref_koleksi} value={kategori.id_ref_koleksi}>
+                            {kategori.deskripsi}
+                        </option>
+                    ))}
+                </select>
+                <select
+                    className="p-3 border rounded-xl text-sm bg-gray-50 font-medium"
+                    value={bookSortBy}
+                    onChange={(event) => {
+                        setBookSortBy(event.target.value);
+                        setBookPage(1);
+                    }}
+                >
+                    <option value="judul_koleksi">Urut: Judul</option>
+                    <option value="pengarang">Urut: Penulis</option>
+                    <option value="tahun">Urut: Tahun</option>
+                    <option value="kategori">Urut: Kategori</option>
+                </select>
+                <select
+                    className="p-3 border rounded-xl text-sm bg-gray-50 font-medium"
+                    value={bookSortOrder}
+                    onChange={(event) => {
+                        setBookSortOrder(event.target.value);
+                        setBookPage(1);
+                    }}
+                >
+                    <option value="asc">A-Z / Lama-Baru</option>
+                    <option value="desc">Z-A / Baru-Lama</option>
+                </select>
             </div>
 
             {feedback.message && (

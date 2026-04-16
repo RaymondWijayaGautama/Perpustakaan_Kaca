@@ -6,9 +6,13 @@ import PeminjamanPanel from './PeminjamanPanel';
 import RiwayatPinjamPanel from './RiwayatPinjamPanel';
 import PemusnahanPanel from './PemusnahanPanel'; // Import PemusnahanPanel
 import LaporanPeminjamanBulananPanel from './LaporanPeminjamanBulananPanel';
+import LaporanDistribusiKunjunganKelasPanel from './LaporanDistribusiKunjunganKelasPanel';
+import LaporanDistribusiKunjunganHariPanel from './LaporanDistribusiKunjunganHariPanel';
+import LaporanInventarisasiBukuBaruPanel from './LaporanInventarisasiBukuBaruPanel';
 
 const AdminPanel = ({ user, onLogout }) => {
     const [activeTab, setActiveTab] = useState('dashboard');
+    const [isDistribusiMenuOpen, setIsDistribusiMenuOpen] = useState(false);
     const [stats, setStats] = useState({ total_buku: 0, total_siswa: 0, total_laporan: 0 });
     const [loading, setLoading] = useState(false);
 
@@ -71,6 +75,12 @@ const AdminPanel = ({ user, onLogout }) => {
         })
         .sort((a, b) => a.nama.localeCompare(b.nama));
 
+    useEffect(() => {
+        if (activeTab === 'laporan_distribusi_kunjungan_kelas' || activeTab === 'laporan_distribusi_kunjungan_hari') {
+            setIsDistribusiMenuOpen(true);
+        }
+    }, [activeTab]);
+
     return (
         <div className="min-h-screen bg-[#F6F7F9] flex font-roboto text-[#1A1A1A]">
             <aside className="w-64 bg-[#265F9C] text-white p-6 flex flex-col shadow-xl print:hidden">
@@ -86,6 +96,32 @@ const AdminPanel = ({ user, onLogout }) => {
                     <div onClick={() => setActiveTab('pemusnahan')} className={`p-3 rounded cursor-pointer transition-all ${activeTab === 'pemusnahan' ? 'bg-white/20 font-bold border-l-4 border-white' : 'hover:bg-white/10'}`}>Pemusnahan Buku</div>
                     <div onClick={() => setActiveTab('riwayat_pinjam')}className={`p-3 rounded cursor-pointer transition-all ${activeTab === 'riwayat_pinjam' ? 'bg-white/20 font-bold border-l-4 border-white' : 'hover:bg-white/10'}`}>Riwayat Peminjaman</div>
                     <div onClick={() => setActiveTab('laporan_peminjaman_bulanan')} className={`p-3 rounded cursor-pointer transition-all ${activeTab === 'laporan_peminjaman_bulanan' ? 'bg-white/20 font-bold border-l-4 border-white' : 'hover:bg-white/10'}`}>Statistik Peminjaman</div>
+                    <div onClick={() => setActiveTab('laporan_inventarisasi_buku_baru')} className={`p-3 rounded cursor-pointer transition-all ${activeTab === 'laporan_inventarisasi_buku_baru' ? 'bg-white/20 font-bold border-l-4 border-white' : 'hover:bg-white/10'}`}>Inventarisasi Buku Baru</div>
+                    <div className={`rounded transition-all overflow-hidden ${activeTab === 'laporan_distribusi_kunjungan_kelas' || activeTab === 'laporan_distribusi_kunjungan_hari' || isDistribusiMenuOpen ? 'bg-white/10' : ''}`}>
+                        <div
+                            onClick={() => setIsDistribusiMenuOpen((current) => !current)}
+                            className={`p-3 cursor-pointer transition-all flex items-center justify-between ${activeTab === 'laporan_distribusi_kunjungan_kelas' || activeTab === 'laporan_distribusi_kunjungan_hari' ? 'font-bold border-l-4 border-white bg-white/20' : 'hover:bg-white/10'}`}
+                        >
+                            <span>Laporan Distribusi Kunjungan</span>
+                            <span className={`text-xs transition-transform ${isDistribusiMenuOpen ? 'rotate-180' : ''}`}>▼</span>
+                        </div>
+                        {isDistribusiMenuOpen && (
+                            <div className="px-2 pb-2 space-y-1 bg-white/5">
+                                <div
+                                    onClick={() => setActiveTab('laporan_distribusi_kunjungan_kelas')}
+                                    className={`ml-3 rounded-lg px-3 py-2 text-sm cursor-pointer transition-all ${activeTab === 'laporan_distribusi_kunjungan_kelas' ? 'bg-white text-[#265F9C] font-bold shadow-sm' : 'text-white/90 hover:bg-white/10'}`}
+                                >
+                                    Berdasarkan Kelas
+                                </div>
+                                <div
+                                    onClick={() => setActiveTab('laporan_distribusi_kunjungan_hari')}
+                                    className={`ml-3 rounded-lg px-3 py-2 text-sm cursor-pointer transition-all ${activeTab === 'laporan_distribusi_kunjungan_hari' ? 'bg-white text-[#265F9C] font-bold shadow-sm' : 'text-white/90 hover:bg-white/10'}`}
+                                >
+                                    Berdasarkan Hari
+                                </div>
+                            </div>
+                        )}
+                    </div>
                 </nav>
                 <button onClick={onLogout} className="mt-auto p-2 text-red-200 font-bold hover:text-white transition-colors text-left">Keluar Sistem</button>
             </aside>
@@ -209,6 +245,9 @@ const AdminPanel = ({ user, onLogout }) => {
                 {activeTab === 'pemusnahan' && <PemusnahanPanel user={user} />} {/* Render PemusnahanPanel */}
                 {activeTab === 'riwayat_pinjam' && <RiwayatPinjamPanel user={user} />}
                 {activeTab === 'laporan_peminjaman_bulanan' && <LaporanPeminjamanBulananPanel />}
+                {activeTab === 'laporan_inventarisasi_buku_baru' && <LaporanInventarisasiBukuBaruPanel />}
+                {activeTab === 'laporan_distribusi_kunjungan_kelas' && <LaporanDistribusiKunjunganKelasPanel />}
+                {activeTab === 'laporan_distribusi_kunjungan_hari' && <LaporanDistribusiKunjunganHariPanel />}
 
             </main>
         </div>

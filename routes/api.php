@@ -15,6 +15,10 @@ Route::post('/login', [AuthController::class, 'login']);
 Route::post('/generate-barcode', [KoleksiController::class, 'generate']);
 // Group Laporan
 Route::get('/laporan', [LaporanController::class, 'getLaporan']); 
+Route::get('/laporan/peminjaman-bulanan', [LaporanController::class, 'statistikPeminjamanBulanan']);
+Route::get('/laporan/kunjungan-distribusi-kelas', [LaporanController::class, 'distribusiKunjunganKelas']);
+Route::get('/laporan/kunjungan-distribusi-hari', [LaporanController::class, 'distribusiKunjunganHari']);
+Route::get('/laporan/inventarisasi-buku-baru', [LaporanController::class, 'inventarisasiBukuBaru']);
 Route::delete('/laporan/hapus/{id}', [LaporanController::class, 'destroy']);
 Route::post('/laporan/ubah/{id}', [LaporanController::class, 'update']);
 Route::post('/laporan/tambah', [LaporanController::class, 'store']);
@@ -37,4 +41,4 @@ Route::post('/pengembalian/scan', [App\Http\Controllers\Api\PeminjamanController
 Route::post('/pengembalian/proses/{id}', [App\Http\Controllers\Api\PeminjamanController::class, 'prosesPengembalian']);
 Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
-});
+})->middleware('auth:sanctum');
