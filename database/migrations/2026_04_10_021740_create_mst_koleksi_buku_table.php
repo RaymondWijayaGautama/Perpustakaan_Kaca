@@ -10,7 +10,7 @@ return new class extends Migration
      * Run the migrations.
      */
     public function up(): void {
-       Schema::create('mst_koleksi_buku', function (Blueprint $table) {
+    Schema::create('mst_koleksi_buku', function (Blueprint $table) {
             $table->string('ISBN', 25)->primary();
             $table->string('judul_koleksi', 255);
             $table->string('pengarang', 25);
@@ -25,10 +25,10 @@ return new class extends Migration
             $table->integer('indeks_awal_akhir');
             $table->string('keterangan_buku', 255);
             $table->string('no_rak_buku', 100);
-            $table->tinyInteger('is_delete');
-            $table->integer('id_ref_koleksi');
-
-            $table->foreign('id_ref_koleksi')->references('id_ref_koleksi')->on('ref_koleksi');
+            $table->tinyInteger('is_delete')->default(0);
+            
+            // Memakai foreignId untuk sinkronisasi tipe data
+            $table->foreignId('id_ref_koleksi')->constrained('ref_koleksi', 'id_ref_koleksi');
         });
     }
 

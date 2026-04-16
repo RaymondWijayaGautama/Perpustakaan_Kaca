@@ -12,12 +12,11 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('tr_kunjungan_perpus', function (Blueprint $table) {
-            $table->integer('id_kunjungan')->primary();
+            $table->id('id_kunjungan');
             $table->dateTime('start_kunjungan');
-            $table->dateTime('end_kunjungan');
-            $table->integer('id_siswa_tetap');
-
-            $table->foreign('id_siswa_tetap')->references('id_siswa_tetap')->on('mst_siswa');
+            $table->dateTime('end_kunjungan')->nullable();
+            
+            $table->foreignId('id_siswa_tetap')->constrained('mst_siswa', 'id_siswa_tetap');
         });
     }
 

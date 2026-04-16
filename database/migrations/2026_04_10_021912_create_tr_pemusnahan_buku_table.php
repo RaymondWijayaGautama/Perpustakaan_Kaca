@@ -6,24 +6,27 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
-         Schema::create('tr_pemusnahan_buku', function (Blueprint $table) {
-            $table->integer('id_pemusnahan_buku')->primary();
-            $table->string('ket_pemusnahan_buku', 255);
-            $table->dateTime('tgl_pemusnahan_buku');
-            $table->integer('id_cp_koleksi');
+        Schema::create('tr_pemusnahan_buku', function (Blueprint $table) {
+            // Gunakan integer biasa sesuai SQL asli
+            $table->integer('id_pemusnahan_buku')->autoIncrement();
+            
+            // --- KOLOM FOREIGN KEY (Wajib integer biasa) ---
+            $table->integer('id_cp_koleksi')->nullable(); 
+            
+            $table->string('ket_pemusnahan_buku', 255)->nullable();
+            $table->dateTime('tgl_pemusnahan_buku')->nullable();
+            $table->boolean('is_delete')->default(0)->nullable();
 
-            $table->foreign('id_cp_koleksi')->references('id_cp_koleksi')->on('cp_koleksi');
+            // --- DEKLARASI RELASI ---
+            $table->foreign('id_cp_koleksi')
+                  ->references('id_cp_koleksi')
+                  ->on('cp_koleksi')
+                  ->onDelete('set null');
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::dropIfExists('tr_pemusnahan_buku');

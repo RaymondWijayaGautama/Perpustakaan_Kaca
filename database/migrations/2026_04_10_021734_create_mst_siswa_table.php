@@ -12,7 +12,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('mst_siswa', function (Blueprint $table) {
-            $table->integer('id_siswa_tetap')->autoIncrement();
+            $table->id('id_siswa_tetap'); 
             $table->char('kode_calon_siswa', 20);
             $table->char('nisn_siswa', 10);
             $table->string('nama_siswa_tetap', 100);
@@ -35,8 +35,7 @@ return new class extends Migration
             $table->string('peran_ortu_siswa', 10);
             $table->string('tahun_lulus', 4);
             $table->string('password_siswa', 255);
-            $table->tinyInteger('is_delete');
-            $table->primary('id_siswa_tetap');
+            $table->tinyInteger('is_delete')->default(0);
         });
     }
 

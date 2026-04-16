@@ -12,9 +12,9 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('ref_koleksi', function (Blueprint $table) {
-            $table->integer('id_ref_koleksi')->primary();
+            $table->id('id_ref_koleksi');
             $table->string('deskripsi', 100);
-            $table->tinyInteger('is_delete');
+            $table->tinyInteger('is_delete')->default(0);
         });
     }
 

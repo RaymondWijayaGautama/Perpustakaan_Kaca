@@ -7,6 +7,8 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\KoleksiController;
 use App\Http\Controllers\Api\PeminjamanController;
+use App\Http\Controllers\Pustakawan\PengembalianController;
+use App\Http\Controllers\Api\LaporanPklController;
 // Import controller pemusnahan jika Anda sudah membuatnya, 
 // atau arahkan ke DashboardController jika fungsinya ada di sana.
 // use App\Http\Controllers\Api\PemusnahanController; 
@@ -20,6 +22,8 @@ Route::get('/laporan/peminjaman-bulanan', [LaporanController::class, 'statistikP
 Route::delete('/laporan/hapus/{id}', [LaporanController::class, 'destroy']);
 Route::post('/laporan/ubah/{id}', [LaporanController::class, 'update']);
 Route::post('/laporan/tambah', [LaporanController::class, 'store']);
+Route::get('/anggota/{id}/riwayat', [PeminjamanController::class, 'riwayatPerAnggota']);
+
 
 Route::post('/login', [AuthController::class, 'login']);
 Route::get('/dashboard/stats', [DashboardController::class, 'getStats']);
@@ -29,6 +33,10 @@ Route::get('/buku/kategori', [DashboardController::class, 'getKategoriBuku']);
 Route::put('/buku/{isbn}', [DashboardController::class, 'updateBuku']);
 Route::delete('/buku/{isbn}', [DashboardController::class, 'destroyBuku']);
 Route::get('/pengembalian', [DashboardController::class, 'getPengembalian']);
+Route::post('/kembalikan', [PengembalianController::class, 'prosesKembali']);
+Route::get('/laporan-pkl', [LaporanPklController::class, 'index']);
+Route::get('/buku/kategori', [DashboardController::class, 'getKategoriBuku']);
+Route::get('/buku/laporan', [LaporanPklController::class, 'getLaporanPkl']);
 
 // --- BAGIAN BARU: RUTE PEMUSNAHAN BUKU ---
 // Pastikan fungsi-fungsi ini (getHistoryPemusnahan, storePemusnahan, dll) 

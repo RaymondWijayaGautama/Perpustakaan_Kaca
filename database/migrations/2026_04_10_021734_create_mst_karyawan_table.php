@@ -31,7 +31,7 @@ return new class extends Migration
             $table->string('prodi_karyawan', 100);
             $table->string('sertifikat_pendidik', 100);
             $table->string('link_foto_karyawan', 100);
-            $table->tinyInteger('is_delete');
+            $table->tinyInteger('is_delete')->default(0);
         });
     }
 

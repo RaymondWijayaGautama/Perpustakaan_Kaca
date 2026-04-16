@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\Api;
+namespace App\Http\Controllers\Pustakawan;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
@@ -11,39 +11,39 @@ class PengembalianController extends Controller
 {
     public function prosesKembali(Request $request)
     {
-        // Validasi Role Karyawan [cite: 163]
-        if ($request->role !== 'karyawan') {
-            return response()->json(['message' => 'Akses ditolak.'], 403);
-        }
+        // Validasi input
+        $scannedCode = $request->id_peminjaman; 
 
-        $scannedCode = $request->id_peminjaman; // Ini bisa berisi ISBN hasil scan
-
-        // Mencari peminjaman aktif berdasarkan ID Transaksi ATAU ISBN Buku
+        // Mencari peminjaman aktif
+        // Sesuai migrasi: id_peminjaman
         $peminjaman = DB::table('tr_peminjaman')
             ->join('cp_koleksi', 'tr_peminjaman.id_cp_koleksi', '=', 'cp_koleksi.id_cp_koleksi')
             ->where(function($query) use ($scannedCode) {
-                $query->where('tr_peminjaman.id_tr_peminjaman', $scannedCode)
+                $query->where('tr_peminjaman.id_peminjaman', $scannedCode) // Perbaikan nama kolom
                       ->orWhere('cp_koleksi.ISBN', $scannedCode);
             })
-            ->whereNull('tr_peminjaman.tgl_kembali')
+            ->where(function($q) {
+                $q->whereNull('tr_peminjaman.tgl_kembali')
+                  ->orWhere('tr_peminjaman.tgl_kembali', '1970-01-01'); // Handle placeholder seeder
+            })
             ->select('tr_peminjaman.*', 'cp_koleksi.id_cp_koleksi')
             ->first();
 
         if (!$peminjaman) {
-            return response()->json(['message' => 'Buku dengan ISBN ini tidak sedang dipinjam.'], 404);
+            return response()->json(['message' => 'Data peminjaman tidak ditemukan atau buku sudah kembali.'], 404);
         }
 
         DB::beginTransaction();
         try {
-            // Update transaksi peminjaman 
+            // Update transaksi peminjaman
             DB::table('tr_peminjaman')
-                ->where('id_tr_peminjaman', $peminjaman->id_tr_peminjaman)
+                ->where('id_peminjaman', $peminjaman->id_peminjaman)
                 ->update([
                     'tgl_kembali' => Carbon::now()->toDateString(),
                     'status_peminjaman' => 'Selesai'
                 ]);
 
-            // Update status fisik buku menjadi Tersedia 
+            // Update status fisik buku menjadi Tersedia
             DB::table('cp_koleksi')
                 ->where('id_cp_koleksi', $peminjaman->id_cp_koleksi)
                 ->update(['status_buku' => 'Tersedia']);
@@ -52,7 +52,7 @@ class PengembalianController extends Controller
             return response()->json(['status' => 'success', 'message' => 'Buku berhasil dikembalikan!']);
         } catch (\Exception $e) {
             DB::rollBack();
-            return response()->json(['message' => 'Gagal memperbarui data.'], 500);
+            return response()->json(['message' => 'Gagal memperbarui data: ' . $e->getMessage()], 500);
         }
     }
 }
