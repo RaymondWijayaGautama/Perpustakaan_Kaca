@@ -4,12 +4,50 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rule;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Carbon\Carbon; // Tambahan untuk pengolahan tanggal
 
 class DashboardController extends Controller
 {
+    private function getPetugasPemusnahan(?string $nipKaryawan)
+    {
+        if (!$nipKaryawan) {
+            return null;
+        }
+
+        return DB::table('mst_karyawan')
+            ->where('nip_karyawan', $nipKaryawan)
+            ->where('is_delete', 0)
+            ->first();
+    }
+
+    private function isPustakawan(?object $petugas): bool
+    {
+        return $petugas && strtolower((string) $petugas->jabatan_fungsional) === 'pustakawan';
+    }
+
+    private function getKategoriPemusnahan(object $buku, string $alasan): ?string
+    {
+        $metadata = strtolower(trim(($buku->keterangan_buku ?? '') . ' ' . $alasan));
+
+        if (str_contains($metadata, 'rusak')) {
+            return 'Rusak';
+        }
+
+        if (
+            str_contains($metadata, 'non-aktif') ||
+            str_contains($metadata, 'nonaktif') ||
+            str_contains($metadata, 'hilang') ||
+            str_contains($metadata, 'tidak dikembalikan')
+        ) {
+            return 'Non-Aktif';
+        }
+
+        return null;
+    }
+
     public function getStats()
     {
         // 1. Menghitung jumlah total fisik buku (Kecuali kategori Laporan/PKL ID 4)
@@ -354,6 +392,12 @@ class DashboardController extends Controller
         try {
             DB::beginTransaction();
 
+            $petugas = $this->getPetugasPemusnahan($request->nip_karyawan);
+
+            if (!$this->isPustakawan($petugas)) {
+                return response()->json(['message' => 'Hanya pustakawan yang dapat mencatat pemusnahan buku.'], 403);
+            }
+
             $buku = DB::table('mst_koleksi_buku')
                 ->where('ISBN', $request->isbn)
                 ->where('is_delete', 0)
@@ -363,26 +407,42 @@ class DashboardController extends Controller
                 return response()->json(['message' => 'ISBN tidak ditemukan atau sudah dihapus.'], 404);
             }
 
-            // Simpan ke tabel riwayat pemusnahan
+            $kategoriPemusnahan = $this->getKategoriPemusnahan($buku, $request->alasan);
+
+            if (!$kategoriPemusnahan) {
+                return response()->json([
+                    'message' => 'Buku hanya dapat dimusnahkan bila statusnya rusak atau non-aktif. Perbarui keterangan buku terlebih dahulu.'
+                ], 422);
+            }
+
+            $existing = DB::table('tr_pemusnahan')
+                ->where('isbn', $request->isbn)
+                ->whereIn('status', ['menunggu_konfirmasi', 'disetujui'])
+                ->exists();
+
+            if ($existing) {
+                return response()->json(['message' => 'Buku ini sudah memiliki proses pemusnahan aktif.'], 409);
+            }
+
             DB::table('tr_pemusnahan')->insert([
                 'isbn' => $request->isbn,
-                'alasan' => $request->alasan,
+                'alasan' => '[' . $kategoriPemusnahan . '] ' . trim($request->alasan),
                 'nip_karyawan' => $request->nip_karyawan,
                 'tanggal_pemusnahan' => Carbon::now(),
-                'status' => 'dimusnahkan',
+                'status' => 'menunggu_konfirmasi',
                 'created_at' => Carbon::now(),
                 'updated_at' => Carbon::now(),
             ]);
 
-            // Kurangi stok fisik di mst_koleksi_buku
-            if ($buku->jumlah_ekslempar > 0) {
-                DB::table('mst_koleksi_buku')
-                    ->where('ISBN', $request->isbn)
-                    ->decrement('jumlah_ekslempar', 1);
-            }
+            Log::info('Pemusnahan buku diajukan.', [
+                'isbn' => $request->isbn,
+                'judul' => $buku->judul_koleksi,
+                'kategori_pemusnahan' => $kategoriPemusnahan,
+                'petugas_pengaju' => $petugas->nip_karyawan,
+            ]);
 
             DB::commit();
-            return response()->json(['message' => 'Berhasil mencatat pemusnahan buku.'], 201);
+            return response()->json(['message' => 'Pengajuan pemusnahan berhasil dicatat dan menunggu konfirmasi admin.'], 201);
         } catch (\Exception $e) {
             DB::rollBack();
             return response()->json(['message' => 'Error: ' . $e->getMessage()], 500);
@@ -392,20 +452,30 @@ class DashboardController extends Controller
     public function getHistoryPemusnahan(Request $request)
     {
         $search = $request->get('search');
+        $status = $request->get('status');
 
         $query = DB::table('tr_pemusnahan')
             ->join('mst_koleksi_buku', 'tr_pemusnahan.isbn', '=', 'mst_koleksi_buku.ISBN')
+            ->leftJoin('mst_karyawan as petugas', 'tr_pemusnahan.nip_karyawan', '=', 'petugas.nip_karyawan')
             ->select(
-                'tr_pemusnahan.*', 
-                'mst_koleksi_buku.judul_koleksi as judul'
+                'tr_pemusnahan.*',
+                'mst_koleksi_buku.judul_koleksi as judul',
+                'mst_koleksi_buku.keterangan_buku',
+                'mst_koleksi_buku.no_rak_buku',
+                'petugas.nama_karyawan as nama_petugas'
             )
             ->where('tr_pemusnahan.status', '!=', 'soft_deleted');
 
         if ($search) {
             $query->where(function($q) use ($search) {
                 $q->where('tr_pemusnahan.isbn', 'like', "%$search%")
-                  ->orWhere('mst_koleksi_buku.judul_koleksi', 'like', "%$search%");
+                  ->orWhere('mst_koleksi_buku.judul_koleksi', 'like', "%$search%")
+                  ->orWhere('tr_pemusnahan.alasan', 'like', "%$search%");
             });
+        }
+
+        if ($status && $status !== 'semua') {
+            $query->where('tr_pemusnahan.status', $status);
         }
 
         return response()->json($query->orderBy('tr_pemusnahan.created_at', 'desc')->get());
@@ -441,10 +511,125 @@ class DashboardController extends Controller
 
     public function updateStatusPemusnahan(Request $request, $id)
     {
+        $statusBaru = $request->get('status', 'soft_deleted');
+
         DB::table('tr_pemusnahan')->where('id', $id)->update([
-            'status' => $request->get('status', 'soft_deleted'),
+            'status' => $statusBaru,
             'updated_at' => Carbon::now()
         ]);
+
+        Log::info('Status pemusnahan diperbarui.', [
+            'id_pemusnahan' => $id,
+            'status_baru' => $statusBaru,
+        ]);
+
         return response()->json(['message' => 'Data berhasil diperbarui.']);
+    }
+
+    public function confirmPemusnahan(Request $request, $id)
+    {
+        $request->validate([
+            'nip_karyawan' => 'required|string',
+        ]);
+
+        try {
+            DB::beginTransaction();
+
+            $petugas = $this->getPetugasPemusnahan($request->nip_karyawan);
+
+            if (!$this->isPustakawan($petugas)) {
+                return response()->json(['message' => 'Konfirmasi pemusnahan hanya dapat dilakukan pustakawan.'], 403);
+            }
+
+            $pemusnahan = DB::table('tr_pemusnahan')->where('id', $id)->first();
+
+            if (!$pemusnahan || $pemusnahan->status === 'soft_deleted') {
+                return response()->json(['message' => 'Data pemusnahan tidak ditemukan.'], 404);
+            }
+
+            if ($pemusnahan->status === 'disetujui') {
+                return response()->json(['message' => 'Pemusnahan ini sudah dikonfirmasi sebelumnya.'], 409);
+            }
+
+            $buku = DB::table('mst_koleksi_buku')
+                ->where('ISBN', $pemusnahan->isbn)
+                ->where('is_delete', 0)
+                ->first();
+
+            if (!$buku || (int) $buku->jumlah_ekslempar < 1) {
+                return response()->json(['message' => 'Stok buku tidak cukup untuk diproses sebagai pemusnahan.'], 422);
+            }
+
+            DB::table('mst_koleksi_buku')
+                ->where('ISBN', $pemusnahan->isbn)
+                ->decrement('jumlah_ekslempar', 1);
+
+            $copy = DB::table('cp_koleksi')
+                ->where('ISBN', $pemusnahan->isbn)
+                ->where('status_buku', '!=', 'Dimusnahkan')
+                ->whereNotExists(function ($query) {
+                    $query->select(DB::raw(1))
+                        ->from('tr_peminjaman')
+                        ->whereColumn('tr_peminjaman.id_cp_koleksi', 'cp_koleksi.id_cp_koleksi')
+                        ->whereNull('tr_peminjaman.tgl_kembali')
+                        ->whereIn('tr_peminjaman.status_peminjaman', ['Dipinjam', 'Terlambat']);
+                })
+                ->orderByDesc('id_cp_koleksi')
+                ->first();
+
+            if ($copy) {
+                DB::table('cp_koleksi')
+                    ->where('id_cp_koleksi', $copy->id_cp_koleksi)
+                    ->update(['status_buku' => 'Dimusnahkan']);
+            }
+
+            DB::table('tr_pemusnahan')
+                ->where('id', $id)
+                ->update([
+                    'status' => 'disetujui',
+                    'updated_at' => Carbon::now(),
+                ]);
+
+            Log::info('Pemusnahan buku dikonfirmasi.', [
+                'id_pemusnahan' => $id,
+                'isbn' => $pemusnahan->isbn,
+                'judul' => $buku->judul_koleksi,
+                'petugas_konfirmasi' => $petugas->nip_karyawan,
+                'copy_dimusnahkan' => $copy?->id_cp_koleksi,
+            ]);
+
+            DB::commit();
+
+            return response()->json(['message' => 'Pemusnahan buku berhasil dikonfirmasi dan tercatat dalam log sistem.']);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json(['message' => 'Gagal mengonfirmasi pemusnahan: ' . $e->getMessage()], 500);
+        }
+    }
+
+    public function printBeritaAcaraPemusnahan($id)
+    {
+        $data = DB::table('tr_pemusnahan as pemusnahan')
+            ->join('mst_koleksi_buku as buku', 'pemusnahan.isbn', '=', 'buku.ISBN')
+            ->leftJoin('mst_karyawan as petugas', 'pemusnahan.nip_karyawan', '=', 'petugas.nip_karyawan')
+            ->select(
+                'pemusnahan.*',
+                'buku.judul_koleksi',
+                'buku.pengarang',
+                'buku.penerbit',
+                'buku.no_rak_buku',
+                'buku.keterangan_buku',
+                'petugas.nama_karyawan as nama_petugas'
+            )
+            ->where('pemusnahan.id', $id)
+            ->where('pemusnahan.status', 'disetujui')
+            ->first();
+
+        abort_unless($data, 404);
+
+        return view('pustakawan.pemusnahan.berita_acara', [
+            'data' => $data,
+            'tanggalCetak' => Carbon::now('Asia/Jakarta'),
+        ]);
     }
 }
