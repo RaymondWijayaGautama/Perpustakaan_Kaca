@@ -21,6 +21,8 @@ Route::get('/laporan/buku-terpopuler/pdf', [LaporanController::class, 'exportPdf
 Route::get('/laporan/kategori-populer', [LaporanController::class, 'kategoriPopuler']);
 Route::get('/laporan/kategori-populer/pdf', [LaporanController::class, 'exportPdfKategori']);
 Route::get('/pustakawan/pemusnahan/{id}/berita-acara', [DashboardController::class, 'printBeritaAcaraPemusnahan'])->name('pustakawan.pemusnahan.berita_acara');
+Route::get('/laporan/statistik-kunjungan', [LaporanController::class, 'statistikKunjungan']);
+Route::get('/laporan/statistik-kunjungan/pdf', [LaporanController::class, 'exportPdfStatistikKunjungan']);
 Route::get('/', function () {
     return view('welcome');
 });

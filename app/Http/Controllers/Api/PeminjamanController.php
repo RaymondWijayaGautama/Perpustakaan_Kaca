@@ -113,7 +113,6 @@ class PeminjamanController extends Controller
                     'status_peminjaman'     => $request->status_peminjaman,
                     'kondisi_buku'          => $request->kondisi_buku,
                     'keterangan_peminjaman' => $request->keterangan ?? '-',
-                    'updated_at'            => now()
                 ]);
 
             if ($request->status_peminjaman === 'Kembali') {
@@ -143,8 +142,7 @@ class PeminjamanController extends Controller
             DB::table('tr_peminjaman')
                 ->where('id_peminjaman', $id)
                 ->update([
-                    'status_peminjaman' => 'Dihapus', 
-                    'updated_at'        => now()
+                    'status_peminjaman' => 'Dihapus',
                 ]);
 
             if ($peminjaman->status_peminjaman === 'Dipinjam') {

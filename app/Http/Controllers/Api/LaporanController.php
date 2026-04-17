@@ -588,7 +588,6 @@ class LaporanController extends Controller
         $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('laporan.buku_terpopuler_pdf', compact('laporanBuku', 'tahun'));
         return $pdf->download('Laporan_Buku_Terpopuler_'.$tahun.'.pdf');
     }
-
     // Fungsionalitas 56: Laporan Kategori Buku Paling Sering Dipinjam
     public function kategoriPopuler()
     {
@@ -624,4 +623,40 @@ class LaporanController extends Controller
         $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('laporan.kategori_populer_pdf', compact('laporanKategori', 'tahun'));
         return $pdf->download('Laporan_Kategori_Terpopuler_'.$tahun.'.pdf');
     }
+    public function statistikKunjungan()
+{
+    $tahun = date('Y');
+
+    $laporanKunjungan = DB::table('tr_kunjungan_perpus')
+        ->select(
+            DB::raw('MONTHNAME(start_kunjungan) as bulan'),
+            DB::raw('MONTH(start_kunjungan) as urutan_bulan'),
+            DB::raw('COUNT(*) as total_kunjungan')
+        )
+        ->whereYear('start_kunjungan', $tahun)
+        ->groupByRaw('MONTH(start_kunjungan), MONTHNAME(start_kunjungan)')
+        ->orderBy('urutan_bulan', 'asc')
+        ->get();
+
+    return view('laporan.statistik_kunjungan', compact('laporanKunjungan', 'tahun'));
+}
+
+public function exportPdfStatistikKunjungan()
+{
+    $tahun = date('Y');
+
+    $laporanKunjungan = DB::table('tr_kunjungan_perpus')
+        ->select(
+            DB::raw('MONTHNAME(start_kunjungan) as bulan'),
+            DB::raw('MONTH(start_kunjungan) as urutan_bulan'),
+            DB::raw('COUNT(*) as total_kunjungan')
+        )
+        ->whereYear('start_kunjungan', $tahun)
+        ->groupByRaw('MONTH(start_kunjungan), MONTHNAME(start_kunjungan)')
+        ->orderBy('urutan_bulan', 'asc')
+        ->get();
+
+    $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('laporan.statistik_kunjungan_pdf', compact('laporanKunjungan', 'tahun'));
+    return $pdf->download('Statistik_Kunjungan_'.$tahun.'.pdf');
+}
 }
