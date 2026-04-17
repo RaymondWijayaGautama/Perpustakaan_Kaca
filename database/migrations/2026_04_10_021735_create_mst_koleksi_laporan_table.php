@@ -12,8 +12,13 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('mst_koleksi_laporan', function (Blueprint $table) {
-            $table->integer('id_mst_laporan')->primary();
-            $table->tinyInteger('is_delete');
+            // Gunakan integer biasa + autoIncrement agar 100% cocok dengan relasi KACA
+            $table->integer('id_mst_laporan')->autoIncrement();
+            
+            // INI ADALAH KOLOM JEMBATANNYA (Sangat Penting!)
+            $table->integer('id_pkl_siswa')->nullable(); 
+            
+            $table->boolean('is_delete')->default(0)->nullable();
         });
     }
 

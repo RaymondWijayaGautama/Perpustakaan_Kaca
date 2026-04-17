@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\LaporanController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\KoleksiController;
+use App\Http\Controllers\Api\LaporanPklController;
 use App\Http\Controllers\Pustakawan\BukuController;
 
 Route::get('/peminjaman', [App\Http\Controllers\Api\PeminjamanController::class, 'index']);
@@ -22,12 +23,19 @@ Route::get('/laporan/inventarisasi-buku-baru', [LaporanController::class, 'inven
 Route::delete('/laporan/hapus/{id}', [LaporanController::class, 'destroy']);
 Route::post('/laporan/ubah/{id}', [LaporanController::class, 'update']);
 Route::post('/laporan/tambah', [LaporanController::class, 'store']);
+Route::get('/laporan-pkl', [LaporanPklController::class, 'index']);
+Route::get('/buku/laporan', [LaporanPklController::class, 'index']);
+
 
 // Group Dashboard & Data
 Route::get('/dashboard/stats', [DashboardController::class, 'getStats']);
 Route::get('/anggota', [DashboardController::class, 'getAnggota']);
 Route::get('/buku', [DashboardController::class, 'getBuku']);
 Route::get('/pengembalian', [DashboardController::class, 'getPengembalian']);
+Route::get('/buku/kategori', [App\Http\Controllers\DashboardController::class, 'getKategoriBuku']);
+Route::get('/anggota/{identifier}', [DashboardController::class, 'getAnggotaByIdentifier']);
+Route::get('/peminjaman/cek-aktif', [App\Http\Controllers\Api\PeminjamanController::class, 'cekAktif']);
+Route::post('/pengembalian/batch', [App\Http\Controllers\Api\PeminjamanController::class, 'batchReturn']);
 
 // --- ROUTE UNTUK DENDA BUKU RUSAK (API) ---
 Route::post('/buku/denda-kerusakan', [BukuController::class, 'simpanDendaKerusakan']);

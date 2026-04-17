@@ -11,10 +11,10 @@ return new class extends Migration
      */
     public function up(): void {
         Schema::create('cp_koleksi', function (Blueprint $table) {
-            $table->integer('id_cp_koleksi')->primary();
+            $table->integer('id_cp_koleksi')->autoIncrement()->primary();
             $table->string('status_buku', 100);
             $table->string('ISBN', 25);
-            $table->integer('id_mst_laporan');
+            $table->integer('id_mst_laporan')->nullable();
 
             $table->foreign('ISBN')->references('ISBN')->on('mst_koleksi_buku');
             $table->foreign('id_mst_laporan')->references('id_mst_laporan')->on('mst_koleksi_laporan');

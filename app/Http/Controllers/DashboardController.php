@@ -85,110 +85,56 @@ class DashboardController extends Controller
 
     public function getBuku(Request $request)
     {
-        $allowedSortFields = [
-            'judul_koleksi' => 'mst_koleksi_buku.judul_koleksi',
-            'pengarang' => 'mst_koleksi_buku.pengarang',
-            'tahun' => 'mst_koleksi_buku.tahun',
-            'kategori' => 'ref_koleksi.deskripsi',
-        ];
+        try {
+            $judul = $request->query('judul');
+            $penulis = $request->query('penulis');
+            $kategori = $request->query('kategori');
+            $sortBy = $request->query('sort_by', 'judul_koleksi');
+            $sortOrder = $request->query('sort_order', 'asc');
+            $perPage = $request->query('per_page', 8);
 
-        $search = trim((string) $request->get('search', ''));
+            $query = DB::table('mst_koleksi_buku')
+                ->leftJoin('ref_koleksi', 'mst_koleksi_buku.id_ref_koleksi', '=', 'ref_koleksi.id_ref_koleksi')
+                // KEMBALIKAN KE DESKRIPSI
+                ->select('mst_koleksi_buku.*', 'ref_koleksi.deskripsi as kategori')
+                ->where('mst_koleksi_buku.is_delete', 0)
+                ->where('mst_koleksi_buku.id_ref_koleksi', '!=', 4);
 
-        $query = DB::table('mst_koleksi_buku')
-            ->join('ref_koleksi', 'mst_koleksi_buku.id_ref_koleksi', '=', 'ref_koleksi.id_ref_koleksi')
-            ->where('mst_koleksi_buku.is_delete', 0)
-            ->where('mst_koleksi_buku.id_ref_koleksi', '!=', 4) 
-            ->select(
-                'mst_koleksi_buku.ISBN',
-                'mst_koleksi_buku.judul_koleksi',
-                'mst_koleksi_buku.pengarang',
-                'mst_koleksi_buku.penerbit',
-                'mst_koleksi_buku.tahun',
-                'mst_koleksi_buku.jumlah_ekslempar',
-                'mst_koleksi_buku.no_rak_buku',
-                'mst_koleksi_buku.keterangan_buku', 
-                'mst_koleksi_buku.id_ref_koleksi',
-                'ref_koleksi.deskripsi as kategori'
-            );
+            if (!empty($judul)) {
+                $query->where('mst_koleksi_buku.judul_koleksi', 'LIKE', "%{$judul}%");
+            }
 
-        if ($search !== '') {
-            $keywords = preg_split('/\s+/', $search, -1, PREG_SPLIT_NO_EMPTY);
+            if (!empty($penulis)) {
+                $query->where('mst_koleksi_buku.pengarang', 'LIKE', "%{$penulis}%");
+            }
 
-            $query->where(function ($q) use ($keywords) {
-                foreach ($keywords as $keyword) {
-                    $q->where(function ($inner) use ($keyword) {
-                        $inner->where('mst_koleksi_buku.judul_koleksi', 'like', '%' . $keyword . '%')
-                            ->orWhere('mst_koleksi_buku.pengarang', 'like', '%' . $keyword . '%')
-                            ->orWhere('mst_koleksi_buku.ISBN', 'like', '%' . $keyword . '%');
-                    });
-                }
-            });
+            if (!empty($kategori)) {
+                $query->where('mst_koleksi_buku.id_ref_koleksi', $kategori);
+            }
 
-            $escapedSearch = addcslashes($search, '%_');
-            $prefixSearch = $escapedSearch . '%';
-            $containsSearch = '%' . $escapedSearch . '%';
+            $allowedSort = ['judul_koleksi', 'pengarang', 'tahun', 'id_ref_koleksi'];
+            $sortBy = in_array($sortBy, $allowedSort) ? $sortBy : 'judul_koleksi';
 
-            $query->selectRaw(
-                "(
-                    CASE
-                        WHEN mst_koleksi_buku.ISBN = ? THEN 120
-                        WHEN mst_koleksi_buku.judul_koleksi = ? THEN 110
-                        WHEN mst_koleksi_buku.pengarang = ? THEN 100
-                        WHEN mst_koleksi_buku.ISBN LIKE ? THEN 90
-                        WHEN mst_koleksi_buku.judul_koleksi LIKE ? THEN 80
-                        WHEN mst_koleksi_buku.pengarang LIKE ? THEN 70
-                        WHEN mst_koleksi_buku.judul_koleksi LIKE ? THEN 60
-                        WHEN mst_koleksi_buku.pengarang LIKE ? THEN 50
-                        WHEN mst_koleksi_buku.ISBN LIKE ? THEN 40
-                        ELSE 0
-                    END
-                ) as relevance_score",
-                [
-                    $search,
-                    $search,
-                    $search,
-                    $prefixSearch,
-                    $prefixSearch,
-                    $prefixSearch,
-                    $containsSearch,
-                    $containsSearch,
-                    $containsSearch,
-                ]
-            );
+            return response()->json($query->orderBy($sortBy, $sortOrder)->paginate($perPage));
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
         }
-
-        if ($request->filled('kategori')) {
-            $query->where(function ($q) use ($request) {
-                $q->where('ref_koleksi.deskripsi', $request->kategori)
-                  ->orWhere('mst_koleksi_buku.id_ref_koleksi', $request->kategori);
-            });
-        }
-
-        $sortBy = $request->get('sort_by', 'judul_koleksi');
-        $sortOrder = strtolower((string) $request->get('sort_order', 'asc')) === 'desc' ? 'desc' : 'asc';
-        $sortColumn = $allowedSortFields[$sortBy] ?? $allowedSortFields['judul_koleksi'];
-
-        if ($search !== '') {
-            $query->orderByDesc('relevance_score');
-        }
-
-        $query->orderBy($sortColumn, $sortOrder);
-
-        $perPage = (int) $request->get('per_page', 10);
-        $perPage = max(1, min($perPage, 50));
-
-        return response()->json($query->paginate($perPage));
     }
 
     public function getKategoriBuku()
     {
-        $kategori = DB::table('ref_koleksi')
-            ->where('is_delete', 0)
-            ->where('id_ref_koleksi', '!=', 4)
-            ->orderBy('deskripsi')
-            ->get(['id_ref_koleksi', 'deskripsi']);
+        try {
+            $kategori = DB::table('ref_koleksi')
+                ->where('is_delete', 0)
+                ->where('id_ref_koleksi', '!=', 4)
+                // KEMBALIKAN KE DESKRIPSI
+                ->orderBy('deskripsi')
+                ->get(['id_ref_koleksi', 'deskripsi']); 
 
-        return response()->json($kategori);
+            return response()->json($kategori);
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
     }
 
     public function updateBuku(Request $request, string $isbn)
@@ -446,5 +392,31 @@ class DashboardController extends Controller
             'updated_at' => Carbon::now()
         ]);
         return response()->json(['message' => 'Data berhasil diperbarui.']);
+    }
+
+    public function getAnggotaByIdentifier($identifier)
+    {
+        // 1. Cari di tabel siswa berdasarkan NISN
+        $siswa = \DB::table('mst_siswa')
+                    ->where('nisn_siswa', $identifier)
+                    ->where('is_delete', 0)
+                    ->first();
+
+        if ($siswa) {
+            return response()->json($siswa);
+        }
+
+        // 2. Jika tidak ada, cari di tabel karyawan berdasarkan NIP
+        $karyawan = \DB::table('mst_karyawan')
+                        ->where('nip_karyawan', $identifier)
+                        ->where('is_delete', 0)
+                        ->first();
+
+        if ($karyawan) {
+            return response()->json($karyawan);
+        }
+
+        // 3. Jika keduanya tidak ada
+        return response()->json(['message' => 'Anggota tidak ditemukan'], 404);
     }
 }

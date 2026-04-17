@@ -12,7 +12,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('tr_kunjungan_perpus', function (Blueprint $table) {
-            $table->integer('id_kunjungan')->primary();
+            $table->integer('id_kunjungan')->autoIncrement()->primary();
             $table->dateTime('start_kunjungan');
             $table->dateTime('end_kunjungan');
             $table->integer('id_siswa_tetap');
