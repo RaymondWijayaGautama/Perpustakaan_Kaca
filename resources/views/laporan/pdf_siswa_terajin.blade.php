@@ -74,7 +74,6 @@
                 <td>{{ $index + 1 }}</td>
                 <td style="text-align: left;">{{ $siswa->nama_siswa_tetap ?? 'Nama tidak ditemukan' }}</td>
                 <td>{{ $siswa->nisn_siswa ?? '-' }}</td>
-                <td>{{ $siswa->kelas ?? '-' }}</td>
                 <td>{{ $siswa->peminjaman_count }} Buku</td>
             </tr>
             @empty
@@ -88,10 +87,10 @@
     <div class="bold">F. Hasil Kegiatan</div>
     <p style="margin-top: 5px; margin-bottom: 5px;">Berdasarkan data peminjaman buku, siswa yang paling aktif meminjam buku adalah sebagai berikut:</p>
     <table style="border: none; width: 100%; margin-bottom: 15px;">
-        <tr><td width="15%">Juara 1</td><td width="2%">:</td><td class="bold">{{ $juara1->nama_siswa ?? '-' }}</td></tr>
-        <tr><td>Juara 2</td><td>:</td><td class="bold">{{ $juara2->nama_siswa ?? '-' }}</td></tr>
-        <tr><td>Juara 3</td><td>:</td><td class="bold">{{ $juara3->nama_siswa ?? '-' }}</td></tr>
-    </table>
+    <tr><td width="15%">Juara 1</td><td width="2%">:</td><td class="bold">{{ $juara1->nama_siswa_tetap ?? '-' }}</td></tr>
+    <tr><td>Juara 2</td><td>:</td><td class="bold">{{ $juara2->nama_siswa_tetap ?? '-' }}</td></tr>
+    <tr><td>Juara 3</td><td>:</td><td class="bold">{{ $juara3->nama_siswa_tetap ?? '-' }}</td></tr>
+</table>
 
     <div class="bold">G. Kesimpulan</div>
     <p style="text-align: justify; margin-top: 5px;">Program siswa terajin meminjam buku dapat menjadi salah satu strategi untuk meningkatkan budaya membaca di sekolah. Melalui kegiatan ini, siswa lebih termotivasi untuk mengunjungi perpustakaan dan memanfaatkan koleksi buku yang tersedia.</p>

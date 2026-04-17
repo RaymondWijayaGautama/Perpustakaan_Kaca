@@ -478,57 +478,93 @@ class LaporanController extends Controller
         }
     }
 
-    public function siswaTerajin()
-    {
+    // public function siswaTerajin()
+    // {
         
-        $siswaTerajin = Siswa::withCount('peminjaman')
-            ->orderBy('peminjaman_count', 'desc') 
-            ->take(10) 
-            ->get();
+    //     $siswaTerajin = Siswa::withCount('peminjaman')
+    //         ->orderBy('peminjaman_count', 'desc') 
+    //         ->take(10) 
+    //         ->get();
 
-        return view('laporan.siswa_terajin', compact('siswaTerajin'));
-    }
+    //     return view('laporan.siswa_terajin', compact('siswaTerajin'));
+    // }
 
-    public function exportPdfSiswaTerajin()
-    {
-    
-    $siswaTerajin = Siswa::withCount('peminjaman')
+    // app/Http/Controllers/LaporanController.php
+
+public function siswaTerajin()
+{
+    $siswaTerajin = DB::table('tr_peminjaman as tp')
+        ->join('mst_siswa as ms', 'tp.id_siswa_tetap', '=', 'ms.id_siswa_tetap')
+        ->select(
+            'ms.nama_siswa_tetap',
+            'ms.nisn_siswa',
+            // Kita hapus ms.tingkat dari sini karena bikin error
+            DB::raw('COUNT(tp.id_peminjaman) as peminjaman_count')
+        )
+        ->groupBy('ms.id_siswa_tetap', 'ms.nama_siswa_tetap', 'ms.nisn_siswa')
         ->orderBy('peminjaman_count', 'desc')
         ->take(10)
         ->get();
 
+    return response()->json($siswaTerajin);
+}
+   public function exportPdfSiswaTerajin()
+{
+    // Query dibuat lebih simpel agar tidak bentrok dengan nama kolom
+    $siswaTerajin = DB::table('tr_peminjaman as tp')
+        ->join('mst_siswa as ms', 'tp.id_siswa_tetap', '=', 'ms.id_siswa_tetap')
+        ->select(
+            'ms.nama_siswa_tetap',
+            'ms.nisn_siswa',
+            // Kita hapus ms.tingkat dari sini karena bikin error
+            DB::raw('COUNT(tp.id_peminjaman) as peminjaman_count')
+        )
+        ->groupBy('ms.id_siswa_tetap', 'ms.nama_siswa_tetap', 'ms.nisn_siswa')
+        ->orderBy('peminjaman_count', 'desc')
+        ->take(10)
+        ->get();
+
+    // Default data jika kosong
+    $defaultSiswa = (object)['nama_siswa_tetap' => '-'];
     
-    $data = [
-        'siswaTerajin' => $siswaTerajin,
-        'periode'      => 'Maret - April 2026',
-        'tahun_ajaran' => '2025/2026', 
-        'juara1'       => optional($siswaTerajin->get(0)),
-        'juara2'       => optional($siswaTerajin->get(1)),
-        'juara3'       => optional($siswaTerajin->get(2)),
-    ];
+    $juara1 = (count($siswaTerajin) >= 1) ? $siswaTerajin[0] : $defaultSiswa;
+    $juara2 = (count($siswaTerajin) >= 2) ? $siswaTerajin[1] : $defaultSiswa;
+    $juara3 = (count($siswaTerajin) >= 3) ? $siswaTerajin[2] : $defaultSiswa;
 
-    // Lempar sebagai HTML murni
-    return view('laporan.pdf_siswa_terajin', $data);
-    }
+    $tahun_ajaran = date('Y') . '/' . (date('Y') + 1);
+    $periode = \Carbon\Carbon::now()->translatedFormat('F Y');
 
+    $pdf = Pdf::loadView('laporan.pdf_siswa_terajin', compact(
+        'siswaTerajin', 
+        'juara1', 
+        'juara2', 
+        'juara3', 
+        'tahun_ajaran', 
+        'periode'
+    ));
+    
+    return $pdf->download('Laporan_Siswa_Terajin_Wigaty.pdf');
+}
     public function kunjunganBulanan()
     {
-        $tahun = date('Y');
-        $laporanKunjungan = \App\Models\Kunjungan::select(
-                DB::raw('MONTHNAME(start_kunjungan) as bulan'),
-                DB::raw('MONTH(start_kunjungan) as urutan_bulan'),
-                DB::raw('COUNT(*) as total_kunjungan')
-            )
-            ->groupBy('bulan', 'urutan_bulan')
-            ->orderBy('urutan_bulan', 'asc')
-            ->get();
+        $laporanKunjungan = DB::table('tr_kunjungan_perpus')
+        ->select(
+            DB::raw('MONTHNAME(start_kunjungan) as bulan'),
+            DB::raw('MONTH(start_kunjungan) as urutan_bulan'),
+            DB::raw('COUNT(*) as total_kunjungan')
+        )
+        // Hapus atau beri komentar pada ->whereYear() jika data tahun lalu ingin ditampilkan
+        ->groupBy('bulan', 'urutan_bulan')
+        ->orderBy('urutan_bulan', 'asc')
+        ->get();
 
-        return view('laporan.kunjungan_bulanan', compact('laporanKunjungan'));
+    return response()->json($laporanKunjungan);
     }
     
-    public function exportPdfKunjungan()
+public function exportPdfKunjungan()
 {
-    $laporanKunjungan = \App\Models\Kunjungan::select(
+    $laporanKunjungan = DB::table('tr_kunjungan_perpus') 
+        ->select(
             DB::raw('MONTHNAME(start_kunjungan) as bulan'),
             DB::raw('MONTH(start_kunjungan) as urutan_bulan'),
             DB::raw('COUNT(*) as total_kunjungan')
@@ -537,34 +573,37 @@ class LaporanController extends Controller
         ->orderBy('urutan_bulan', 'asc')
         ->get();
 
+    // dd($laporanKunjungan); 
+
     $pdf = Pdf::loadView('laporan.kunjungan_bulanan_pdf', compact('laporanKunjungan'));
     
-    // Set kertas A4
-    $pdf->setPaper('a4', 'portrait');
+    return $pdf->setPaper('a4', 'portrait')->download('Laporan_Jumlah_Kunjungan_Perpus.pdf');
 
-    return $pdf->download('Laporan_Jumlah_Kunjungan_Perpus.pdf');
+    $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('laporan.kunjungan_bulanan_pdf', compact('laporanKunjungan'));
+    
+    return $pdf->setPaper('a4', 'portrait')->download('Laporan_Jumlah_Kunjungan_Perpus.pdf');
 }
 
     public function bukuTerpopuler()
     {
         $tahun = date('Y');
 
-        $laporanBuku = DB::table('tr_peminjaman as tp')
-            ->join('cp_koleksi as ck', 'tp.id_cp_koleksi', '=', 'ck.id_cp_koleksi')
-            ->join('mst_koleksi_buku as mkb', 'ck.ISBN', '=', 'mkb.ISBN')
-            ->select(
-                'mkb.judul_koleksi',
-                'mkb.ISBN',
-                'mkb.pengarang',
-                DB::raw('COUNT(tp.id_peminjaman) as total_dipinjam')
-            )
-            ->whereYear('tp.tgl_peminjaman', $tahun)
-            ->groupBy('mkb.ISBN', 'mkb.judul_koleksi', 'mkb.pengarang')
-            ->orderBy('total_dipinjam', 'desc')
-            ->take(20) 
-            ->get();
+    $laporanBuku = DB::table('tr_peminjaman as tp')
+        ->join('cp_koleksi as ck', 'tp.id_cp_koleksi', '=', 'ck.id_cp_koleksi')
+        ->join('mst_koleksi_buku as mkb', 'ck.ISBN', '=', 'mkb.ISBN')
+        ->select(
+            'mkb.judul_koleksi',
+            'mkb.ISBN',
+            'mkb.pengarang',
+            DB::raw('COUNT(tp.id_peminjaman) as total_dipinjam')
+        )
+        ->whereYear('tp.tgl_peminjaman', $tahun)
+        ->groupBy('mkb.ISBN', 'mkb.judul_koleksi', 'mkb.pengarang')
+        ->orderBy('total_dipinjam', 'desc')
+        ->take(10) // Ambil 10 besar saja untuk tampilan dashboard
+        ->get();
 
-        return view('laporan.buku_terpopuler', compact('laporanBuku', 'tahun'));
+    return response()->json($laporanBuku);
     }
 
     public function exportPdfBukuTerpopuler()
@@ -593,17 +632,17 @@ class LaporanController extends Controller
     {
         $tahun = date('Y');
 
-        $laporanKategori = DB::table('tr_peminjaman as tp')
-            ->join('cp_koleksi as ck', 'tp.id_cp_koleksi', '=', 'ck.id_cp_koleksi')
-            ->join('mst_koleksi_buku as mkb', 'ck.ISBN', '=', 'mkb.ISBN')
-            ->join('ref_koleksi as rk', 'mkb.id_ref_koleksi', '=', 'rk.id_ref_koleksi')
-            ->select('rk.deskripsi', DB::raw('COUNT(tp.id_peminjaman) as total_dipinjam'))
-            ->whereYear('tp.tgl_peminjaman', $tahun)
-            ->groupBy('rk.id_ref_koleksi', 'rk.deskripsi')
-            ->orderBy('total_dipinjam', 'desc')
-            ->get();
+    $laporanKategori = DB::table('tr_peminjaman as tp')
+        ->join('cp_koleksi as ck', 'tp.id_cp_koleksi', '=', 'ck.id_cp_koleksi')
+        ->join('mst_koleksi_buku as mkb', 'ck.ISBN', '=', 'mkb.ISBN')
+        ->join('ref_koleksi as rk', 'mkb.id_ref_koleksi', '=', 'rk.id_ref_koleksi')
+        ->select('rk.deskripsi', DB::raw('COUNT(tp.id_peminjaman) as total_dipinjam'))
+        ->whereYear('tp.tgl_peminjaman', $tahun)
+        ->groupBy('rk.id_ref_koleksi', 'rk.deskripsi')
+        ->orderBy('total_dipinjam', 'desc')
+        ->get();
 
-        return view('laporan.kategori_populer', compact('laporanKategori', 'tahun'));
+    return response()->json($laporanKategori);
     }
 
     public function exportPdfKategori()

@@ -12,6 +12,10 @@ import LaporanDistribusiKunjunganHariPanel from './LaporanDistribusiKunjunganHar
 import LaporanInventarisasiBukuBaruPanel from './LaporanInventarisasiBukuBaruPanel';
 import LaporanPKLPanel from './LaporanPKLPanel';
 
+import LaporanSiswaTerajinPanel from './LaporanSiswaTerajinPanel';
+import KunjunganBulananPanel from './KunjunganBulananPanel';
+import BukuTerpopulerPanel from './BukuTerpopulerPanel'
+import KategoriPopulerPanel from './KategoriPopulerPanel';
 const AdminPanel = ({ user, onLogout }) => {
     const [activeTab, setActiveTab] = useState('dashboard');
     const [isDistribusiMenuOpen, setIsDistribusiMenuOpen] = useState(false);
@@ -83,6 +87,10 @@ const AdminPanel = ({ user, onLogout }) => {
                     <div onClick={() => setActiveTab('laporan_peminjaman_bulanan')} className={`p-3 rounded cursor-pointer transition-all ${activeTab === 'laporan_peminjaman_bulanan' ? 'bg-white/20 font-bold border-l-4 border-white' : 'hover:bg-white/10'}`}>Statistik Peminjaman</div>
                     <div onClick={() => setActiveTab('laporan_peminjaman_guru')} className={`p-3 rounded cursor-pointer transition-all ${activeTab === 'laporan_peminjaman_guru' ? 'bg-white/20 font-bold border-l-4 border-white' : 'hover:bg-white/10'}`}>Peminjaman Guru</div>
                     <div onClick={() => setActiveTab('laporan_inventarisasi_buku_baru')} className={`p-3 rounded cursor-pointer transition-all ${activeTab === 'laporan_inventarisasi_buku_baru' ? 'bg-white/20 font-bold border-l-4 border-white' : 'hover:bg-white/10'}`}>Inventarisasi Buku Baru</div>
+                    <div onClick={() => setActiveTab('laporan_siswa_terajin')} className={`p-3 rounded cursor-pointer transition-all ${activeTab === 'laporan_siswa_terajin' ? 'bg-white/20 font-bold border-l-4 border-white' : 'hover:bg-white/10'}`}>Peringkat Siswa Terajin</div>
+                    <div onClick={() => setActiveTab('kunjungan_bulanan')} className={`p-3 rounded cursor-pointer transition-all ${activeTab === 'kunjungan_bulanan' ? 'bg-white/20 font-bold border-l-4 border-white' : 'hover:bg-white/10'}`}>Kunjungan Bulanan</div>
+                    <div onClick={() => setActiveTab('buku_terpopuler')} className={`p-3 rounded cursor-pointer transition-all ${activeTab === 'buku_terpopuler' ? 'bg-white/20 font-bold border-l-4 border-white' : 'hover:bg-white/10'}`}>Buku Terpopuler</div>
+                    <div onClick={() => setActiveTab('kategori_populer')} className={`p-3 rounded cursor-pointer transition-all ${activeTab === 'kategori_populer' ? 'bg-white/20 font-bold border-l-4 border-white' : 'hover:bg-white/10'}`}>Kategori Terpopuler</div>
                     <div className={`rounded transition-all overflow-hidden ${activeTab === 'laporan_distribusi_kunjungan_kelas' || activeTab === 'laporan_distribusi_kunjungan_hari' || isDistribusiMenuOpen ? 'bg-white/10' : ''}`}>
                         <div
                             onClick={() => setIsDistribusiMenuOpen((current) => !current)}
@@ -185,6 +193,10 @@ const AdminPanel = ({ user, onLogout }) => {
                 {activeTab === 'laporan_inventarisasi_buku_baru' && <LaporanInventarisasiBukuBaruPanel />}
                 {activeTab === 'laporan_distribusi_kunjungan_kelas' && <LaporanDistribusiKunjunganKelasPanel />}
                 {activeTab === 'laporan_distribusi_kunjungan_hari' && <LaporanDistribusiKunjunganHariPanel />}
+                {activeTab === 'laporan_siswa_terajin' && <LaporanSiswaTerajinPanel />}
+                {activeTab === 'kunjungan_bulanan' && <KunjunganBulananPanel />}
+                {activeTab === 'buku_terpopuler' && <BukuTerpopulerPanel />}
+                {activeTab === 'kategori_populer' && <KategoriPopulerPanel />}
             </main>
         </div>
     );

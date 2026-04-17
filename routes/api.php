@@ -28,6 +28,10 @@ Route::get('/laporan-pkl', [LaporanPklController::class, 'index']);
 Route::get('/buku/laporan', [LaporanPklController::class, 'index']);
 
 
+Route::get('/laporan/siswa-terajin', [LaporanController::class, 'siswaTerajin']);
+Route::get('/laporan/kunjungan-bulanan', [LaporanController::class, 'kunjunganBulanan']);
+Route::get('/laporan/buku-terpopuler', [LaporanController::class, 'bukuTerpopuler']);
+Route::get('/laporan/kategori-populer', [LaporanController::class, 'kategoriPopuler']);
 // Group Dashboard & Data
 Route::get('/dashboard/stats', [DashboardController::class, 'getStats']);
 Route::get('/anggota', [DashboardController::class, 'getAnggota']);
