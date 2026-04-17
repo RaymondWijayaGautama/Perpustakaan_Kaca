@@ -30,6 +30,16 @@ Route::get('/anggota', [DashboardController::class, 'getAnggota']);
 Route::get('/buku', [DashboardController::class, 'getBuku']);
 Route::get('/pengembalian', [DashboardController::class, 'getPengembalian']);
 
+// --- BAGIAN BARU: RUTE PEMUSNAHAN BUKU ---
+// Pastikan fungsi-fungsi ini (getHistoryPemusnahan, storePemusnahan, dll) 
+// sudah dibuat di DashboardController atau controller terkait.
+Route::get('/pemusnahan', [DashboardController::class, 'getHistoryPemusnahan']);
+Route::post('/pemusnahan', [DashboardController::class, 'storePemusnahan']);
+Route::get('/buku-rusak', [DashboardController::class, 'getBukuRusak']);
+Route::get('/buku-overdue', [DashboardController::class, 'getBukuOverdue']);
+Route::patch('/pemusnahan/{id}', [DashboardController::class, 'updateStatusPemusnahan']);
+Route::patch('/pemusnahan/{id}/konfirmasi', [DashboardController::class, 'confirmPemusnahan']);
+// ------------------------------------------
 // --- ROUTE UNTUK DENDA BUKU RUSAK (API) ---
 Route::post('/buku/denda-kerusakan', [BukuController::class, 'simpanDendaKerusakan']);
 // --- ROUTE TRANSAKSI PEMINJAMAN ---
