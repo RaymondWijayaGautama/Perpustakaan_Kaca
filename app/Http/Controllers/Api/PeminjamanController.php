@@ -158,4 +158,73 @@ class PeminjamanController extends Controller
             return response()->json(['message' => 'Gagal menghapus ' . $e->getMessage()], 500);
         }
     }
+
+    public function cekAktif(Request $request)
+    {
+        $idMember = $request->id_member; // ID internal siswa/karyawan
+        $inputBuku = $request->id_pinjam; // Input dari frontend (ISBN atau ID Peminjaman)
+
+        // Melakukan JOIN untuk melacak ISBN melalui cp_koleksi
+        $peminjaman = DB::table('tr_peminjaman')
+            ->join('cp_koleksi', 'tr_peminjaman.id_cp_koleksi', '=', 'cp_koleksi.id_cp_koleksi')
+            ->join('mst_koleksi_buku', 'cp_koleksi.ISBN', '=', 'mst_koleksi_buku.ISBN')
+            ->where('tr_peminjaman.id_siswa_tetap', $idMember)
+            ->whereNull('tr_peminjaman.tgl_kembali') // Memastikan buku belum dikembalikan
+            ->where(function ($query) use ($inputBuku) {
+                // Cek apakah input cocok dengan ISBN atau ID Transaksi atau ID Fisik Buku
+                $query->where('cp_koleksi.ISBN', $inputBuku)
+                      ->orWhere('tr_peminjaman.id_peminjaman', $inputBuku)
+                      ->orWhere('cp_koleksi.id_cp_koleksi', $inputBuku); 
+            })
+            ->select(
+                'tr_peminjaman.id_peminjaman',
+                'tr_peminjaman.id_cp_koleksi',
+                'tr_peminjaman.tgl_harus_kembali',
+                'mst_koleksi_buku.judul_koleksi',
+                'cp_koleksi.ISBN'
+            )
+            ->first();
+
+        if (!$peminjaman) {
+            return response()->json(['message' => 'Buku tidak ditemukan atau tidak sedang dipinjam oleh pemustaka ini.'], 404);
+        }
+
+        return response()->json($peminjaman);
+    }
+
+    public function batchReturn(Request $request)
+    {
+        $items = $request->items;
+        // Panggil class kalkulator
+        $kalkulator = new \App\Http\Controllers\Pustakawan\KalkulasiKeterlambatanPengembalian();;
+
+        DB::beginTransaction();
+        try {
+            foreach ($items as $item) {
+                // Eksekusi kalkulasi keterlambatan
+                $hasilKalkulasi = $kalkulator->hitung($item['tgl_harus_kembali'], $item['tgl_kembali_manual']);
+
+                // Update status di tabel transaksi
+                DB::table('tr_peminjaman')
+                    ->where('id_peminjaman', $item['id_peminjaman'])
+                    ->update([
+                        'tgl_kembali' => $hasilKalkulasi['tgl_kembali'],
+                        'status_peminjaman' => 'Selesai',
+                        'kondisi_buku' => $item['kondisi'],
+                        'keterangan_peminjaman' => $hasilKalkulasi['keterangan']
+                    ]);
+
+                // Update status fisik buku menjadi Tersedia
+                DB::table('cp_koleksi')
+                    ->where('id_cp_koleksi', $item['id_cp_koleksi'])
+                    ->update(['status_buku' => 'Tersedia']);
+            }
+
+            DB::commit();
+            return response()->json(['message' => 'Proses pengembalian berhasil disimpan.']);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json(['message' => 'Gagal memproses data: ' . $e->getMessage()], 500);
+        }
+    }
 }

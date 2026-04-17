@@ -393,4 +393,30 @@ class DashboardController extends Controller
         ]);
         return response()->json(['message' => 'Data berhasil diperbarui.']);
     }
+
+    public function getAnggotaByIdentifier($identifier)
+    {
+        // 1. Cari di tabel siswa berdasarkan NISN
+        $siswa = \DB::table('mst_siswa')
+                    ->where('nisn_siswa', $identifier)
+                    ->where('is_delete', 0)
+                    ->first();
+
+        if ($siswa) {
+            return response()->json($siswa);
+        }
+
+        // 2. Jika tidak ada, cari di tabel karyawan berdasarkan NIP
+        $karyawan = \DB::table('mst_karyawan')
+                        ->where('nip_karyawan', $identifier)
+                        ->where('is_delete', 0)
+                        ->first();
+
+        if ($karyawan) {
+            return response()->json($karyawan);
+        }
+
+        // 3. Jika keduanya tidak ada
+        return response()->json(['message' => 'Anggota tidak ditemukan'], 404);
+    }
 }

@@ -1,5 +1,6 @@
 <?php
-namespace app\Http\Controllers\Pustakawan; // Sesuaikan dengan lokasi folder Anda
+
+namespace App\Http\Controllers\Pustakawan; // Gunakan 'App' dengan huruf kapital
 
 use Carbon\Carbon;
 
@@ -14,9 +15,9 @@ class KalkulasiKeterlambatanPengembalian
      */
     public function hitung($tglHarusKembali, $tglKembali = null)
     {
-        // Jika tgl_kembali kosong, asumsikan dikembalikan hari ini
-        $tglKembaliParsed = $tglKembali ? Carbon::parse($tglKembali) : Carbon::now();
-        $tglHarusKembaliParsed = Carbon::parse($tglHarusKembali);
+        // Gunakan startOfDay() agar perhitungan murni berdasarkan tanggal kalender
+        $tglKembaliParsed = $tglKembali ? Carbon::parse($tglKembali)->startOfDay() : Carbon::now()->startOfDay();
+        $tglHarusKembaliParsed = Carbon::parse($tglHarusKembali)->startOfDay();
 
         $hariTerlambat = 0;
         $sanksi = null;
@@ -35,7 +36,7 @@ class KalkulasiKeterlambatanPengembalian
             'hari_terlambat' => $hariTerlambat,
             'sanksi'         => $sanksi,
             'keterangan'     => $keterangan,
-            'tgl_kembali'    => $tglKembaliParsed->toDateString(),
+            'tgl_kembali'    => $tglKembaliParsed->toDateString(), // Format YYYY-MM-DD
         ];
     }
 }

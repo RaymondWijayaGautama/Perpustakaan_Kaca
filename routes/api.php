@@ -33,6 +33,9 @@ Route::get('/anggota', [DashboardController::class, 'getAnggota']);
 Route::get('/buku', [DashboardController::class, 'getBuku']);
 Route::get('/pengembalian', [DashboardController::class, 'getPengembalian']);
 Route::get('/buku/kategori', [App\Http\Controllers\DashboardController::class, 'getKategoriBuku']);
+Route::get('/anggota/{identifier}', [DashboardController::class, 'getAnggotaByIdentifier']);
+Route::get('/peminjaman/cek-aktif', [App\Http\Controllers\Api\PeminjamanController::class, 'cekAktif']);
+Route::post('/pengembalian/batch', [App\Http\Controllers\Api\PeminjamanController::class, 'batchReturn']);
 
 // --- ROUTE UNTUK DENDA BUKU RUSAK (API) ---
 Route::post('/buku/denda-kerusakan', [BukuController::class, 'simpanDendaKerusakan']);
