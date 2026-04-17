@@ -4,8 +4,9 @@ import ManajemenBukuPanel from './ManajemenBukuPanel';
 import PengembalianPanel from './PengembalianPanel';
 import PeminjamanPanel from './PeminjamanPanel';
 import RiwayatPinjamPanel from './RiwayatPinjamPanel';
-import PemusnahanPanel from './PemusnahanPanel';
+import PemusnahanPanelV2 from './PemusnahanPanelV2';
 import LaporanPeminjamanBulananPanel from './LaporanPeminjamanBulananPanel';
+import LaporanPeminjamanGuruPanel from './LaporanPeminjamanGuruPanel';
 import LaporanDistribusiKunjunganKelasPanel from './LaporanDistribusiKunjunganKelasPanel';
 import LaporanDistribusiKunjunganHariPanel from './LaporanDistribusiKunjunganHariPanel';
 import LaporanInventarisasiBukuBaruPanel from './LaporanInventarisasiBukuBaruPanel';
@@ -78,12 +79,16 @@ const AdminPanel = ({ user, onLogout }) => {
                     <div onClick={() => setActiveTab('pengembalian')} className={`p-3 rounded cursor-pointer transition-all ${activeTab === 'pengembalian' ? 'bg-white/20 font-bold border-l-4 border-white' : 'hover:bg-white/10'}`}>Pengembalian</div>
                     <div onClick={() => setActiveTab('peminjaman')} className={`p-3 rounded cursor-pointer transition-all ${activeTab === 'peminjaman' ? 'bg-white/20 font-bold border-l-4 border-white' : 'hover:bg-white/10'}`}>Peminjaman Buku</div>
                     <div onClick={() => setActiveTab('pemusnahan')} className={`p-3 rounded cursor-pointer transition-all ${activeTab === 'pemusnahan' ? 'bg-white/20 font-bold border-l-4 border-white' : 'hover:bg-white/10'}`}>Pemusnahan Buku</div>
-                    <div onClick={() => setActiveTab('riwayat_pinjam')} className={`p-3 rounded cursor-pointer transition-all ${activeTab === 'riwayat_pinjam' ? 'bg-white/20 font-bold border-l-4 border-white' : 'hover:bg-white/10'}`}>Riwayat Peminjaman</div>
-                    
-                    {/* DROPDOWN MENU */}
-                    <div className={`rounded transition-all overflow-hidden ${activeTab.includes('laporan_distribusi') || isDistribusiMenuOpen ? 'bg-white/10' : ''}`}>
-                        <div onClick={() => setIsDistribusiMenuOpen(!isDistribusiMenuOpen)} className="p-3 cursor-pointer transition-all flex items-center justify-between hover:bg-white/10">
-                            <span>Laporan Distribusi</span>
+                    <div onClick={() => setActiveTab('riwayat_pinjam')}className={`p-3 rounded cursor-pointer transition-all ${activeTab === 'riwayat_pinjam' ? 'bg-white/20 font-bold border-l-4 border-white' : 'hover:bg-white/10'}`}>Riwayat Peminjaman</div>
+                    <div onClick={() => setActiveTab('laporan_peminjaman_bulanan')} className={`p-3 rounded cursor-pointer transition-all ${activeTab === 'laporan_peminjaman_bulanan' ? 'bg-white/20 font-bold border-l-4 border-white' : 'hover:bg-white/10'}`}>Statistik Peminjaman</div>
+                    <div onClick={() => setActiveTab('laporan_peminjaman_guru')} className={`p-3 rounded cursor-pointer transition-all ${activeTab === 'laporan_peminjaman_guru' ? 'bg-white/20 font-bold border-l-4 border-white' : 'hover:bg-white/10'}`}>Peminjaman Guru</div>
+                    <div onClick={() => setActiveTab('laporan_inventarisasi_buku_baru')} className={`p-3 rounded cursor-pointer transition-all ${activeTab === 'laporan_inventarisasi_buku_baru' ? 'bg-white/20 font-bold border-l-4 border-white' : 'hover:bg-white/10'}`}>Inventarisasi Buku Baru</div>
+                    <div className={`rounded transition-all overflow-hidden ${activeTab === 'laporan_distribusi_kunjungan_kelas' || activeTab === 'laporan_distribusi_kunjungan_hari' || isDistribusiMenuOpen ? 'bg-white/10' : ''}`}>
+                        <div
+                            onClick={() => setIsDistribusiMenuOpen((current) => !current)}
+                            className={`p-3 cursor-pointer transition-all flex items-center justify-between ${activeTab === 'laporan_distribusi_kunjungan_kelas' || activeTab === 'laporan_distribusi_kunjungan_hari' ? 'font-bold border-l-4 border-white bg-white/20' : 'hover:bg-white/10'}`}
+                        >
+                            <span>Laporan Distribusi Kunjungan</span>
                             <span className={`text-xs transition-transform ${isDistribusiMenuOpen ? 'rotate-180' : ''}`}>▼</span>
                         </div>
                         {isDistribusiMenuOpen && (
@@ -173,9 +178,10 @@ const AdminPanel = ({ user, onLogout }) => {
 
                 {activeTab === 'pengembalian' && <PengembalianPanel user={user} />}
                 {activeTab === 'peminjaman' && <PeminjamanPanel user={user} />}
-                {activeTab === 'pemusnahan' && <PemusnahanPanel user={user} />}
+                {activeTab === 'pemusnahan' && <PemusnahanPanelV2 user={user} />}
                 {activeTab === 'riwayat_pinjam' && <RiwayatPinjamPanel user={user} />}
                 {activeTab === 'laporan_peminjaman_bulanan' && <LaporanPeminjamanBulananPanel />}
+                {activeTab === 'laporan_peminjaman_guru' && <LaporanPeminjamanGuruPanel />}
                 {activeTab === 'laporan_inventarisasi_buku_baru' && <LaporanInventarisasiBukuBaruPanel />}
                 {activeTab === 'laporan_distribusi_kunjungan_kelas' && <LaporanDistribusiKunjunganKelasPanel />}
                 {activeTab === 'laporan_distribusi_kunjungan_hari' && <LaporanDistribusiKunjunganHariPanel />}
