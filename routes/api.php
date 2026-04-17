@@ -22,7 +22,10 @@ Route::get('/laporan/inventarisasi-buku-baru', [LaporanController::class, 'inven
 Route::delete('/laporan/hapus/{id}', [LaporanController::class, 'destroy']);
 Route::post('/laporan/ubah/{id}', [LaporanController::class, 'update']);
 Route::post('/laporan/tambah', [LaporanController::class, 'store']);
-
+Route::get('/laporan/siswa-terajin', [LaporanController::class, 'siswaTerajin']);
+Route::get('/laporan/kunjungan-bulanan', [LaporanController::class, 'kunjunganBulanan']);
+Route::get('/laporan/buku-terpopuler', [LaporanController::class, 'bukuTerpopuler']);
+Route::get('/laporan/kategori-populer', [LaporanController::class, 'kategoriPopuler']);
 // Group Dashboard & Data
 Route::get('/dashboard/stats', [DashboardController::class, 'getStats']);
 Route::get('/anggota', [DashboardController::class, 'getAnggota']);
@@ -36,7 +39,7 @@ Route::post('/peminjaman', [App\Http\Controllers\Api\PeminjamanController::class
 Route::put('/peminjaman/{id}', [App\Http\Controllers\Api\PeminjamanController::class, 'update']);
 Route::delete('/peminjaman/{id}', [App\Http\Controllers\Api\PeminjamanController::class, 'destroy']);
 
-// --- ROUTE PENGEMBALIAN BUKU ---
+// --- ROUTE PENGEMBALIAN BUKU --
 Route::post('/pengembalian/scan', [App\Http\Controllers\Api\PeminjamanController::class, 'scanPengembalian']);
 Route::post('/pengembalian/proses/{id}', [App\Http\Controllers\Api\PeminjamanController::class, 'prosesPengembalian']);
 Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
