@@ -36,6 +36,13 @@ Route::post('/peminjaman', [App\Http\Controllers\Api\PeminjamanController::class
 Route::put('/peminjaman/{id}', [App\Http\Controllers\Api\PeminjamanController::class, 'update']);
 Route::delete('/peminjaman/{id}', [App\Http\Controllers\Api\PeminjamanController::class, 'destroy']);
 
+//ROUTE PEMUSNAHAN
+Route::get('/pemusnahan', [DashboardController::class, 'getHistoryPemusnahan']);
+Route::post('/pemusnahan', [DashboardController::class, 'storePemusnahan']);
+Route::get('/buku-rusak', [DashboardController::class, 'getBukuRusak']);
+Route::get('/buku-overdue', [DashboardController::class, 'getBukuOverdue']);
+Route::patch('/pemusnahan/{id}', [DashboardController::class, 'updateStatusPemusnahan']);
+
 // --- ROUTE PENGEMBALIAN BUKU ---
 Route::post('/pengembalian/scan', [App\Http\Controllers\Api\PeminjamanController::class, 'scanPengembalian']);
 Route::post('/pengembalian/proses/{id}', [App\Http\Controllers\Api\PeminjamanController::class, 'prosesPengembalian']);
