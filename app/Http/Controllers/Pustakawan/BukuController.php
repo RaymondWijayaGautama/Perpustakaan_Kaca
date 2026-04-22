@@ -19,19 +19,20 @@ class BukuController extends Controller
     public function importExcel(Request $request)
     {
         $request->validate([
-            'file_excel' => 'required|mimes:xlsx,xls,csv'
-        ]);
+        'file_excel' => 'required|mimes:xlsx,xls,csv'
+    ]);
 
-        try {
-            if (!class_exists(\Maatwebsite\Excel\Facades\Excel::class)) {
-                return redirect()->back()->with('error', 'Paket import Excel belum tersedia di server.');
-            }
-
-            \Maatwebsite\Excel\Facades\Excel::import(new BukuImport, $request->file('file_excel'));
-            return redirect()->back()->with('success', 'Data buku berhasil diimpor!');
-        } catch (\Exception $e) {
-            return redirect()->back()->with('error', 'Gagal: ' . $e->getMessage());
+    try {
+        if (!class_exists(\Maatwebsite\Excel\Facades\Excel::class)) {
+            return response()->json(['message' => 'Paket import Excel belum tersedia di server.'], 500);
         }
+
+        \Maatwebsite\Excel\Facades\Excel::import(new BukuImport, $request->file('file_excel'));
+        
+        return response()->json(['message' => 'Data buku berhasil diimpor ke sistem!'], 200);
+    } catch (\Exception $e) {
+        return response()->json(['message' => 'Gagal: ' . $e->getMessage()], 500);
+    }
     }
     public function halamanImport()
     {
