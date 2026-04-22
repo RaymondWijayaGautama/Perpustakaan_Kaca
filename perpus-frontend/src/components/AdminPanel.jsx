@@ -12,6 +12,7 @@ import LaporanDistribusiKunjunganHariPanel from './LaporanDistribusiKunjunganHar
 import LaporanInventarisasiBukuBaruPanel from './LaporanInventarisasiBukuBaruPanel';
 import LaporanPKLPanel from './LaporanPKLPanel';
 
+
 import LaporanSiswaTerajinPanel from './LaporanSiswaTerajinPanel';
 import KunjunganBulananPanel from './KunjunganBulananPanel';
 import BukuTerpopulerPanel from './BukuTerpopulerPanel'
@@ -91,6 +92,7 @@ const AdminPanel = ({ user, onLogout }) => {
                     <div onClick={() => setActiveTab('kunjungan_bulanan')} className={`p-3 rounded cursor-pointer transition-all ${activeTab === 'kunjungan_bulanan' ? 'bg-white/20 font-bold border-l-4 border-white' : 'hover:bg-white/10'}`}>Kunjungan Bulanan</div>
                     <div onClick={() => setActiveTab('buku_terpopuler')} className={`p-3 rounded cursor-pointer transition-all ${activeTab === 'buku_terpopuler' ? 'bg-white/20 font-bold border-l-4 border-white' : 'hover:bg-white/10'}`}>Buku Terpopuler</div>
                     <div onClick={() => setActiveTab('kategori_populer')} className={`p-3 rounded cursor-pointer transition-all ${activeTab === 'kategori_populer' ? 'bg-white/20 font-bold border-l-4 border-white' : 'hover:bg-white/10'}`}>Kategori Terpopuler</div>
+                    {/* <div onClick={() => setActiveTab('manajemen_buku')} className={`p-3 rounded cursor-pointer transition-all ${activeTab === 'manajemen_buku' ? 'bg-white/20 font-bold border-l-4 border-white' : 'hover:bg-white/10'}`}>Manajemen Buku</div> */}
                     <div className={`rounded transition-all overflow-hidden ${activeTab === 'laporan_distribusi_kunjungan_kelas' || activeTab === 'laporan_distribusi_kunjungan_hari' || isDistribusiMenuOpen ? 'bg-white/10' : ''}`}>
                         <div
                             onClick={() => setIsDistribusiMenuOpen((current) => !current)}
@@ -197,6 +199,7 @@ const AdminPanel = ({ user, onLogout }) => {
                 {activeTab === 'kunjungan_bulanan' && <KunjunganBulananPanel />}
                 {activeTab === 'buku_terpopuler' && <BukuTerpopulerPanel />}
                 {activeTab === 'kategori_populer' && <KategoriPopulerPanel />}
+                {activeTab === 'manajemen_buku' && <ManajemenBukuPanel user={user} />}
             </main>
         </div>
     );

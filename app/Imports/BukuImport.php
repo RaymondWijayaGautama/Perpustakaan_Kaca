@@ -5,7 +5,7 @@ namespace App\Imports;
 use App\Models\MstKoleksiBuku;
 use Maatwebsite\Excel\Concerns\ToModel;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
-use Carbon\Carbon; // Untuk mengambil tanggal hari ini otomatis
+use Carbon\Carbon;
 
 class BukuImport implements ToModel, WithHeadingRow
 {
@@ -20,8 +20,11 @@ class BukuImport implements ToModel, WithHeadingRow
                 'tahun'             => $row['tahun'],
                 'id_ref_koleksi'    => $row['id_kategori'],
                 
+                // --- NILAI DEFAULT UNTUK KOLOM YANG WAJIB DIISI DATABASE ---
+                'jumlah_ekslempar'  => 1, // TAMBAHKAN BARIS INI: Set default 1 (atau 0)
+                
                 'penerbit'          => 'Belum diatur',
-                'nb_koleksi'        => 1, // Angka default
+                'nb_koleksi'        => 1, 
                 'tgl_masuk_koleksi' => Carbon::now()->format('Y-m-d'), 
                 'jumlah_halaman'    => 0,
                 'ukuran_buku'       => '-',

@@ -1,4 +1,4 @@
-import React, { useDeferredValue, useEffect, useState } from 'react';
+import React, { useDeferredValue, useEffect, useState, useRef } from 'react';
 import axios from 'axios';
 
 const API_BASE_URL = 'http://localhost:8000/api';
@@ -44,6 +44,11 @@ const ManajemenBukuPanel = ({ user }) => {
     const [formErrors, setFormErrors] = useState({});
     const [feedback, setFeedback] = useState({ type: '', message: '' });
     const deferredBookSearch = useDeferredValue(bookSearch);
+
+    // --- STATE & REF UNTUK IMPORT ---
+    const fileInputRef = useRef(null);
+    const [isImporting, setIsImporting] = useState(false);
+    // --------------------------------
 
     const loadBooks = async ({
         search = deferredBookSearch,
@@ -245,6 +250,42 @@ const ManajemenBukuPanel = ({ user }) => {
         }
     };
 
+    // --- FUNGSI IMPORT EXCEL ---
+    const handleImportClick = () => {
+        fileInputRef.current.click();
+    };
+
+    const handleFileChange = async (event) => {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        const formData = new FormData();
+        formData.append('file_excel', file);
+
+        setIsImporting(true);
+        setFeedback({ type: '', message: '' }); // Reset pesan feedback
+
+        try {
+            const res = await axios.post(`${API_BASE_URL}/buku/import`, formData, {
+                headers: { 'Content-Type': 'multipart/form-data' },
+            });
+            
+            // Menggunakan sistem alert/feedback kamu yang sudah bagus
+            setFeedback({ type: 'success', message: res.data.message || 'Data buku berhasil diimpor.' });
+            loadBooks(); // Refresh tabel setelah sukses import
+        } catch (error) {
+            console.error("Error import:", error);
+            setFeedback({
+                type: 'error',
+                message: error.response?.data?.message || error.message || 'Terjadi kesalahan saat mengimpor.',
+            });
+        } finally {
+            setIsImporting(false);
+            event.target.value = null; // Reset input agar bisa upload file yang sama lagi
+        }
+    };
+    // ---------------------------
+
     const handleExportExcel = () => {
         const params = new URLSearchParams();
 
@@ -264,7 +305,7 @@ const ManajemenBukuPanel = ({ user }) => {
 
     return (
         <div className="bg-white rounded-xl shadow p-6 border border-gray-100">
-            <div className="flex items-start justify-between gap-4 mb-6">
+            <div className="flex flex-col md:flex-row items-start justify-between gap-4 mb-6">
                 <div>
                     <h1 className="text-2xl font-bold font-montserrat">Manajemen Buku</h1>
                     <p className="text-sm text-[#585858] mt-1">
@@ -276,13 +317,40 @@ const ManajemenBukuPanel = ({ user }) => {
                         </p>
                     )}
                 </div>
-                <button
-                    type="button"
-                    onClick={handleExportExcel}
-                    className="bg-[#2E7D32] text-white px-5 py-3 rounded-xl text-sm font-bold shadow hover:bg-[#1b5e20] transition-colors whitespace-nowrap self-start"
-                >
-                    Export Excel
-                </button>
+                
+                {/* --- AREA TOMBOL IMPORT & EXPORT --- */}
+                <div className="flex gap-3 self-start">
+                    {/* Input file yang disembunyikan */}
+                    <input 
+                        type="file" 
+                        ref={fileInputRef} 
+                        onChange={handleFileChange} 
+                        accept=".xlsx, .xls, .csv" 
+                        className="hidden" 
+                    />
+                    
+                    {/* Tombol Import */}
+                    <button
+                        type="button"
+                        onClick={handleImportClick}
+                        disabled={isImporting}
+                        className={`px-5 py-3 rounded-xl text-sm font-bold shadow transition-colors flex items-center gap-2 whitespace-nowrap ${
+                            isImporting ? 'bg-gray-400 text-white cursor-not-allowed' : 'bg-[#265F9C] text-white hover:bg-blue-700'
+                        }`}
+                    >
+                        {isImporting ? '⏳ Mengimpor...' : '📥 Import Excel'}
+                    </button>
+
+                    {/* Tombol Export */}
+                    <button
+                        type="button"
+                        onClick={handleExportExcel}
+                        className="bg-[#2E7D32] text-white px-5 py-3 rounded-xl text-sm font-bold shadow hover:bg-[#1b5e20] transition-colors whitespace-nowrap"
+                    >
+                        📤 Export Excel
+                    </button>
+                </div>
+                {/* ----------------------------------- */}
             </div>
 
             <div className="mb-8 flex flex-wrap gap-3 justify-end">
@@ -414,6 +482,7 @@ const ManajemenBukuPanel = ({ user }) => {
                 </>
             )}
 
+            {/* EDIT MODAL */}
             {showEditModal && (
                 <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
                     <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-3xl relative">
@@ -493,6 +562,7 @@ const ManajemenBukuPanel = ({ user }) => {
                 </div>
             )}
 
+            {/* DELETE MODAL */}
             {showDeleteModal && selectedBook && (
                 <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
                     <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-lg relative">
@@ -530,6 +600,7 @@ const ManajemenBukuPanel = ({ user }) => {
                 </div>
             )}
 
+            {/* BARCODE MODAL */}
             {showBarcodeModal && (
                 <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm transition-all">
                     <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-2xl relative animate-fade-in-up">

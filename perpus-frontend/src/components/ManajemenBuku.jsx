@@ -1,5 +1,5 @@
 /* eslint-disable react-hooks/exhaustive-deps */
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 
 const ManajemenBuku = () => {
@@ -12,6 +12,11 @@ const ManajemenBuku = () => {
     const [showModal, setShowModal] = useState(false);
     const [barcodeData, setBarcodeData] = useState(null);
     const [isGenerating, setIsGenerating] = useState(false);
+
+    const fileInputRef = useRef(null);
+    const [isImporting, setIsImporting] = useState(false);
+    // -----------------------------
+
     const fetchBooks = async () => {
         setLoading(true);
         try {
@@ -31,7 +36,7 @@ const ManajemenBuku = () => {
         fetchBooks();
     }, [bookPage, bookSortBy]);
 
-const handleGenerateBarcode = async (buku) => {
+    const handleGenerateBarcode = async (buku) => {
         const identifier = buku.ISBN || buku.isbn || buku.id_mst_koleksi; 
         if (!identifier) {
             alert("Waduh, data ISBN untuk buku ini tidak ditemukan!");
@@ -57,11 +62,65 @@ const handleGenerateBarcode = async (buku) => {
         }
     };
 
+    const handleImportClick = () => {
+        fileInputRef.current.click();
+    };
+
+    const handleFileChange = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const formData = new FormData();
+        formData.append('file_excel', file);
+
+        setIsImporting(true);
+        try {
+            const res = await axios.post('http://localhost:8000/api/buku/import', formData, {
+                headers: { 'Content-Type': 'multipart/form-data' },
+            });
+            alert('Berhasil: ' + res.data.message);
+            fetchBooks(); // Refresh tabel setelah sukses import
+        } catch (err) {
+            console.error("Error import:", err);
+            alert('Gagal: ' + (err.response?.data?.message || err.message));
+        } finally {
+            setIsImporting(false);
+            e.target.value = null; 
+        }
+    };
+    // ------------------------------------
+
     return (
         <div className="bg-white rounded-xl shadow p-6 border border-gray-100">
             <div className="flex justify-between items-center mb-8">
                 <h1 className="text-2xl font-bold font-montserrat">Manajemen Buku</h1>
-                <div className="flex gap-3 flex-1 justify-end">
+                <div className="flex gap-3 flex-1 justify-end items-center">
+                    
+                    {/* --- TAMBAHAN INPUT & TOMBOL IMPORT/EXPORT --- */}
+                    <input 
+                        type="file" 
+                        ref={fileInputRef} 
+                        onChange={handleFileChange} 
+                        accept=".xlsx, .xls, .csv" 
+                        className="hidden" 
+                    />
+                    <button 
+                        onClick={handleImportClick}
+                        disabled={isImporting}
+                        className={`px-4 py-3 rounded-xl text-xs font-bold text-white transition-all shadow-sm flex items-center gap-2 ${
+                            isImporting ? 'bg-gray-400 cursor-not-allowed' : 'bg-[#265F9C] hover:bg-blue-700'
+                        }`}
+                    >
+                        {isImporting ? '⏳ Mengimpor...' : '📥 Import'}
+                    </button>
+                    <button 
+                        onClick={() => window.open('http://localhost:8000/pustakawan/buku/export', '_blank')}
+                        className="px-4 py-3 bg-[#2D7A4D] hover:bg-green-700 text-white rounded-xl text-xs font-bold shadow-sm transition-all flex items-center gap-2"
+                    >
+                        📤 Export
+                    </button>
+                    {/* ------------------------------------------- */}
+
                     <input 
                         type="text" placeholder="Cari Judul atau Penulis..." 
                         className="p-3 border rounded-xl text-sm outline-none w-2/3 focus:ring-2 focus:ring-[#265F9C] transition-all shadow-sm"
@@ -158,4 +217,5 @@ const handleGenerateBarcode = async (buku) => {
         </div>
     );
 };
+
 export default ManajemenBuku;
