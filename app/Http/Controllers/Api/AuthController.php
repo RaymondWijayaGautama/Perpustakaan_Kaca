@@ -4,11 +4,12 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\RateLimiter; // Wajib ada
-use Illuminate\Support\Str;                 // Wajib ada untuk Str::lower()
+use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Str;
+use App\Models\MstKaryawan;
+use App\Models\MstSiswa;
 
 class AuthController extends Controller
 {
@@ -24,15 +25,14 @@ class AuthController extends Controller
             return response()->json(['message' => 'Verifikasi reCAPTCHA gagal.'], 422);
         }
 
-        $identifier = $request->identifier;
+        $identifier = $request->identifier; // NIP atau NISN
         $password = $request->password;
-        $role = $request->role; 
+        $role = Str::lower($request->role); 
         $maxAttempts = 5;
 
-        // Membuat kunci unik berdasarkan identifier dan IP user
         $throttleKey = Str::lower($identifier) . '|' . $request->ip();
 
-        // 2. Cek apakah user sudah melampaui batas percobaan
+        // 2. Rate Limiting
         if (RateLimiter::tooManyAttempts($throttleKey, $maxAttempts)) {
             $seconds = RateLimiter::availableIn($throttleKey);
             return response()->json([
@@ -40,51 +40,57 @@ class AuthController extends Controller
             ], 429);
         }
 
+        $user = null;
+
         if ($role === 'karyawan') {
-            $user = DB::table('mst_karyawan')
-                        ->where('nip_karyawan', $identifier)
-                        ->where('is_delete', 0)
+            // Cari berdasarkan NIP_KARYAWAN (Primary Key)
+            $user = MstKaryawan::where('NIP_KARYAWAN', $identifier)
+                        ->where('IS_DELETE', 0)
                         ->first();
             
             if (!$user) {
                 return $this->handleFail($throttleKey, $maxAttempts, 'NIP tidak terdaftar.', 404);
             }
 
-            if (!Hash::check($password, $user->password_karyawan)) {
+            // Cek password menggunakan kolom PASSWORD_KARYAWAN
+            if (!Hash::check($password, $user->PASSWORD_KARYAWAN)) {
                 return $this->handleFail($throttleKey, $maxAttempts, 'Kata sandi salah.', 401);
             }
 
+            $token = $user->createToken('karyawan_token')->plainTextToken;
+
         } else {
-            $user = DB::table('mst_siswa')
-                        ->where('nisn_siswa', $identifier)
-                        ->where('is_delete', 0)
+            // Cari berdasarkan NISN_SISWA
+            $user = MstSiswa::where('NISN_SISWA', $identifier)
+                        ->where('IS_DELETE', 0)
                         ->first();
             
             if (!$user) {
                 return $this->handleFail($throttleKey, $maxAttempts, 'NISN tidak terdaftar.', 404);
             }
 
-            if (!Hash::check($password, $user->password_siswa)) {
+            // Cek password menggunakan kolom PASSWORD_SISWA
+            if (!Hash::check($password, $user->PASSWORD_SISWA)) {
                 return $this->handleFail($throttleKey, $maxAttempts, 'Kata sandi salah.', 401);
             }
+
+            $token = $user->createToken('siswa_token')->plainTextToken;
         }
 
-        // 3. Jika login berhasil, hapus catatan percobaan (reset limiter)
+        // Login Berhasil
         RateLimiter::clear($throttleKey);
 
         return response()->json([
             'status' => 'success',
-            'user' => $user,
-            'token' => 'boda_token_' . bin2hex(random_bytes(10)) 
+            'token' => $token,
+            'role' => $role === 'karyawan' ? $user->JABATAN_FUNGSIONAL : 'Siswa',
+            'user' => $user
         ]);
     }
 
-    /**
-     * Helper untuk mencatat kegagalan dan mengembalikan response sisa percobaan.
-     */
     private function handleFail($key, $max, $message, $statusCode)
     {
-        RateLimiter::hit($key, 60); // Tambah hit, kunci selama 60 detik jika habis
+        RateLimiter::hit($key, 60);
         $remaining = RateLimiter::remaining($key, $max);
 
         return response()->json([

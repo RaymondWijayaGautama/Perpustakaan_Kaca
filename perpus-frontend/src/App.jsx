@@ -5,8 +5,10 @@ import MemberPanel from './components/MemberPanel';
 
 function App() {
   const [user, setUser] = useState(null);
+
   const handleLogout = () => {
     localStorage.removeItem('token');
+    localStorage.removeItem('userRole'); // Tambahan: bersihkan role
     setUser(null);
   };
 
@@ -15,7 +17,9 @@ function App() {
     return <Login setLoggedInUser={setUser} />;
   }
 
-  const isAdmin = user.jabatan_fungsional === 'Pustakawan';
+  // 2. Cek apakah user adalah Admin
+  // PERBAIKAN: Gunakan JABATAN_FUNGSIONAL (huruf kapital)
+  const isAdmin = user.JABATAN_FUNGSIONAL === 'Pustakawan';
 
   if (isAdmin) {
     return <AdminPanel user={user} onLogout={handleLogout} />;
