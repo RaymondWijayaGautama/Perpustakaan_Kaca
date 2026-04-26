@@ -13,7 +13,7 @@ use Illuminate\Database\Eloquent\Model;
  * Class CpKoleksi
  * 
  * @property int $ID_CP_KOLEKSI
- * @property string|null $ISBN
+ * @property string|null $ISBN	
  * @property int|null $ID_MST_LAPORAN
  * @property string|null $STATUS_BUKU
  * 

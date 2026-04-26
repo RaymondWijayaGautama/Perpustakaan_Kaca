@@ -11,11 +11,14 @@ import LaporanDistribusiKunjunganKelasPanel from './LaporanDistribusiKunjunganKe
 import LaporanDistribusiKunjunganHariPanel from './LaporanDistribusiKunjunganHariPanel';
 import LaporanInventarisasiBukuBaruPanel from './LaporanInventarisasiBukuBaruPanel';
 import LaporanPKLPanel from './LaporanPKLPanel';
-
 import LaporanSiswaTerajinPanel from './LaporanSiswaTerajinPanel';
 import KunjunganBulananPanel from './KunjunganBulananPanel';
-import BukuTerpopulerPanel from './BukuTerpopulerPanel'
+import BukuTerpopulerPanel from './BukuTerpopulerPanel';
 import KategoriPopulerPanel from './KategoriPopulerPanel';
+
+// --- TAMBAHAN BARU: Import komponen KategoriPanel ---
+import KategoriPanel from './KategoriPanel';
+
 const AdminPanel = ({ user, onLogout }) => {
     const [activeTab, setActiveTab] = useState('dashboard');
     const [isDistribusiMenuOpen, setIsDistribusiMenuOpen] = useState(false);
@@ -75,9 +78,13 @@ const AdminPanel = ({ user, onLogout }) => {
             {/* SIDEBAR */}
             <aside className="w-64 bg-[#265F9C] text-white p-6 flex flex-col shadow-xl print:hidden">
                 <h2 className="font-montserrat font-bold text-xl mb-10 tracking-tight text-center uppercase">Kaca Admin</h2>
-                <nav className="flex-1 space-y-2">
+                <nav className="flex-1 space-y-2 overflow-y-auto pr-2 pb-10 custom-scrollbar">
                     <div onClick={() => setActiveTab('dashboard')} className={`p-3 rounded cursor-pointer transition-all ${activeTab === 'dashboard' ? 'bg-white/20 font-bold border-l-4 border-white' : 'hover:bg-white/10'}`}>Dashboard</div>
                     <div onClick={() => setActiveTab('buku')} className={`p-3 rounded cursor-pointer transition-all ${activeTab === 'buku' ? 'bg-white/20 font-bold border-l-4 border-white' : 'hover:bg-white/10'}`}>Manajemen Buku</div>
+                    
+                    {/* --- TAMBAHAN BARU: Menu Kategori Koleksi --- */}
+                    <div onClick={() => setActiveTab('kategori_koleksi')} className={`p-3 rounded cursor-pointer transition-all ${activeTab === 'kategori_koleksi' ? 'bg-white/20 font-bold border-l-4 border-white' : 'hover:bg-white/10'}`}>Kategori Koleksi</div>
+
                     <div onClick={() => { setActiveTab('anggota'); setAnggotaPage(1); }} className={`p-3 rounded cursor-pointer transition-all ${activeTab === 'anggota' ? 'bg-white/20 font-bold border-l-4 border-white' : 'hover:bg-white/10'}`}>Data Anggota</div>
                     <div onClick={() => setActiveTab('laporan')} className={`p-3 rounded cursor-pointer transition-all ${activeTab === 'laporan' ? 'bg-white/20 font-bold border-l-4 border-white' : 'hover:bg-white/10'}`}>Laporan PKL</div>
                     <div onClick={() => setActiveTab('pengembalian')} className={`p-3 rounded cursor-pointer transition-all ${activeTab === 'pengembalian' ? 'bg-white/20 font-bold border-l-4 border-white' : 'hover:bg-white/10'}`}>Pengembalian</div>
@@ -107,11 +114,11 @@ const AdminPanel = ({ user, onLogout }) => {
                         )}
                     </div>
                 </nav>
-                <button onClick={onLogout} className="mt-auto p-2 text-red-200 font-bold hover:text-white transition-colors text-left">Keluar Sistem</button>
+                <button onClick={onLogout} className="mt-4 pt-4 border-t border-white/20 p-2 text-red-200 font-bold hover:text-white transition-colors text-left shrink-0">Keluar Sistem</button>
             </aside>
 
             {/* MAIN CONTENT */}
-            <main className="flex-1 p-10 overflow-y-auto print:p-0 relative">
+            <main className="flex-1 p-10 overflow-y-auto print:p-0 relative h-screen">
                 {/* Loader hanya untuk tab yang dikelola AdminPanel langsung */}
                 {loading && (activeTab === 'dashboard' || activeTab === 'anggota') && (
                     <div className="absolute inset-0 bg-white/40 backdrop-blur-[1px] z-50 flex items-center justify-center">
@@ -138,6 +145,10 @@ const AdminPanel = ({ user, onLogout }) => {
                 
                 {/* PANEL COMPONENTS */}
                 {activeTab === 'buku' && <ManajemenBukuPanel user={user} />}
+                
+                {/* --- PERBAIKAN DI SINI: Render KategoriPanel --- */}
+                {activeTab === 'kategori_koleksi' && <KategoriPanel />}
+
                 {activeTab === 'anggota' && (
                     <div className="bg-white rounded-xl shadow p-6 border border-gray-100">
                         <div className="flex justify-between items-center mb-8">
@@ -181,9 +192,7 @@ const AdminPanel = ({ user, onLogout }) => {
                     </div>
                 )}
 
-                {/* Tab Laporan PKL yang sudah dipisah */}
                 {activeTab === 'laporan' && <LaporanPKLPanel />} 
-
                 {activeTab === 'pengembalian' && <PengembalianPanel user={user} />}
                 {activeTab === 'peminjaman' && <PeminjamanPanel user={user} />}
                 {activeTab === 'pemusnahan' && <PemusnahanPanelV2 user={user} />}

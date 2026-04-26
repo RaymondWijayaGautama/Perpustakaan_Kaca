@@ -5,12 +5,20 @@ namespace App\Http\Controllers; // Sesuaikan jika ada di folder Api
 use Illuminate\Http\Request;
 use App\Models\CpKoleksi;
 use Picqer\Barcode\BarcodeGeneratorHTML;
+use App\Models\RefKoleksi;
 
 class KoleksiController extends Controller
 {
     public function index()
     {
-        return view('tambah_barcode'); 
+        $kategori = RefKoleksi::where('IS_DELETE', 0)
+            ->orWhereNull('IS_DELETE')
+            ->get();
+
+        return response()->json([
+            'success' => true,
+            'data' => $kategori
+        ], 200);
     }
 
     public function generate(Request $request)
@@ -41,5 +49,70 @@ class KoleksiController extends Controller
             </div>
         </div>
         ";
+    }
+
+    
+
+    /**
+     * Simpan data kategori baru
+     */
+    public function store(Request $request)
+    {
+        $request->validate([
+            'NO_KATEGORI_BUKU' => 'nullable|string|max:10',
+            'DESKRIPSI_KATEGORI' => 'required|string|max:255',
+        ]);
+
+        $kategori = RefKoleksi::create([
+            'NO_KATEGORI_BUKU' => $request->NO_KATEGORI_BUKU,
+            'DESKRIPSI_KATEGORI' => $request->DESKRIPSI_KATEGORI,
+            'IS_DELETE' => 0,
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Kategori berhasil ditambahkan.',
+            'data' => $kategori
+        ], 201);
+    }
+
+    /**
+     * Perbarui data kategori yang sudah ada
+     */
+    public function update(Request $request, $id)
+    {
+        $request->validate([
+            'NO_KATEGORI_BUKU' => 'nullable|string|max:10',
+            'DESKRIPSI_KATEGORI' => 'required|string|max:255',
+        ]);
+
+        $kategori = RefKoleksi::where('ID_REF_KOLEKSI', $id)->firstOrFail();
+        
+        $kategori->update([
+            'NO_KATEGORI_BUKU' => $request->NO_KATEGORI_BUKU,
+            'DESKRIPSI_KATEGORI' => $request->DESKRIPSI_KATEGORI,
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Kategori berhasil diperbarui.',
+            'data' => $kategori
+        ], 200);
+    }
+
+    /**
+     * Hapus kategori (Ubah status IS_DELETE menjadi 1)
+     */
+    public function destroy($id)
+    {
+        $kategori = RefKoleksi::where('ID_REF_KOLEKSI', $id)->firstOrFail();
+
+        // Menggunakan konsep Soft Delete manual sesuai skema DB
+        $kategori->update(['IS_DELETE' => 1]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Kategori berhasil dihapus.'
+        ], 200);
     }
 }
