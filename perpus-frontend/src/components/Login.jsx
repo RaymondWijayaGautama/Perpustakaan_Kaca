@@ -1,5 +1,7 @@
+
 import { useState } from 'react';
 import axios from 'axios';
+// HAPUS: import { useNavigate } from 'react-router-dom';
 import InputField from '../components/InputField'; 
 
 const Login = ({ setLoggedInUser }) => {
@@ -11,6 +13,8 @@ const Login = ({ setLoggedInUser }) => {
     identifier: false,
     password: false
   });
+
+  // HAPUS: const navigate = useNavigate();
 
   const digitsOnly = /^\d+$/.test(identifier);
   const resolvedRole = digitsOnly && identifier.length > 10 ? 'karyawan' : 'siswa';
@@ -36,26 +40,32 @@ const Login = ({ setLoggedInUser }) => {
               'g-recaptcha-response': token
             });
             
-            sessionStorage.setItem('token', response.data.token);
-            sessionStorage.setItem('logged_in_user', JSON.stringify(response.data.user));
-            localStorage.removeItem('token');
-            localStorage.removeItem('logged_in_user');
+            // Simpan data yang diperlukan
+            localStorage.setItem('token', response.data.token);
+            localStorage.setItem('userRole', response.data.role); 
+            
+            // SET STATE INI AKAN OTOMATIS MENGUBAH TAMPILAN DI App.js
             setLoggedInUser(response.data.user);
+
+            // HAPUS: Blok if(resolvedRole === 'karyawan') navigate(...)
+
           } catch (err) {
             const status = err.response?.status;
             const backendData = err.response?.data;
             const message = backendData?.message || 'Terjadi kesalahan.';
-            const attemptsLeft = backendData?.attempts_left;
+            
+            const infoText = backendData?.info || ''; 
+            const displayError = infoText ? `${message} | ${infoText}` : message;
 
-            // --- LOGIKA EXCEPTION FIELD ---
             if (status === 404) {
-              // Identitas tidak ditemukan
               setFieldErrors({ identifier: true, password: false });
-              setError(message);
+              setError(displayError);
             } else if (status === 401) {
-              // Password salah
               setFieldErrors({ identifier: false, password: true });
-              setError(attemptsLeft !== undefined ? `${message} (Sisa: ${attemptsLeft}x)` : message);
+              setError(displayError);
+            } else if (status === 429) {
+              setFieldErrors({ identifier: true, password: true });
+              setError(message);
             } else {
               setError(message);
             }
@@ -92,7 +102,7 @@ const Login = ({ setLoggedInUser }) => {
 
           <form onSubmit={handleLogin} className="space-y-space-3">
             <InputField 
-              label="Nomor Induk (NIP/NISN)"
+              label={"Identitas"}
               type="text"
               identifier="identifier"
               value={identifier}

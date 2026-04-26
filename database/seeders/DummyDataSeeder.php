@@ -5,7 +5,6 @@ namespace Database\Seeders;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
-use Carbon\Carbon;
 
 class DummyDataSeeder extends Seeder
 {
@@ -13,11 +12,48 @@ class DummyDataSeeder extends Seeder
     {
         DB::statement('SET FOREIGN_KEY_CHECKS=0;');
 
-        // Daftar Nama Siswa Asli untuk digunakan di Anggota & Penulis PKL
-        $namaSiswaList = [
-            'Damar Wicaksana', 'Rifa Amalia', 'Budi Santoso', 'Siti Aminah', 
-            'Andi Wijaya', 'Eka Putri', 'Gede Bagus', 'Luh Putu', 
-            'Aditya Pratama', 'Rizky Ramadhan'
+        // --- 1. SEEDER KARYAWAN (Admin / Pustakawan & Staf Lainnya) ---
+        $karyawanList = [
+            [
+                'NIP_KARYAWAN' => '19850101201001',
+                'NAMA_KARYAWAN' => 'I Made Damar Sadhu Wicaksana',
+                'NAMA_LENGKAP_GELAR' => 'I Made Damar Sadhu Wicaksana, S.Kom.',
+                'GOLONGAN_KARYAWAN' => 'III/A',
+                'JABATAN_FUNGSIONAL' => 'Pustakawan', // Sesuai permintaan (Admin)
+                'TANGGAL_MASUK' => '2020-01-01',
+                'STATUS_KEPEGAWAIAN' => 'Tetap',
+                'NIK_KARYAWAN' => '3404123456780001',
+                'TEMPAT_LAHIR_KARYAWAN' => 'Yogyakarta',
+                'GENDER_KARYAWAN' => 'Laki-laki',
+                'TGL_LAHIR_KARYAWAN' => '1995-05-15',
+                'ALAMAT_KARYAWAN' => 'Jl. Babarsari No. 44, Depok, Sleman',
+                'NO_HP_KARYAWAN' => '081234567890',
+                'EMAIL_KARYAWAN' => 'admin.pustakawan@smkboda.sch.id',
+                'PASSWORD_KARYAWAN' => Hash::make('admin123'),
+                'PEND_TERAKHIR_KARYAWAN' => 'S1 Teknik Informatika',
+                'PRODI_KARYAWAN' => 'Informatika',
+                'IS_DELETE' => 0
+            ],
+            [
+                'NIP_KARYAWAN' => '19900202201502',
+                'NAMA_KARYAWAN' => 'Siti Nurhaliza',
+                'NAMA_LENGKAP_GELAR' => 'Siti Nurhaliza, S.Pd.',
+                'GOLONGAN_KARYAWAN' => 'III/B',
+                'JABATAN_FUNGSIONAL' => 'Guru',
+                'TANGGAL_MASUK' => '2015-07-15',
+                'STATUS_KEPEGAWAIAN' => 'Tetap',
+                'NIK_KARYAWAN' => '3404123456780002',
+                'TEMPAT_LAHIR_KARYAWAN' => 'Bantul',
+                'GENDER_KARYAWAN' => 'Perempuan',
+                'TGL_LAHIR_KARYAWAN' => '1990-02-02',
+                'ALAMAT_KARYAWAN' => 'Jl. Parangtritis Km. 7',
+                'NO_HP_KARYAWAN' => '087712345678',
+                'EMAIL_KARYAWAN' => 'siti.guru@smkboda.sch.id',
+                'PASSWORD_KARYAWAN' => Hash::make('guru123'),
+                'PEND_TERAKHIR_KARYAWAN' => 'S1 Pendidikan Komputer',
+                'PRODI_KARYAWAN' => 'Pendidikan Teknik Informatika',
+                'IS_DELETE' => 0
+            ]
         ];
 
         // 1. DATA REFERENSI KATEGORI (Tetap)
@@ -33,9 +69,6 @@ class DummyDataSeeder extends Seeder
             ['id_ref_koleksi' => 9, 'deskripsi_kategori' => 'Komik & Manga', 'is_delete' => 0],
             ['id_ref_koleksi' => 10, 'deskripsi_kategori' => 'Ensiklopedia', 'is_delete' => 0],
         ];
-        foreach ($kategori as $k) {
-            DB::table('ref_koleksi')->updateOrInsert(['id_ref_koleksi' => $k['id_ref_koleksi']], $k);
-        }
 
         // 2. DATA KARYAWAN (Admin Utama)
         $adminNip = '19850101201001';

@@ -68,6 +68,12 @@ Route::post('/peminjaman', [App\Http\Controllers\Api\PeminjamanController::class
 Route::put('/peminjaman/{id}', [App\Http\Controllers\Api\PeminjamanController::class, 'update']);
 Route::delete('/peminjaman/{id}', [App\Http\Controllers\Api\PeminjamanController::class, 'destroy']);
 
+//kategori buku
+Route::get('/koleksi', [KoleksiController::class, 'index']);
+Route::post('/koleksi', [KoleksiController::class, 'store']);
+Route::put('/koleksi/{id}', [KoleksiController::class, 'update']);
+Route::delete('/koleksi/{id}', [KoleksiController::class, 'destroy']);
+
 //ROUTE PEMUSNAHAN
 // --- BAGIAN BARU: RUTE PEMUSNAHAN BUKU ---
 Route::get('/pemusnahan', [DashboardController::class, 'getHistoryPemusnahan']);

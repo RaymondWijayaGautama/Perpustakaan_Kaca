@@ -636,9 +636,9 @@ public function exportPdfKunjungan()
         ->join('cp_koleksi as ck', 'tp.id_cp_koleksi', '=', 'ck.id_cp_koleksi')
         ->join('mst_koleksi_buku as mkb', 'ck.ISBN', '=', 'mkb.ISBN')
         ->join('ref_koleksi as rk', 'mkb.id_ref_koleksi', '=', 'rk.id_ref_koleksi')
-        ->select('rk.deskripsi', DB::raw('COUNT(tp.id_peminjaman) as total_dipinjam'))
+        ->select('rk.DESKRIPSI_KATEGORI', DB::raw('COUNT(tp.id_peminjaman) as total_dipinjam'))
         ->whereYear('tp.tgl_peminjaman', $tahun)
-        ->groupBy('rk.id_ref_koleksi', 'rk.deskripsi')
+        ->groupBy('rk.id_ref_koleksi', 'rk.DESKRIPSI_KATEGORI')
         ->orderBy('total_dipinjam', 'desc')
         ->get();
 
@@ -653,9 +653,9 @@ public function exportPdfKunjungan()
             ->join('cp_koleksi as ck', 'tp.id_cp_koleksi', '=', 'ck.id_cp_koleksi')
             ->join('mst_koleksi_buku as mkb', 'ck.ISBN', '=', 'mkb.ISBN')
             ->join('ref_koleksi as rk', 'mkb.id_ref_koleksi', '=', 'rk.id_ref_koleksi')
-            ->select('rk.deskripsi', DB::raw('COUNT(tp.id_peminjaman) as total_dipinjam'))
+            ->select('rk.DESKRIPSI_KATEGORI', DB::raw('COUNT(tp.id_peminjaman) as total_dipinjam'))
             ->whereYear('tp.tgl_peminjaman', $tahun)
-            ->groupBy('rk.id_ref_koleksi', 'rk.deskripsi')
+            ->groupBy('rk.id_ref_koleksi', 'rk.DESKRIPSI_KATEGORI')
             ->orderBy('total_dipinjam', 'desc')
             ->get();
 

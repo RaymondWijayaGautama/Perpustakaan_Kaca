@@ -1,0 +1,28 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    /**
+     * Run the migrations.
+     */
+    public function up(): void
+    {
+        Schema::table('mst_tujuan_pembelajaran', function (Blueprint $table) {
+            $table->foreign(['ID_CAP_PEMB'], 'mst_tujuan_pembelajaran_ibfk_1')->references(['ID_CAP_PEMB'])->on('mst_capaian_pembelajaran')->onUpdate('restrict')->onDelete('restrict');
+        });
+    }
+
+    /**
+     * Reverse the migrations.
+     */
+    public function down(): void
+    {
+        Schema::table('mst_tujuan_pembelajaran', function (Blueprint $table) {
+            $table->dropForeign('mst_tujuan_pembelajaran_ibfk_1');
+        });
+    }
+};

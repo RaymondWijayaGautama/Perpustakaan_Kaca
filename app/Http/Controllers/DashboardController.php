@@ -54,7 +54,7 @@ class DashboardController extends Controller
         $totalBuku = DB::table('mst_koleksi_buku')
             ->where('is_delete', 0)
             ->where('id_ref_koleksi', '!=', 4) 
-            ->sum('jumlah_ekslempar');
+            ->sum('jumlah_eksemplar');
 
         // 2. Menghitung total anggota (Siswa + Karyawan)
         $jumlahSiswa = DB::table('mst_siswa')->where('is_delete', 0)->count();
@@ -589,13 +589,13 @@ class DashboardController extends Controller
                     ->where('is_delete', 0)
                     ->first();
     
-                if (!$buku || (int) $buku->jumlah_ekslempar < 1) {
+                if (!$buku || (int) $buku->jumlah_eksemplar < 1) {
                     return response()->json(['message' => 'Stok buku tidak cukup untuk diproses sebagai pemusnahan.'], 422);
                 }
     
                 DB::table('mst_koleksi_buku')
                     ->where('ISBN', $pemusnahan->isbn)
-                    ->decrement('jumlah_ekslempar', 1);
+                    ->decrement('jumlah_eksemplar', 1);
     
                 $copy = DB::table('cp_koleksi')
                     ->where('ISBN', $pemusnahan->isbn)
