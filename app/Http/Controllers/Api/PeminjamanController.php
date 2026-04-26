@@ -13,21 +13,34 @@ class PeminjamanController extends Controller
     public function index(Request $request)
     {
         try {
-            $query = DB::table('tr_peminjaman')
-                ->join('mst_siswa', 'tr_peminjaman.id_siswa_tetap', '=', 'mst_siswa.id_siswa_tetap')
-                ->join('cp_koleksi', 'tr_peminjaman.id_cp_koleksi', '=', 'cp_koleksi.id_cp_koleksi')
-                ->join('mst_koleksi_buku', 'cp_koleksi.ISBN', '=', 'mst_koleksi_buku.ISBN')
+            $query = DB::table('tr_peminjaman as peminjaman')
+                ->join('mst_siswa as siswa', 'peminjaman.ID_SISWA_TETAP', '=', 'siswa.ID_SISWA_TETAP')
+                ->join('cp_koleksi as copy', 'peminjaman.ID_CP_KOLEKSI', '=', 'copy.ID_CP_KOLEKSI')
+                ->join('mst_koleksi_buku as buku', 'copy.ISBN', '=', 'buku.ISBN')
                 ->select(
-                    'tr_peminjaman.*', 
-                    'mst_siswa.nama_siswa_tetap as nama_peminjam', 
-                    'mst_koleksi_buku.judul_koleksi as judul_buku' 
+                    'peminjaman.ID_PEMINJAMAN as id_peminjaman',
+                    'peminjaman.ID_CP_KOLEKSI as id_cp_koleksi',
+                    'peminjaman.ID_SISWA_TETAP as id_siswa_tetap',
+                    'peminjaman.NIP_KARYAWAN as nip_karyawan',
+                    'peminjaman.TGL_PINJAM as tgl_peminjaman',
+                    'peminjaman.TGL_HARUS_KEMBALI as tgl_harus_kembali',
+                    'peminjaman.TGL_KEMBALI as tgl_kembali',
+                    'peminjaman.STATUS_PEMINJAMAN as status_peminjaman',
+                    'peminjaman.KONDISI_BUKU as kondisi_buku',
+                    'peminjaman.KETERANGAN_PEMINJAMAN as keterangan_peminjaman',
+                    'peminjaman.DENDA_PEMINJAMAN as denda_peminjaman',
+                    'siswa.NAMA_SISWA_TETAP as nama_peminjam',
+                    'siswa.NISN_SISWA as nisn_siswa',
+                    'copy.ISBN',
+                    'copy.STATUS_BUKU as status_buku',
+                    'buku.JUDUL_KOLEKSI as judul_buku'
                 );
 
             if ($request->status && $request->status !== 'Semua') {
-                $query->where('tr_peminjaman.status_peminjaman', $request->status);
+                $query->where('peminjaman.STATUS_PEMINJAMAN', $request->status);
             }
 
-            return response()->json($query->orderBy('tgl_peminjaman', 'desc')->get());
+            return response()->json($query->orderBy('peminjaman.TGL_PINJAM', 'desc')->get());
             
         } catch (\Exception $e) {
             return response()->json(['error' => $e->getMessage()], 500);

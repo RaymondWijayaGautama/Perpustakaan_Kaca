@@ -124,6 +124,7 @@ class DashboardController extends Controller
     public function getBuku(Request $request)
     {
         try {
+            $search = trim((string) $request->query('search', ''));
             $judul = $request->query('judul');
             $penulis = $request->query('penulis');
             $kategori = $request->query('kategori');
@@ -132,28 +133,60 @@ class DashboardController extends Controller
             $perPage = $request->query('per_page', 8);
 
             $query = DB::table('mst_koleksi_buku')
-                ->leftJoin('ref_koleksi', 'mst_koleksi_buku.id_ref_koleksi', '=', 'ref_koleksi.id_ref_koleksi')
-                // KEMBALIKAN KE DESKRIPSI
-                ->select('mst_koleksi_buku.*', 'ref_koleksi.deskripsi as kategori')
-                ->where('mst_koleksi_buku.is_delete', 0)
-                ->where('mst_koleksi_buku.id_ref_koleksi', '!=', 4);
+                ->leftJoin('ref_koleksi', 'mst_koleksi_buku.ID_REF_KOLEKSI', '=', 'ref_koleksi.ID_REF_KOLEKSI')
+                ->select([
+                    'mst_koleksi_buku.ISBN',
+                    'mst_koleksi_buku.JUDUL_KOLEKSI as judul_koleksi',
+                    'mst_koleksi_buku.PENGARANG as pengarang',
+                    'mst_koleksi_buku.PENERBIT as penerbit',
+                    'mst_koleksi_buku.TAHUN as tahun',
+                    'mst_koleksi_buku.NB_KOLEKSI as nb_koleksi',
+                    'mst_koleksi_buku.TGL_MASUK_KOLEKSI as tgl_masuk_koleksi',
+                    'mst_koleksi_buku.JUMLAH_EKSEMPLAR as jumlah_ekslempar',
+                    'mst_koleksi_buku.JUMLAH_HALAMAN as jumlah_halaman',
+                    'mst_koleksi_buku.UKURAN_BUKU as ukuran_buku',
+                    'mst_koleksi_buku.BIBLIOGRAFI as bibliografi',
+                    'mst_koleksi_buku.INDEKS_AWAL_AKHIR as indeks_awal_akhir',
+                    'mst_koleksi_buku.KETERANGAN_BUKU as keterangan_buku',
+                    'mst_koleksi_buku.NO_RAK_BUKU as no_rak_buku',
+                    'mst_koleksi_buku.IS_DELETE as is_delete',
+                    'mst_koleksi_buku.ID_REF_KOLEKSI as id_ref_koleksi',
+                    'ref_koleksi.DESKRIPSI_KATEGORI as kategori',
+                ])
+                ->where('mst_koleksi_buku.IS_DELETE', 0)
+                ->where('mst_koleksi_buku.ID_REF_KOLEKSI', '!=', 4);
+
+            if ($search !== '') {
+                $query->where(function ($subQuery) use ($search) {
+                    $subQuery->where('mst_koleksi_buku.JUDUL_KOLEKSI', 'LIKE', "%{$search}%")
+                        ->orWhere('mst_koleksi_buku.PENGARANG', 'LIKE', "%{$search}%")
+                        ->orWhere('mst_koleksi_buku.ISBN', 'LIKE', "%{$search}%");
+                });
+            }
 
             if (!empty($judul)) {
-                $query->where('mst_koleksi_buku.judul_koleksi', 'LIKE', "%{$judul}%");
+                $query->where('mst_koleksi_buku.JUDUL_KOLEKSI', 'LIKE', "%{$judul}%");
             }
 
             if (!empty($penulis)) {
-                $query->where('mst_koleksi_buku.pengarang', 'LIKE', "%{$penulis}%");
+                $query->where('mst_koleksi_buku.PENGARANG', 'LIKE', "%{$penulis}%");
             }
 
             if (!empty($kategori)) {
-                $query->where('mst_koleksi_buku.id_ref_koleksi', $kategori);
+                $query->where('mst_koleksi_buku.ID_REF_KOLEKSI', $kategori);
             }
 
-            $allowedSort = ['judul_koleksi', 'pengarang', 'tahun', 'id_ref_koleksi'];
-            $sortBy = in_array($sortBy, $allowedSort) ? $sortBy : 'judul_koleksi';
+            $allowedSort = [
+                'judul_koleksi' => 'mst_koleksi_buku.JUDUL_KOLEKSI',
+                'pengarang' => 'mst_koleksi_buku.PENGARANG',
+                'tahun' => 'mst_koleksi_buku.TAHUN',
+                'id_ref_koleksi' => 'mst_koleksi_buku.ID_REF_KOLEKSI',
+                'kategori' => 'ref_koleksi.DESKRIPSI_KATEGORI',
+            ];
+            $sortColumn = $allowedSort[$sortBy] ?? $allowedSort['judul_koleksi'];
+            $sortOrder = strtolower($sortOrder) === 'desc' ? 'desc' : 'asc';
 
-            return response()->json($query->orderBy($sortBy, $sortOrder)->paginate($perPage));
+            return response()->json($query->orderBy($sortColumn, $sortOrder)->paginate($perPage));
         } catch (\Exception $e) {
             return response()->json(['error' => $e->getMessage()], 500);
         }
@@ -163,11 +196,13 @@ class DashboardController extends Controller
     {
         try {
             $kategori = DB::table('ref_koleksi')
-                ->where('is_delete', 0)
-                ->where('id_ref_koleksi', '!=', 4)
-                // KEMBALIKAN KE DESKRIPSI
-                ->orderBy('deskripsi')
-                ->get(['id_ref_koleksi', 'deskripsi']); 
+                ->where('IS_DELETE', 0)
+                ->where('ID_REF_KOLEKSI', '!=', 4)
+                ->orderBy('DESKRIPSI_KATEGORI')
+                ->get([
+                    'ID_REF_KOLEKSI as id_ref_koleksi',
+                    'DESKRIPSI_KATEGORI as deskripsi',
+                ]);
 
             return response()->json($kategori);
         } catch (\Exception $e) {
@@ -306,18 +341,45 @@ class DashboardController extends Controller
             ], 409);
         }
 
-        DB::table('mst_koleksi_buku')
+        $punyaRiwayatPeminjaman = DB::table('cp_koleksi')
             ->where('ISBN', $isbn)
-            ->update([
-                'is_delete' => 1,
-            ]);
+            ->whereExists(function ($query) {
+                $query->select(DB::raw(1))
+                    ->from('tr_peminjaman')
+                    ->whereColumn('tr_peminjaman.id_cp_koleksi', 'cp_koleksi.id_cp_koleksi');
+            })
+            ->exists();
 
-        DB::table('cp_koleksi')
-            ->where('ISBN', $isbn)
-            ->delete();
+        try {
+            DB::transaction(function () use ($isbn, $punyaRiwayatPeminjaman) {
+                DB::table('mst_koleksi_buku')
+                    ->where('ISBN', $isbn)
+                    ->update([
+                        'is_delete' => 1,
+                    ]);
+
+                if ($punyaRiwayatPeminjaman) {
+                    DB::table('cp_koleksi')
+                        ->where('ISBN', $isbn)
+                        ->update(['status_buku' => 'Nonaktif']);
+
+                    return;
+                }
+
+                DB::table('cp_koleksi')
+                    ->where('ISBN', $isbn)
+                    ->delete();
+            });
+        } catch (\Exception $exception) {
+            return response()->json([
+                'message' => 'Koleksi buku gagal dihapus. Silakan coba lagi atau hubungi admin sistem.',
+            ], 500);
+        }
 
         return response()->json([
-            'message' => 'Koleksi buku berhasil dihapus.',
+            'message' => $punyaRiwayatPeminjaman
+                ? 'Koleksi buku berhasil dihapus dari daftar aktif. Copy fisik dipertahankan karena memiliki riwayat peminjaman.'
+                : 'Koleksi buku berhasil dihapus.',
         ]);
     }
 

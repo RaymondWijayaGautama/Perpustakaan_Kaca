@@ -31,25 +31,26 @@
                     <h4 class="mb-0">Import Data Buku Koleksi</h4>
                     <small>Perpustakaan Wigaty Library</small>
                 </div>
-                
+
                 <div class="card-body p-4">
                     <form action="{{ route('pustakawan.buku.import') }}" method="POST" enctype="multipart/form-data">
                         @csrf
-                        
+                        <input type="hidden" name="nip_karyawan" value="{{ $nipKaryawan }}">
+
                         <div class="mb-4">
                             <label for="file_excel" class="form-label fw-bold">Pilih File Excel (.xlsx / .csv)</label>
                             <input class="form-control form-control-lg" type="file" id="file_excel" name="file_excel" required accept=".xlsx, .xls, .csv">
                         </div>
 
                         <div class="alert alert-warning" role="alert">
-                            <h6 class="alert-heading fw-bold">⚠️ Panduan Kolom Excel:</h6>
+                            <h6 class="alert-heading fw-bold">Panduan Kolom Excel:</h6>
                             Pastikan baris pertama (judul kolom) di file Excel Anda sama persis dengan urutan berikut (huruf kecil semua):
                             <hr>
                             <p class="mb-0"><code>isbn</code> | <code>judul</code> | <code>pengarang</code> | <code>tahun</code> | <code>id_kategori</code></p>
                         </div>
 
                         <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
-                            <a href="{{ url('/pustakawan/buku') }}" class="btn btn-secondary px-4">Kembali</a>
+                            <a href="{{ url('/') }}" class="btn btn-secondary px-4">Kembali</a>
                             <button type="submit" class="btn btn-primary px-4">Mulai Import</button>
                         </div>
                     </form>

@@ -4,6 +4,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\LaporanController;
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\KoleksiBukuController;
+use App\Http\Controllers\Api\MasterKoleksiController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\KoleksiController;
 use App\Http\Controllers\Api\LaporanPklController;
@@ -13,7 +15,7 @@ Route::get('/peminjaman', [App\Http\Controllers\Api\PeminjamanController::class,
 
 Route::post('/login', [AuthController::class, 'login']);
 
-Route::post('/generate-barcode', [KoleksiController::class, 'generate']);
+Route::post('/generate-barcode', [KoleksiBukuController::class, 'generateBarcode']);
 // Group Laporan
 Route::get('/laporan', [LaporanController::class, 'getLaporan']); 
 Route::get('/laporan/peminjaman-bulanan', [LaporanController::class, 'statistikPeminjamanBulanan']);
@@ -35,9 +37,16 @@ Route::get('/laporan/kategori-populer', [LaporanController::class, 'kategoriPopu
 // Group Dashboard & Data
 Route::get('/dashboard/stats', [DashboardController::class, 'getStats']);
 Route::get('/anggota', [DashboardController::class, 'getAnggota']);
-Route::get('/buku', [DashboardController::class, 'getBuku']);
+Route::get('/buku', [KoleksiBukuController::class, 'index']);
+Route::post('/buku', [KoleksiBukuController::class, 'store']);
+Route::put('/buku/{isbn}', [KoleksiBukuController::class, 'update']);
+Route::delete('/buku/{isbn}', [KoleksiBukuController::class, 'destroy']);
 Route::get('/pengembalian', [DashboardController::class, 'getPengembalian']);
-Route::get('/buku/kategori', [App\Http\Controllers\DashboardController::class, 'getKategoriBuku']);
+Route::get('/buku/kategori', [MasterKoleksiController::class, 'options']);
+Route::get('/koleksi', [MasterKoleksiController::class, 'index']);
+Route::post('/koleksi', [MasterKoleksiController::class, 'store']);
+Route::put('/koleksi/{id}', [MasterKoleksiController::class, 'update']);
+Route::delete('/koleksi/{id}', [MasterKoleksiController::class, 'destroy']);
 Route::get('/anggota/{identifier}', [DashboardController::class, 'getAnggotaByIdentifier']);
 Route::get('/peminjaman/cek-aktif', [App\Http\Controllers\Api\PeminjamanController::class, 'cekAktif']);
 Route::post('/pengembalian/batch', [App\Http\Controllers\Api\PeminjamanController::class, 'batchReturn']);

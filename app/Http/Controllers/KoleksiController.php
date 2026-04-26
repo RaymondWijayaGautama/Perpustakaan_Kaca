@@ -4,7 +4,8 @@ namespace App\Http\Controllers; // Sesuaikan jika ada di folder Api
 
 use Illuminate\Http\Request;
 use App\Models\CpKoleksi;
-use Picqer\Barcode\BarcodeGeneratorHTML;
+use Picqer\Barcode\BarcodeGeneratorPNG;
+use Picqer\Barcode\BarcodeGeneratorSVG;
 
 class KoleksiController extends Controller
 {
@@ -22,8 +23,17 @@ class KoleksiController extends Controller
         ]);
 
         $kodeSistemUnik = $koleksiBaru->ISBN . '-' . $koleksiBaru->id_cp_koleksi;
-        $generator = new BarcodeGeneratorHTML();
-        $gambarBarcode = $generator->getBarcode($kodeSistemUnik, $generator::TYPE_CODE_128, 2, 60, 'black');
+        try {
+            $generator = new BarcodeGeneratorPNG();
+            $barcodePng = base64_encode(
+                $generator->getBarcode($kodeSistemUnik, $generator::TYPE_CODE_128, 2, 60)
+            );
+            $gambarBarcode = "<img src='data:image/png;base64,{$barcodePng}' alt='Barcode {$kodeSistemUnik}' style='display:block;max-width:100%;height:auto;' />";
+        } catch (\Throwable $exception) {
+            $generator = new BarcodeGeneratorSVG();
+            $barcodeSvg = $generator->getBarcode($kodeSistemUnik, $generator::TYPE_CODE_128, 2, 60);
+            $gambarBarcode = "<div style='display:flex;justify-content:center;width:100%;'>{$barcodeSvg}</div>";
+        }
 
         return "
         <div style='width: 100%; display: flex; flex-direction: column; align-items: center;'>

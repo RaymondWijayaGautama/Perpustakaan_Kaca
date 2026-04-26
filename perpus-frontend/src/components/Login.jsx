@@ -5,6 +5,7 @@ import InputField from '../components/InputField';
 const Login = ({ setLoggedInUser }) => {
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [fieldErrors, setFieldErrors] = useState({
     identifier: false,
@@ -35,7 +36,10 @@ const Login = ({ setLoggedInUser }) => {
               'g-recaptcha-response': token
             });
             
-            localStorage.setItem('token', response.data.token);
+            sessionStorage.setItem('token', response.data.token);
+            sessionStorage.setItem('logged_in_user', JSON.stringify(response.data.user));
+            localStorage.removeItem('token');
+            localStorage.removeItem('logged_in_user');
             setLoggedInUser(response.data.user);
           } catch (err) {
             const status = err.response?.status;
@@ -88,7 +92,7 @@ const Login = ({ setLoggedInUser }) => {
 
           <form onSubmit={handleLogin} className="space-y-space-3">
             <InputField 
-              label={resolvedRole === 'karyawan' ? "Identitas (NIP)" : "Identitas (NISN)"}
+              label="Nomor Induk (NIP/NISN)"
               type="text"
               identifier="identifier"
               value={identifier}
@@ -102,8 +106,8 @@ const Login = ({ setLoggedInUser }) => {
             />
 
             <InputField 
-              label="Kata Kunci"
-              type="password"
+              label="Kata Sandi"
+              type={showPassword ? 'text' : 'password'}
               identifier="password"
               value={password}
               onChange={(e) => {
@@ -113,6 +117,40 @@ const Login = ({ setLoggedInUser }) => {
               placeholder="Masukkan kata sandi"
               // Tambahkan props error jika InputField mendukungnya
               isError={fieldErrors.password}
+              trailingContent={
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((current) => !current)}
+                  className="inline-flex h-8 items-center justify-center gap-1.5 rounded-md px-1 text-[11px] font-black uppercase leading-none tracking-wide text-[#265F9C] hover:text-[#1C4673] focus:outline-none focus:ring-2 focus:ring-[#265F9C]/30"
+                  aria-label={showPassword ? 'Sembunyikan kata sandi' : 'Tampilkan kata sandi'}
+                >
+                  <svg
+                    aria-hidden="true"
+                    className="block h-[15px] w-[15px] shrink-0"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    viewBox="0 0 24 24"
+                  >
+                    {showPassword ? (
+                      <>
+                        <path d="M3 3l18 18" />
+                        <path d="M10.6 10.6a2 2 0 0 0 2.8 2.8" />
+                        <path d="M9.9 4.2A10.7 10.7 0 0 1 12 4c7 0 10 8 10 8a18.5 18.5 0 0 1-3.1 4.6" />
+                        <path d="M6.6 6.6C3.5 8.7 2 12 2 12s3 8 10 8a10.8 10.8 0 0 0 4.4-.9" />
+                      </>
+                    ) : (
+                      <>
+                        <path d="M2 12s3-8 10-8 10 8 10 8-3 8-10 8S2 12 2 12Z" />
+                        <circle cx="12" cy="12" r="3" />
+                      </>
+                    )}
+                  </svg>
+                  <span className="translate-y-px">{showPassword ? 'Tutup' : 'Lihat'}</span>
+                </button>
+              }
             />
 
             <button 

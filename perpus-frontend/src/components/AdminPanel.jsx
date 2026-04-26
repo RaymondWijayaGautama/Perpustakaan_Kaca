@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import ManajemenKoleksiPanel from './ManajemenKoleksiPanel';
 import ManajemenBukuPanel from './ManajemenBukuPanel';
 import PengembalianPanel from './PengembalianPanel';
 import PeminjamanPanel from './PeminjamanPanel';
@@ -77,6 +78,7 @@ const AdminPanel = ({ user, onLogout }) => {
                 <h2 className="font-montserrat font-bold text-xl mb-10 tracking-tight text-center uppercase">Kaca Admin</h2>
                 <nav className="flex-1 space-y-2">
                     <div onClick={() => setActiveTab('dashboard')} className={`p-3 rounded cursor-pointer transition-all ${activeTab === 'dashboard' ? 'bg-white/20 font-bold border-l-4 border-white' : 'hover:bg-white/10'}`}>Dashboard</div>
+                    <div onClick={() => setActiveTab('koleksi')} className={`p-3 rounded cursor-pointer transition-all ${activeTab === 'koleksi' ? 'bg-white/20 font-bold border-l-4 border-white' : 'hover:bg-white/10'}`}>Master Koleksi</div>
                     <div onClick={() => setActiveTab('buku')} className={`p-3 rounded cursor-pointer transition-all ${activeTab === 'buku' ? 'bg-white/20 font-bold border-l-4 border-white' : 'hover:bg-white/10'}`}>Manajemen Buku</div>
                     <div onClick={() => { setActiveTab('anggota'); setAnggotaPage(1); }} className={`p-3 rounded cursor-pointer transition-all ${activeTab === 'anggota' ? 'bg-white/20 font-bold border-l-4 border-white' : 'hover:bg-white/10'}`}>Data Anggota</div>
                     <div onClick={() => setActiveTab('laporan')} className={`p-3 rounded cursor-pointer transition-all ${activeTab === 'laporan' ? 'bg-white/20 font-bold border-l-4 border-white' : 'hover:bg-white/10'}`}>Laporan PKL</div>
@@ -137,6 +139,7 @@ const AdminPanel = ({ user, onLogout }) => {
                 )}
                 
                 {/* PANEL COMPONENTS */}
+                {activeTab === 'koleksi' && <ManajemenKoleksiPanel user={user} />}
                 {activeTab === 'buku' && <ManajemenBukuPanel user={user} />}
                 {activeTab === 'anggota' && (
                     <div className="bg-white rounded-xl shadow p-6 border border-gray-100">

@@ -42,8 +42,18 @@ class AuthController extends Controller
 
         if ($role === 'karyawan') {
             $user = DB::table('mst_karyawan')
-                        ->where('nip_karyawan', $identifier)
-                        ->where('is_delete', 0)
+                        ->select([
+                            'NIP_KARYAWAN as nip_karyawan',
+                            'NAMA_KARYAWAN as nama_karyawan',
+                            'NAMA_LENGKAP_GELAR as nama_lengkap_gelar',
+                            'GOLONGAN_KARYAWAN as golongan_karyawan',
+                            'JABATAN_FUNGSIONAL as jabatan_fungsional',
+                            'EMAIL_KARYAWAN as email_karyawan',
+                            'PASSWORD_KARYAWAN as password_karyawan',
+                            'IS_DELETE as is_delete',
+                        ])
+                        ->where('NIP_KARYAWAN', $identifier)
+                        ->where('IS_DELETE', 0)
                         ->first();
             
             if (!$user) {
@@ -56,8 +66,17 @@ class AuthController extends Controller
 
         } else {
             $user = DB::table('mst_siswa')
-                        ->where('nisn_siswa', $identifier)
-                        ->where('is_delete', 0)
+                        ->select([
+                            'ID_SISWA_TETAP as id_siswa_tetap',
+                            'KODE_CALON_SISWA as kode_calon_siswa',
+                            'NISN_SISWA as nisn_siswa',
+                            'NAMA_SISWA_TETAP as nama_siswa_tetap',
+                            'TAHUN_LULUS as tahun_lulus',
+                            'PASSWORD_SISWA as password_siswa',
+                            'IS_DELETE as is_delete',
+                        ])
+                        ->where('NISN_SISWA', $identifier)
+                        ->where('IS_DELETE', 0)
                         ->first();
             
             if (!$user) {

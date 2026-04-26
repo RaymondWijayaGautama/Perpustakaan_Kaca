@@ -90,7 +90,7 @@ class DummyDataSeeder extends Seeder
         // 4. MASTER BUKU UMUM (DENGAN FIELD LENGKAP)
         $bukuData = ["Clean Code", "Refactoring", "Design Patterns", "The Pragmatic Programmer", "Introduction to Algorithms", "Deep Learning", "Docker Deep Dive", "Kubernetes Up & Running", "Modern PHP", "JavaScript: The Good Parts"];
         for ($i = 1; $i <= 10; $i++) {
-            $isbn = "978-602-" . str_pad($i, 4, "0", STR_PAD_LEFT);
+            $isbn = "9786020000" . str_pad((string) $i, 3, "0", STR_PAD_LEFT);
             $tahunTerbit = rand(2015, 2024);
             DB::table('mst_koleksi_buku')->updateOrInsert(['ISBN' => $isbn], [
                 'judul_koleksi' => $bukuData[$i-1],
@@ -116,7 +116,7 @@ class DummyDataSeeder extends Seeder
 
         // 5. MASTER LAPORAN PKL (MENGGUNAKAN NAMA SISWA DARI ANGGOTA)
         for ($i = 1; $i <= 10; $i++) {
-            $isbnPKL = "PKL-" . str_pad($i, 3, "0", STR_PAD_LEFT);
+            $isbnPKL = "9796028000" . str_pad((string) $i, 3, "0", STR_PAD_LEFT);
             $namaPenulis = $namaSiswaList[$i-1]; // Siswa Anggota adalah Penulisnya
 
             DB::table('mst_koleksi_laporan')->updateOrInsert(['id_mst_laporan' => $i], ['is_delete' => 0]);
