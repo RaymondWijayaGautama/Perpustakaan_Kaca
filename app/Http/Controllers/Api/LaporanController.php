@@ -15,6 +15,113 @@ use Carbon\Carbon;
 
 class LaporanController extends Controller
 {
+
+public function store(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'judul_koleksi' => 'required|string|max:255',
+            'pengarang' => 'required|string|max:100',
+            'tahun' => 'required|digits:4',
+            'file_laporan' => 'required|file|mimes:pdf,doc,docx|max:10240', 
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['status' => 'error', 'pesan' => $validator->errors()], 400);
+        }
+
+        try {
+            DB::beginTransaction();
+
+            $isbnPKL = "979" . time() . rand(10, 99); 
+            $file = $request->file('file_laporan');
+            $namaFile = $isbnPKL . '.' . $file->getClientOriginalExtension(); 
+            $file->storeAs('public/laporan', $namaFile);
+
+            DB::table('mst_koleksi_buku')->insert([
+                'ISBN' => $isbnPKL,
+                'judul_koleksi' => $request->judul_koleksi,
+                'pengarang' => $request->pengarang,
+                'penerbit' => 'SMK BODA', 
+                'tahun' => $request->tahun,
+                'id_ref_koleksi' => 4,
+                'tgl_masuk_koleksi' => Carbon::now(),
+                'jumlah_eksemplar' => 1,
+                'is_delete' => 0,
+                'keterangan_buku' => $namaFile 
+            ]);
+
+            $idLaporanBaru = DB::table('mst_koleksi_laporan')->insertGetId(['is_delete' => 0]);
+            DB::table('cp_koleksi')->insert([
+                'ISBN' => $isbnPKL,
+                'status_buku' => 'Tersedia',
+                'id_mst_laporan' => $idLaporanBaru
+            ]);
+
+            DB::commit();
+            return response()->json(['status' => 'success', 'pesan' => 'Laporan berhasil ditambahkan!'], 201);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json(['status' => 'error', 'pesan' => $e->getMessage()], 500);
+        }
+    }
+
+    public function update(Request $request, $isbn)
+    {
+        $validator = Validator::make($request->all(), [
+            'judul_koleksi' => 'required|string|max:255',
+            'pengarang' => 'required|string|max:100',
+            'tahun' => 'required|digits:4',
+            'file_laporan' => 'nullable|file|mimes:pdf,doc,docx|max:10240', 
+        ]);
+
+        if ($validator->fails()) return response()->json(['status' => 'error', 'pesan' => $validator->errors()], 400);
+
+        try {
+            $buku = DB::table('mst_koleksi_buku')->where('ISBN', $isbn)->first();
+            if (!$buku) return response()->json(['status' => 'error', 'pesan' => 'Data tidak ditemukan!'], 404);
+
+            $updateData = [
+                'judul_koleksi' => $request->judul_koleksi,
+                'pengarang' => $request->pengarang,
+                'tahun' => $request->tahun,
+            ];
+
+            if ($request->hasFile('file_laporan')) {
+                if ($buku->keterangan_buku && Storage::exists('public/laporan/' . $buku->keterangan_buku)) {
+                    Storage::delete('public/laporan/' . $buku->keterangan_buku);
+                }
+                $file = $request->file('file_laporan');
+                $namaFile = $isbn . '.' . $file->getClientOriginalExtension(); 
+                $file->storeAs('public/laporan', $namaFile);
+                $updateData['keterangan_buku'] = $namaFile;
+            }
+
+            DB::table('mst_koleksi_buku')->where('ISBN', $isbn)->update($updateData);
+            return response()->json(['status' => 'success', 'pesan' => 'Laporan berhasil diubah!']);
+        } catch (\Exception $e) {
+            return response()->json(['status' => 'error', 'pesan' => $e->getMessage()], 500);
+        }
+    }
+
+    public function destroy($isbn)
+    {
+        try {
+            $sedangDipinjam = DB::table('cp_koleksi')
+                ->join('tr_peminjaman', 'cp_koleksi.id_cp_koleksi', '=', 'tr_peminjaman.id_cp_koleksi')
+                ->where('cp_koleksi.ISBN', $isbn)
+                ->where('tr_peminjaman.status_peminjaman', 'Dipinjam')
+                ->exists();
+
+            if ($sedangDipinjam) {
+                return response()->json(['status' => 'error', 'pesan' => 'Gagal! Laporan ini sedang dipinjam oleh siswa.'], 400); 
+            }
+            DB::table('mst_koleksi_buku')->where('ISBN', $isbn)->update(['is_delete' => 1]);
+            return response()->json(['status' => 'success', 'pesan' => 'Berhasil dihapus!']);
+        } catch (\Exception $e) {
+            return response()->json(['status' => 'error', 'pesan' => $e->getMessage()], 500);
+        }
+    }
+
     public function laporanPeminjamanGuru(Request $request)
     {
         try {
@@ -355,141 +462,35 @@ class LaporanController extends Controller
     }
 
     public function getLaporan(Request $request)
-    {
-        try {
-            // Pastikan menggunakan Facade DB (sudah di-import di atas)
-            $query = DB::table('mst_koleksi_buku')
-                ->where('id_ref_koleksi', 4) // Angka 4 = Kategori PKL
-                ->where('is_delete', 0)
-                ->select(
-                    'judul_koleksi', 
-                    'pengarang as nama_siswa_tetap', 
-                    'tahun'
-                );
+{
+    try {
+        // Query ke tabel pkl_siswa sesuai struktur database sekolah yang baru
+        $query = DB::table('pkl_siswa')
+            ->join('mst_siswa', 'pkl_siswa.ID_SISWA_TETAP', '=', 'mst_siswa.ID_SISWA_TETAP')
+            ->select(
+                'pkl_siswa.ID_PKL_SISWA as ISBN', // Kita alias-kan biar React nggak bingung
+                'pkl_siswa.JUDUL_LAPORAN_PKL as judul_koleksi', 
+                'mst_siswa.NAMA_SISWA_TETAP as nama_siswa_tetap', 
+                'mst_siswa.TAHUN_LULUS as tahun'
+            );
 
-            if ($request->filled('tahun')) {
-                $query->where('tahun', $request->tahun);
-            }
-
-            if ($request->filled('penulis')) {
-                $query->where('pengarang', 'like', '%' . $request->penulis . '%');
-            }
-
-            // Return data pagination (5 data per halaman)
-            return response()->json($query->paginate(5));
-
-        } catch (\Exception $e) {
-            // Mengirim pesan error asli ke React untuk mempermudah debugging
-            return response()->json(['message' => $e->getMessage()], 500);
+        // Filter Judul
+        if ($request->filled('judul')) {
+            $query->where('pkl_siswa.JUDUL_LAPORAN_PKL', 'like', '%' . $request->judul . '%');
         }
+
+        // Filter Penulis
+        if ($request->filled('penulis')) {
+            $query->where('mst_siswa.NAMA_SISWA_TETAP', 'like', '%' . $request->penulis . '%');
+        }
+
+        return response()->json($query->paginate(5));
+
+    } catch (\Exception $e) {
+        return response()->json(['message' => 'Error Database: ' . $e->getMessage()], 500);
     }
+}
 
-    public function store(Request $request)
-    {
-        // Validator sekarang sudah dikenali karena import di atas
-        $validator = Validator::make($request->all(), [
-            'judul_laporan' => 'required|string|max:255',
-            'penulis_laporan' => 'required|string|max:100',
-            'tahun_laporan' => 'required|digits:4',
-            'file_laporan' => 'required|file|mimes:pdf,doc,docx|max:10240',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json(['status' => 'error', 'pesan' => $validator->errors()], 400);
-        }
-
-        try {
-            $file = $request->file('file_laporan');
-            $namaFile = time() . '_' . $file->getClientOriginalName(); 
-            $file->storeAs('public/laporan', $namaFile);
-
-            $laporan = MstKoleksiLaporan::create([
-                'id_mst_laporan' => $request->id_mst_laporan,
-                'is_delete' => 0
-            ]);
-
-            return response()->json(['status' => 'success', 'data' => $laporan], 201);
-        } catch (\Exception $e) {
-            return response()->json(['status' => 'error', 'pesan' => $e->getMessage()], 500);
-        }
-    }
-
-    public function update(Request $request, $id)
-    {
-        $laporan = MstKoleksiLaporan::find($id);
-
-        if (!$laporan) {
-            return response()->json(['status' => 'error', 'pesan' => 'Data laporan tidak ditemukan!'], 404);
-        }
-        $validator = Validator::make($request->all(), [
-            'judul_laporan' => 'required|string|max:255',
-            'penulis_laporan' => 'required|string|max:100',
-            'tahun_laporan' => 'required|digits:4',
-            'file_laporan' => 'nullable|file|mimes:pdf,doc,docx|max:10240', 
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json(['status' => 'error', 'pesan' => $validator->errors()], 400);
-        }
-        if ($request->hasFile('file_laporan')) {
-            if (Storage::exists('public/laporan/' . $laporan->file_path)) {
-                Storage::delete('public/laporan/' . $laporan->file_path);
-            }
-            $file = $request->file('file_laporan');
-            $namaFile = time() . '_' . str_replace(' ', '_', $file->getClientOriginalName()); 
-            $file->storeAs('public/laporan', $namaFile);
-
-            $laporan->file_path = $namaFile;
-        }
-
-        $laporan->judul_laporan = $request->judul_laporan;
-        $laporan->penulis_laporan = $request->penulis_laporan;
-        $laporan->tahun_laporan = $request->tahun_laporan;
-        $laporan->save(); 
-
-        return response()->json([
-            'status' => 'success',
-            'pesan' => 'Data laporan berhasil diubah!',
-            'data' => $laporan
-        ], 200);
-    }
-
-    public function destroy($id)
-    {
-        try {
-            $laporan = MstKoleksiLaporan::find($id);
-
-            if (!$laporan) {
-                return response()->json(['status' => 'error', 'pesan' => 'Data tidak ditemukan!'], 404);
-            }
-
-            // Cek relasi ke tabel cp_koleksi
-            $dipakai = DB::table('cp_koleksi')->where('id_mst_laporan', $id)->exists();
-            if ($dipakai) {
-                return response()->json(['status' => 'error', 'pesan' => 'Gagal! Laporan sedang terhubung dengan buku fisik.'], 400); 
-            }
-
-            $laporan->is_delete = 1;
-            $laporan->save();
-
-            return response()->json(['status' => 'success', 'pesan' => 'Berhasil dihapus!'], 200);
-        } catch (\Exception $e) {
-            return response()->json(['status' => 'error', 'pesan' => $e->getMessage()], 500);
-        }
-    }
-
-    // public function siswaTerajin()
-    // {
-        
-    //     $siswaTerajin = Siswa::withCount('peminjaman')
-    //         ->orderBy('peminjaman_count', 'desc') 
-    //         ->take(10) 
-    //         ->get();
-
-    //     return view('laporan.siswa_terajin', compact('siswaTerajin'));
-    // }
-
-    // app/Http/Controllers/LaporanController.php
 
 public function siswaTerajin()
 {
