@@ -22,16 +22,16 @@ class DummyDataSeeder extends Seeder
 
         // 1. DATA REFERENSI KATEGORI (Tetap)
         $kategori = [
-            ['id_ref_koleksi' => 1, 'deskripsi' => 'Buku Pelajaran', 'is_delete' => 0],
-            ['id_ref_koleksi' => 2, 'deskripsi' => 'Novel & Fiksi', 'is_delete' => 0],
-            ['id_ref_koleksi' => 3, 'deskripsi' => 'Teknologi Informasi', 'is_delete' => 0],
-            ['id_ref_koleksi' => 4, 'deskripsi' => 'Laporan PKL', 'is_delete' => 0],
-            ['id_ref_koleksi' => 5, 'deskripsi' => 'Sains & Alam', 'is_delete' => 0],
-            ['id_ref_koleksi' => 6, 'deskripsi' => 'Sejarah & Budaya', 'is_delete' => 0],
-            ['id_ref_koleksi' => 7, 'deskripsi' => 'Seni & Desain', 'is_delete' => 0],
-            ['id_ref_koleksi' => 8, 'deskripsi' => 'Biografi', 'is_delete' => 0],
-            ['id_ref_koleksi' => 9, 'deskripsi' => 'Komik & Manga', 'is_delete' => 0],
-            ['id_ref_koleksi' => 10, 'deskripsi' => 'Ensiklopedia', 'is_delete' => 0],
+            ['id_ref_koleksi' => 1, 'deskripsi_kategori' => 'Buku Pelajaran', 'is_delete' => 0],
+            ['id_ref_koleksi' => 2, 'deskripsi_kategori' => 'Novel & Fiksi', 'is_delete' => 0],
+            ['id_ref_koleksi' => 3, 'deskripsi_kategori' => 'Teknologi Informasi', 'is_delete' => 0],
+            ['id_ref_koleksi' => 4, 'deskripsi_kategori' => 'Laporan PKL', 'is_delete' => 0],
+            ['id_ref_koleksi' => 5, 'deskripsi_kategori' => 'Sains & Alam', 'is_delete' => 0],
+            ['id_ref_koleksi' => 6, 'deskripsi_kategori' => 'Sejarah & Budaya', 'is_delete' => 0],
+            ['id_ref_koleksi' => 7, 'deskripsi_kategori' => 'Seni & Desain', 'is_delete' => 0],
+            ['id_ref_koleksi' => 8, 'deskripsi_kategori' => 'Biografi', 'is_delete' => 0],
+            ['id_ref_koleksi' => 9, 'deskripsi_kategori' => 'Komik & Manga', 'is_delete' => 0],
+            ['id_ref_koleksi' => 10, 'deskripsi_kategori' => 'Ensiklopedia', 'is_delete' => 0],
         ];
         foreach ($kategori as $k) {
             DB::table('ref_koleksi')->updateOrInsert(['id_ref_koleksi' => $k['id_ref_koleksi']], $k);
@@ -78,9 +78,7 @@ class DummyDataSeeder extends Seeder
                 'rt_siswa' => '01', 'rw_siswa' => '01',
                 'kelurahan_siswa' => 1, 'kecamatan_siswa' => 'Depok', 'kota_kab_siswa' => 'Sleman',
                 'provinsi_siswa' => 'DIY', 'kode_pos_siswa' => '55281', 'nik_siswa' => '34041' . rand(100, 999) . $idSiswa,
-                'nama_ortu_siswa' => "Wali " . $namaSiswaList[$index], 
-                'nik_ortu_siswa' => '34042' . rand(100, 999) . $idSiswa,
-                'peran_ortu_siswa' => 'Ayah', 
+                'nama_ayah_siswa' => 'Wali Damar Wicaksana',
                 'tahun_lulus' => '2025',
                 'password_siswa' => Hash::make('siswa123'),
                 'is_delete' => 0
@@ -88,7 +86,7 @@ class DummyDataSeeder extends Seeder
         }
 
         // 4. MASTER BUKU UMUM (DENGAN FIELD LENGKAP)
-        $bukuData = ["Clean Code", "Refactoring", "Design Patterns", "The Pragmatic Programmer", "Introduction to Algorithms", "Deep Learning", "Docker Deep Dive", "Kubernetes Up & Running", "Modern PHP", "JavaScript: The Good Parts"];
+        $bukuData = ["Clean Code", "Refactoring", "Design Patterns", "The Pragmatic Programmer", "Intro to Algorithm", "Deep Learning", "Docker Deep Dive", "Kubernetes Up & Run", "Modern PHP", "JS: The Good Parts"];
         for ($i = 1; $i <= 10; $i++) {
             $isbn = "9786020000" . str_pad((string) $i, 3, "0", STR_PAD_LEFT);
             $tahunTerbit = rand(2015, 2024);
@@ -99,7 +97,7 @@ class DummyDataSeeder extends Seeder
                 'tahun' => (string)$tahunTerbit,
                 'nb_koleksi' => 100 + $i,
                 'tgl_masuk_koleksi' => Carbon::now(),
-                'jumlah_ekslempar' => 5,
+                'jumlah_eksemplar' => 5, // FIXED: Typo diperbaiki jadi jumlah_eksemplar
                 'jumlah_halaman' => 250,
                 'ukuran_buku' => 'A5',
                 'id_ref_koleksi' => rand(1, 3), 
@@ -121,14 +119,14 @@ class DummyDataSeeder extends Seeder
 
             DB::table('mst_koleksi_laporan')->updateOrInsert(['id_mst_laporan' => $i], ['is_delete' => 0]);
             DB::table('mst_koleksi_buku')->updateOrInsert(['ISBN' => $isbnPKL], [
-                'judul_koleksi' => "Sistem Informasi Perpustakaan KACA - Studi Kasus $i",
+                'judul_koleksi' => "Laporan PKL Siswa $i",
                 'pengarang' => $namaPenulis, // Nama manusia dari anggota
                 'penerbit' => 'SMK BODA Yogyakarta',
                 'tahun' => '2024',
                 'id_ref_koleksi' => 4,
                 'nb_koleksi' => 400 + $i,
                 'tgl_masuk_koleksi' => Carbon::now(),
-                'jumlah_ekslempar' => 1,
+                'jumlah_eksemplar' => 1, // FIXED: Typo diperbaiki
                 'jumlah_halaman' => 80,
                 'ukuran_buku' => 'A4',
                 'is_delete' => 0,
@@ -145,7 +143,7 @@ class DummyDataSeeder extends Seeder
         // 6. TRANSAKSI PEMINJAMAN
         for ($i = 1; $i <= 5; $i++) {
             DB::table('tr_peminjaman')->updateOrInsert(['id_peminjaman' => 1000 + $i], [
-                'tgl_peminjaman' => Carbon::now()->subDays(5),
+                'tgl_pinjam' => Carbon::now()->subDays(5), // FIXED: tgl_peminjaman jadi tgl_pinjam
                 'tgl_harus_kembali' => Carbon::now()->addDays(2),
                 'tgl_kembali' => null,
                 'status_peminjaman' => 'Dipinjam',
