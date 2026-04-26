@@ -17,6 +17,7 @@ import LaporanSiswaTerajinPanel from './LaporanSiswaTerajinPanel';
 import KunjunganBulananPanel from './KunjunganBulananPanel';
 import BukuTerpopulerPanel from './BukuTerpopulerPanel'
 import KategoriPopulerPanel from './KategoriPopulerPanel';
+
 const AdminPanel = ({ user, onLogout }) => {
     const [activeTab, setActiveTab] = useState('dashboard');
     const [isDistribusiMenuOpen, setIsDistribusiMenuOpen] = useState(false);
@@ -73,43 +74,65 @@ const AdminPanel = ({ user, onLogout }) => {
 
     return (
         <div className="min-h-screen bg-[#F6F7F9] flex font-roboto text-[#1A1A1A]">
-            {/* SIDEBAR */}
-            <aside className="w-64 bg-[#265F9C] text-white p-6 flex flex-col shadow-xl print:hidden">
-                <h2 className="font-montserrat font-bold text-xl mb-10 tracking-tight text-center uppercase">Kaca Admin</h2>
-                <nav className="flex-1 space-y-2">
-                    <div onClick={() => setActiveTab('dashboard')} className={`p-3 rounded cursor-pointer transition-all ${activeTab === 'dashboard' ? 'bg-white/20 font-bold border-l-4 border-white' : 'hover:bg-white/10'}`}>Dashboard</div>
-                    <div onClick={() => setActiveTab('koleksi')} className={`p-3 rounded cursor-pointer transition-all ${activeTab === 'koleksi' ? 'bg-white/20 font-bold border-l-4 border-white' : 'hover:bg-white/10'}`}>Master Koleksi</div>
-                    <div onClick={() => setActiveTab('buku')} className={`p-3 rounded cursor-pointer transition-all ${activeTab === 'buku' ? 'bg-white/20 font-bold border-l-4 border-white' : 'hover:bg-white/10'}`}>Manajemen Buku</div>
-                    <div onClick={() => { setActiveTab('anggota'); setAnggotaPage(1); }} className={`p-3 rounded cursor-pointer transition-all ${activeTab === 'anggota' ? 'bg-white/20 font-bold border-l-4 border-white' : 'hover:bg-white/10'}`}>Data Anggota</div>
-                    <div onClick={() => setActiveTab('laporan')} className={`p-3 rounded cursor-pointer transition-all ${activeTab === 'laporan' ? 'bg-white/20 font-bold border-l-4 border-white' : 'hover:bg-white/10'}`}>Laporan PKL</div>
-                    <div onClick={() => setActiveTab('pengembalian')} className={`p-3 rounded cursor-pointer transition-all ${activeTab === 'pengembalian' ? 'bg-white/20 font-bold border-l-4 border-white' : 'hover:bg-white/10'}`}>Pengembalian</div>
-                    <div onClick={() => setActiveTab('peminjaman')} className={`p-3 rounded cursor-pointer transition-all ${activeTab === 'peminjaman' ? 'bg-white/20 font-bold border-l-4 border-white' : 'hover:bg-white/10'}`}>Peminjaman Buku</div>
-                    <div onClick={() => setActiveTab('pemusnahan')} className={`p-3 rounded cursor-pointer transition-all ${activeTab === 'pemusnahan' ? 'bg-white/20 font-bold border-l-4 border-white' : 'hover:bg-white/10'}`}>Pemusnahan Buku</div>
-                    <div onClick={() => setActiveTab('riwayat_pinjam')}className={`p-3 rounded cursor-pointer transition-all ${activeTab === 'riwayat_pinjam' ? 'bg-white/20 font-bold border-l-4 border-white' : 'hover:bg-white/10'}`}>Riwayat Peminjaman</div>
-                    <div onClick={() => setActiveTab('laporan_peminjaman_bulanan')} className={`p-3 rounded cursor-pointer transition-all ${activeTab === 'laporan_peminjaman_bulanan' ? 'bg-white/20 font-bold border-l-4 border-white' : 'hover:bg-white/10'}`}>Statistik Peminjaman</div>
-                    <div onClick={() => setActiveTab('laporan_peminjaman_guru')} className={`p-3 rounded cursor-pointer transition-all ${activeTab === 'laporan_peminjaman_guru' ? 'bg-white/20 font-bold border-l-4 border-white' : 'hover:bg-white/10'}`}>Peminjaman Guru</div>
-                    <div onClick={() => setActiveTab('laporan_inventarisasi_buku_baru')} className={`p-3 rounded cursor-pointer transition-all ${activeTab === 'laporan_inventarisasi_buku_baru' ? 'bg-white/20 font-bold border-l-4 border-white' : 'hover:bg-white/10'}`}>Inventarisasi Buku Baru</div>
-                    <div onClick={() => setActiveTab('laporan_siswa_terajin')} className={`p-3 rounded cursor-pointer transition-all ${activeTab === 'laporan_siswa_terajin' ? 'bg-white/20 font-bold border-l-4 border-white' : 'hover:bg-white/10'}`}>Peringkat Siswa Terajin</div>
-                    <div onClick={() => setActiveTab('kunjungan_bulanan')} className={`p-3 rounded cursor-pointer transition-all ${activeTab === 'kunjungan_bulanan' ? 'bg-white/20 font-bold border-l-4 border-white' : 'hover:bg-white/10'}`}>Kunjungan Bulanan</div>
-                    <div onClick={() => setActiveTab('buku_terpopuler')} className={`p-3 rounded cursor-pointer transition-all ${activeTab === 'buku_terpopuler' ? 'bg-white/20 font-bold border-l-4 border-white' : 'hover:bg-white/10'}`}>Buku Terpopuler</div>
-                    <div onClick={() => setActiveTab('kategori_populer')} className={`p-3 rounded cursor-pointer transition-all ${activeTab === 'kategori_populer' ? 'bg-white/20 font-bold border-l-4 border-white' : 'hover:bg-white/10'}`}>Kategori Terpopuler</div>
-                    <div className={`rounded transition-all overflow-hidden ${activeTab === 'laporan_distribusi_kunjungan_kelas' || activeTab === 'laporan_distribusi_kunjungan_hari' || isDistribusiMenuOpen ? 'bg-white/10' : ''}`}>
-                        <div
-                            onClick={() => setIsDistribusiMenuOpen((current) => !current)}
-                            className={`p-3 cursor-pointer transition-all flex items-center justify-between ${activeTab === 'laporan_distribusi_kunjungan_kelas' || activeTab === 'laporan_distribusi_kunjungan_hari' ? 'font-bold border-l-4 border-white bg-white/20' : 'hover:bg-white/10'}`}
-                        >
-                            <span>Laporan Distribusi Kunjungan</span>
-                            <span className={`text-xs transition-transform ${isDistribusiMenuOpen ? 'rotate-180' : ''}`}>▼</span>
-                        </div>
-                        {isDistribusiMenuOpen && (
-                            <div className="px-2 pb-2 space-y-1 bg-white/5 text-sm">
-                                <div onClick={() => setActiveTab('laporan_distribusi_kunjungan_kelas')} className={`ml-3 p-2 rounded-lg cursor-pointer ${activeTab === 'laporan_distribusi_kunjungan_kelas' ? 'bg-white text-[#265F9C] font-bold' : 'hover:bg-white/10'}`}>Berdasarkan Kelas</div>
-                                <div onClick={() => setActiveTab('laporan_distribusi_kunjungan_hari')} className={`ml-3 p-2 rounded-lg cursor-pointer ${activeTab === 'laporan_distribusi_kunjungan_hari' ? 'bg-white text-[#265F9C] font-bold' : 'hover:bg-white/10'}`}>Berdasarkan Hari</div>
+            
+            {/* SIDEBAR - Diubah jadi tinggi full screen (h-screen) dan sticky */}
+            <aside className="w-64 h-screen sticky top-0 bg-[#265F9C] text-white flex flex-col shadow-xl print:hidden">
+                
+                {/* 1. BLOK LOGO (Fixed di Atas) */}
+                <div className="p-6 pb-2 shrink-0">
+                    <h2 className="font-montserrat font-bold text-xl tracking-tight text-center uppercase">Kaca Admin</h2>
+                </div>
+
+                {/* 2. BLOK MENU (Bisa Di-Scroll) */}
+                {/* flex-1 bikin dia makan sisa space, overflow-y-auto bikin dia doang yang bisa scroll */}
+                <div className="flex-1 overflow-y-auto px-4 py-4 scrollbar-thin scrollbar-thumb-white/20 scrollbar-track-transparent">
+                    <nav className="flex flex-col space-y-2">
+                        <div onClick={() => setActiveTab('dashboard')} className={`p-3 rounded-lg cursor-pointer transition-all ${activeTab === 'dashboard' ? 'bg-white text-[#265F9C] font-bold shadow-md' : 'hover:bg-white/10'}`}>Dashboard</div>
+                        <div onClick={() => setActiveTab('koleksi')} className={`p-3 rounded-lg cursor-pointer transition-all ${activeTab === 'koleksi' ? 'bg-white text-[#265F9C] font-bold shadow-md' : 'hover:bg-white/10'}`}>Master Koleksi</div>
+                        <div onClick={() => setActiveTab('buku')} className={`p-3 rounded-lg cursor-pointer transition-all ${activeTab === 'buku' ? 'bg-white text-[#265F9C] font-bold shadow-md' : 'hover:bg-white/10'}`}>Manajemen Buku</div>
+                        <div onClick={() => { setActiveTab('anggota'); setAnggotaPage(1); }} className={`p-3 rounded-lg cursor-pointer transition-all ${activeTab === 'anggota' ? 'bg-white text-[#265F9C] font-bold shadow-md' : 'hover:bg-white/10'}`}>Data Anggota</div>
+                        <div onClick={() => setActiveTab('laporan')} className={`p-3 rounded-lg cursor-pointer transition-all ${activeTab === 'laporan' ? 'bg-white text-[#265F9C] font-bold shadow-md' : 'hover:bg-white/10'}`}>Laporan PKL</div>
+                        <div onClick={() => setActiveTab('pengembalian')} className={`p-3 rounded-lg cursor-pointer transition-all ${activeTab === 'pengembalian' ? 'bg-white text-[#265F9C] font-bold shadow-md' : 'hover:bg-white/10'}`}>Pengembalian</div>
+                        <div onClick={() => setActiveTab('peminjaman')} className={`p-3 rounded-lg cursor-pointer transition-all ${activeTab === 'peminjaman' ? 'bg-white text-[#265F9C] font-bold shadow-md' : 'hover:bg-white/10'}`}>Peminjaman Buku</div>
+                        <div onClick={() => setActiveTab('pemusnahan')} className={`p-3 rounded-lg cursor-pointer transition-all ${activeTab === 'pemusnahan' ? 'bg-white text-[#265F9C] font-bold shadow-md' : 'hover:bg-white/10'}`}>Pemusnahan Buku</div>
+                        <div onClick={() => setActiveTab('riwayat_pinjam')} className={`p-3 rounded-lg cursor-pointer transition-all ${activeTab === 'riwayat_pinjam' ? 'bg-white text-[#265F9C] font-bold shadow-md' : 'hover:bg-white/10'}`}>Riwayat Peminjaman</div>
+                        <div onClick={() => setActiveTab('laporan_peminjaman_bulanan')} className={`p-3 rounded-lg cursor-pointer transition-all ${activeTab === 'laporan_peminjaman_bulanan' ? 'bg-white text-[#265F9C] font-bold shadow-md' : 'hover:bg-white/10'}`}>Statistik Peminjaman</div>
+                        <div onClick={() => setActiveTab('laporan_peminjaman_guru')} className={`p-3 rounded-lg cursor-pointer transition-all ${activeTab === 'laporan_peminjaman_guru' ? 'bg-white text-[#265F9C] font-bold shadow-md' : 'hover:bg-white/10'}`}>Peminjaman Guru</div>
+                        <div onClick={() => setActiveTab('laporan_inventarisasi_buku_baru')} className={`p-3 rounded-lg cursor-pointer transition-all ${activeTab === 'laporan_inventarisasi_buku_baru' ? 'bg-white text-[#265F9C] font-bold shadow-md' : 'hover:bg-white/10'}`}>Inventarisasi Buku Baru</div>
+                        <div onClick={() => setActiveTab('laporan_siswa_terajin')} className={`p-3 rounded-lg cursor-pointer transition-all ${activeTab === 'laporan_siswa_terajin' ? 'bg-white text-[#265F9C] font-bold shadow-md' : 'hover:bg-white/10'}`}>Peringkat Siswa Terajin</div>
+                        <div onClick={() => setActiveTab('kunjungan_bulanan')} className={`p-3 rounded-lg cursor-pointer transition-all ${activeTab === 'kunjungan_bulanan' ? 'bg-white text-[#265F9C] font-bold shadow-md' : 'hover:bg-white/10'}`}>Kunjungan Bulanan</div>
+                        <div onClick={() => setActiveTab('buku_terpopuler')} className={`p-3 rounded-lg cursor-pointer transition-all ${activeTab === 'buku_terpopuler' ? 'bg-white text-[#265F9C] font-bold shadow-md' : 'hover:bg-white/10'}`}>Buku Terpopuler</div>
+                        <div onClick={() => setActiveTab('kategori_populer')} className={`p-3 rounded-lg cursor-pointer transition-all ${activeTab === 'kategori_populer' ? 'bg-white text-[#265F9C] font-bold shadow-md' : 'hover:bg-white/10'}`}>Kategori Terpopuler</div>
+                        
+                        <div className={`rounded-lg transition-all overflow-hidden ${activeTab === 'laporan_distribusi_kunjungan_kelas' || activeTab === 'laporan_distribusi_kunjungan_hari' || isDistribusiMenuOpen ? 'bg-white/10' : ''}`}>
+                            <div
+                                onClick={() => setIsDistribusiMenuOpen((current) => !current)}
+                                className={`p-3 cursor-pointer transition-all flex items-center justify-between rounded-lg ${activeTab === 'laporan_distribusi_kunjungan_kelas' || activeTab === 'laporan_distribusi_kunjungan_hari' ? 'bg-white text-[#265F9C] font-bold shadow-md' : 'hover:bg-white/10'}`}
+                            >
+                                <span>Distribusi Kunjungan</span>
+                                <span className={`text-xs transition-transform ${isDistribusiMenuOpen ? 'rotate-180' : ''}`}>▼</span>
                             </div>
-                        )}
-                    </div>
-                </nav>
-                <button onClick={onLogout} className="mt-auto p-2 text-red-200 font-bold hover:text-white transition-colors text-left">Keluar Sistem</button>
+                            {isDistribusiMenuOpen && (
+                                <div className="px-2 pt-1 pb-2 space-y-1 text-sm">
+                                    <div onClick={() => setActiveTab('laporan_distribusi_kunjungan_kelas')} className={`ml-3 p-2 rounded-lg cursor-pointer ${activeTab === 'laporan_distribusi_kunjungan_kelas' ? 'bg-white text-[#265F9C] font-bold shadow-sm' : 'hover:bg-white/10'}`}>Berdasarkan Kelas</div>
+                                    <div onClick={() => setActiveTab('laporan_distribusi_kunjungan_hari')} className={`ml-3 p-2 rounded-lg cursor-pointer ${activeTab === 'laporan_distribusi_kunjungan_hari' ? 'bg-white text-[#265F9C] font-bold shadow-sm' : 'hover:bg-white/10'}`}>Berdasarkan Hari</div>
+                                </div>
+                            )}
+                        </div>
+                    </nav>
+                </div>
+
+                {/* 3. BLOK TOMBOL KELUAR (Fixed di Bawah) */}
+                <div className="p-4 border-t border-white/20 shrink-0 bg-[#265F9C]">
+                    <button 
+                        onClick={onLogout} 
+                        className="w-full flex items-center justify-center gap-2 p-3 bg-red-500/20 text-red-200 font-bold hover:bg-red-500 hover:text-white rounded-lg transition-colors shadow-sm"
+                    >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+                        Keluar Sistem
+                    </button>
+                </div>
+
             </aside>
 
             {/* MAIN CONTENT */}
