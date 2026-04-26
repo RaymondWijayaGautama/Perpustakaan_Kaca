@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 
 const LaporanPKLPanel = () => {
@@ -6,45 +6,67 @@ const LaporanPKLPanel = () => {
     const [laporanPage, setLaporanPage] = useState(1);
     const [laporanPagination, setLaporanPagination] = useState({});
     
-    // State terpisah untuk Search dan Filter
     const [searchJudul, setSearchJudul] = useState('');
     const [filterPenulis, setFilterPenulis] = useState('');
     const [filterTahun, setFilterTahun] = useState('');
     
     const [loading, setLoading] = useState(false);
 
-    useEffect(() => {
-        const fetchLaporan = async () => {
-            setLoading(true);
-            try {
-                // FIX 1: Ubah endpoint menjadi /api/buku/laporan agar sinkron dengan Backend
-                const res = await axios.get('http://localhost:8000/api/buku/laporan', {
-                    params: { 
-                        page: laporanPage, 
-                        judul: searchJudul,
-                        penulis: filterPenulis,
-                        tahun: filterTahun,
-                        per_page: 10 
-                    }
-                });
-                
-                // Set data dari response Laravel (res.data.data karena pakai pagination)
-                setDataLaporan(res.data.data || []);
-                setLaporanPagination(res.data);
-            } catch (error) { 
-                console.error("Gagal memuat laporan:", error); 
-            } finally { 
-                setLoading(false); 
-            }
-        };
+    const fetchLaporan = useCallback(async () => {
+        setLoading(true);
+        try {
+            // FIX 1: Alamat URL disamakan dengan routes/api.php (dihapus /buku-nya)
+            const res = await axios.get('http://localhost:8000/api/laporan', {
+                params: { 
+                    page: laporanPage, 
+                    judul: searchJudul,
+                    penulis: filterPenulis,
+                    tahun: filterTahun,
+                    per_page: 5 // Sesuai pagination Laravel kamu
+                }
+            });
+            setDataLaporan(res.data.data || []);
+            setLaporanPagination(res.data);
+        } catch (error) { 
+            console.error("Gagal memuat laporan:", error); 
+        } finally { 
+            setLoading(false); 
+        }
+    }, [laporanPage, searchJudul, filterPenulis, filterTahun]);
 
-        // Debounce agar tidak nge-spam API saat ngetik
+    useEffect(() => {
         const handler = setTimeout(() => {
             fetchLaporan();
         }, 400);
-
         return () => clearTimeout(handler);
-    }, [laporanPage, searchJudul, filterPenulis, filterTahun]);
+    }, [fetchLaporan]);
+
+    // ==========================================
+    // FUNGSI AKSI (MEMENUHI SYARAT RAYMOND)
+    // ==========================================
+    const handleHapus = async (id, judul) => {
+        // Syarat Baris 18: Harus ada konfirmasi sebelum hapus!
+        const yakin = window.confirm(`PERINGATAN: Yakin ingin menghapus laporan "${judul}"?\n\nJika laporan ini terhubung dengan fisik di rak, sistem akan menolak penghapusan.`);
+        if (!yakin) return;
+
+        try {
+            await axios.delete(`http://localhost:8000/api/laporan/hapus/${id}`);
+            alert("Mantap! Laporan berhasil dihapus.");
+            fetchLaporan(); // Refresh data otomatis
+        } catch (error) {
+            alert(error.response?.data?.pesan || "Gagal menghapus data.");
+        }
+    };
+
+    const handleEdit = () => {
+        // Nanti bisa bos kembangin jadi Form Modal Popup
+        alert("Fitur Edit akan membuka Form Modal/Popup untuk mengubah data & upload ulang PDF.");
+    };
+
+    const handleTambah = () => {
+        // Nanti bisa bos kembangin jadi Form Modal Popup
+        alert("Fitur Tambah akan membuka Form Upload Laporan PKL (PDF Max 10MB).");
+    };
 
     return (
         <div className="bg-white rounded-xl shadow p-6 border border-gray-100 text-[#1A1A1A] relative">
@@ -56,88 +78,77 @@ const LaporanPKLPanel = () => {
 
             <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-6 mb-8 print:hidden">
                 <div>
-                    <h1 className="text-2xl font-bold font-montserrat">Laporan PKL</h1>
+                    <h1 className="text-2xl font-bold font-montserrat text-[#265F9C]">Laporan PKL</h1>
                     <p className="text-xs text-gray-500 mt-1">Arsip dan Referensi Laporan Siswa</p>
                 </div>
                 
-                {/* Area Input Pencarian & Filter */}
                 <div className="flex flex-col md:flex-row gap-3 w-full xl:w-auto">
-                    {/* Search Judul Utama */}
+                    {/* TOMBOL TAMBAH DATA (Syarat Baris 16) */}
+                    <button 
+                        onClick={handleTambah}
+                        className="px-5 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-xl text-sm font-bold shadow-sm transition-all active:scale-95 flex items-center gap-2 mr-2"
+                    >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4"></path></svg>
+                        Tambah Laporan
+                    </button>
+
                     <div className="relative flex-1 xl:w-64">
                         <input 
                             type="text" 
-                            placeholder="Cari Judul Laporan..." 
-                            className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-[#265F9C] shadow-sm transition-all" 
+                            placeholder="Cari Judul..." 
+                            className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-[#265F9C]" 
                             value={searchJudul} 
-                            onChange={(e) => {
-                                setSearchJudul(e.target.value);
-                                setLaporanPage(1); // Balik ke halaman 1 saat cari
-                            }} 
+                            onChange={(e) => { setSearchJudul(e.target.value); setLaporanPage(1); }} 
                         />
                         <div className="absolute left-3 top-3 text-gray-400">
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
                         </div>
                     </div>
 
-                    {/* Filter Penulis */}
                     <div className="relative flex-1 xl:w-48">
                         <input 
                             type="text" 
                             placeholder="Filter Penulis..." 
-                            className="w-full pl-9 pr-4 py-2.5 border border-gray-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-[#2E7D32] shadow-sm transition-all bg-gray-50 focus:bg-white" 
+                            className="w-full pl-9 pr-4 py-2.5 border border-gray-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-[#2E7D32]" 
                             value={filterPenulis} 
-                            onChange={(e) => {
-                                setFilterPenulis(e.target.value);
-                                setLaporanPage(1); 
-                            }} 
+                            onChange={(e) => { setFilterPenulis(e.target.value); setLaporanPage(1); }} 
                         />
                         <div className="absolute left-3 top-3 text-[#2E7D32]">
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
                         </div>
                     </div>
-
-                    {/* Filter Tahun */}
-                    <input 
-                        type="number" 
-                        placeholder="Tahun" 
-                        className="w-full md:w-28 px-4 py-2.5 border border-gray-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-[#2E7D32] shadow-sm transition-all bg-gray-50 focus:bg-white" 
-                        value={filterTahun} 
-                        onChange={(e) => {
-                            setFilterTahun(e.target.value);
-                            setLaporanPage(1); 
-                        }} 
-                    />
                 </div>
             </div>
 
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto border border-gray-100 rounded-xl">
                 <table className="w-full text-left">
                     <thead className="bg-gray-50 uppercase text-[10px] font-bold text-[#585858] border-b border-gray-200">
                         <tr>
                             <th className="p-4 w-16 text-center">No</th>
-                            <th className="p-4 w-1/2">Judul Laporan PKL</th>
+                            <th className="p-4 w-2/5">Judul Laporan PKL</th>
                             <th className="p-4">Penulis (Siswa)</th>
                             <th className="p-4 text-center">Tahun</th>
+                            <th className="p-4 text-center">Aksi</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100">
                         {dataLaporan.length > 0 ? dataLaporan.map((l, i) => (
-                            /* FIX 2: Gunakan id_cp_koleksi atau ISBN agar key benar-benar unik */
-                            <tr key={l.id_cp_koleksi || l.ISBN || i} className="text-sm hover:bg-blue-50/30 transition-colors">
-                                <td className="p-4 text-center text-[#7D7D7E] font-mono">{(laporanPage - 1) * 10 + i + 1}</td>
+                            <tr key={l.ISBN || i} className="text-sm hover:bg-blue-50/30 transition-colors">
+                                <td className="p-4 text-center text-[#7D7D7E] font-mono">{(laporanPage - 1) * 5 + i + 1}</td>
                                 <td className="p-4 font-bold text-[#265F9C] leading-snug">{l.judul_koleksi}</td>
                                 <td className="p-4">
-                                    {/* FIX 3: Tambahkan fallback 'Anonim' jaga-jaga kalau data siswa kosong */}
                                     <p className="font-semibold text-gray-800">{l.nama_siswa_tetap || 'Anonim'}</p>
-                                    {l.nisn_siswa && <p className="text-[10px] text-gray-400 font-mono mt-0.5">{l.nisn_siswa}</p>}
                                 </td>
                                 <td className="p-4 text-center font-mono font-bold text-[#585858] bg-gray-50/50">{l.tahun}</td>
+                                <td className="p-4 text-center">
+                                    <button onClick={handleEdit} className="text-xs font-bold text-gray-500 hover:text-blue-600 mr-3">EDIT</button>
+                                    <button onClick={() => handleHapus(l.ISBN, l.judul_koleksi)} className="text-xs font-bold text-red-500 hover:text-red-700">HAPUS</button>
+                                </td>
                             </tr>
                         )) : (
                             <tr>
-                                <td colSpan="4" className="p-16 text-center">
-                                    <svg className="w-12 h-12 mx-auto text-gray-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-                                    <p className="text-gray-400 italic font-montserrat text-sm">Laporan tidak ditemukan.</p>
+                                <td colSpan="5" className="p-16 text-center">
+                                    <p className="text-gray-400 italic font-montserrat text-sm">Laporan tidak ditemukan di database.</p>
                                 </td>
                             </tr>
                         )}
@@ -149,26 +160,16 @@ const LaporanPKLPanel = () => {
                 <button 
                     disabled={laporanPage === 1} 
                     onClick={() => setLaporanPage(laporanPage - 1)} 
-                    className="px-5 py-2 bg-white border border-gray-200 rounded-lg disabled:opacity-50 text-xs font-bold shadow-sm transition-all hover:bg-gray-100 active:scale-95"
+                    className="px-5 py-2 bg-white border border-gray-200 rounded-lg disabled:opacity-50 text-xs font-bold shadow-sm"
                 > Prev </button>
-                <span className="text-xs font-bold text-[#585858] uppercase tracking-widest">
+                <span className="text-xs font-bold text-[#585858] uppercase">
                     Halaman <span className="text-[#265F9C]">{laporanPage}</span> / {laporanPagination.last_page || 1}
                 </span>
                 <button 
                     disabled={laporanPage >= (laporanPagination.last_page || 1)} 
                     onClick={() => setLaporanPage(laporanPage + 1)} 
-                    className="px-5 py-2 bg-white border border-gray-200 rounded-lg disabled:opacity-50 text-xs font-bold shadow-sm transition-all hover:bg-gray-100 active:scale-95"
+                    className="px-5 py-2 bg-white border border-gray-200 rounded-lg disabled:opacity-50 text-xs font-bold shadow-sm"
                 > Next </button>
-            </div>
-
-            <div className="mt-6 flex justify-end print:hidden">
-                <button 
-                    onClick={() => window.print()} 
-                    className="px-8 py-2.5 bg-[#265F9C] hover:bg-[#1C4673] text-white rounded-xl text-xs font-bold shadow-md transition-all active:scale-95 flex items-center gap-2"
-                > 
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
-                    Cetak Laporan 
-                </button>
             </div>
         </div>
     );

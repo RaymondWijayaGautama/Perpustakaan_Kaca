@@ -361,7 +361,7 @@ class DashboardController extends Controller
                 ], 422);
             }
 
-            $existing = DB::table('tr_pemusnahan')
+            $existing = DB::table('tr_pemusnahan_buku')
                 ->where('isbn', $request->isbn)
                 ->whereIn('status', ['menunggu_konfirmasi', 'disetujui'])
                 ->exists();
@@ -370,7 +370,7 @@ class DashboardController extends Controller
                 return response()->json(['message' => 'Buku ini sudah memiliki proses pemusnahan aktif.'], 409);
             }
 
-            DB::table('tr_pemusnahan')->insert([
+            DB::table('tr_pemusnahan_buku')->insert([
                 'isbn' => $request->isbn,
                 'alasan' => '[' . $kategoriPemusnahan . '] ' . trim($request->alasan),
                 'nip_karyawan' => $request->nip_karyawan,
@@ -400,31 +400,31 @@ class DashboardController extends Controller
         $search = $request->get('search');
         $status = $request->get('status');
 
-        $query = DB::table('tr_pemusnahan')
-            ->join('mst_koleksi_buku', 'tr_pemusnahan.isbn', '=', 'mst_koleksi_buku.ISBN')
-            ->leftJoin('mst_karyawan as petugas', 'tr_pemusnahan.nip_karyawan', '=', 'petugas.nip_karyawan')
+        $query = DB::table('tr_pemusnahan_buku')
+            ->join('mst_koleksi_buku', 'tr_pemusnahan_buku.isbn', '=', 'mst_koleksi_buku.ISBN')
+            ->leftJoin('mst_karyawan as petugas', 'tr_pemusnahan_buku.nip_karyawan', '=', 'petugas.nip_karyawan')
             ->select(
-                'tr_pemusnahan.*',
+                'tr_pemusnahan_buku.*',
                 'mst_koleksi_buku.judul_koleksi as judul',
                 'mst_koleksi_buku.keterangan_buku',
                 'mst_koleksi_buku.no_rak_buku',
                 'petugas.nama_karyawan as nama_petugas'
             )
-            ->where('tr_pemusnahan.status', '!=', 'soft_deleted');
+            ->where('tr_pemusnahan_buku.status', '!=', 'soft_deleted');
 
         if ($search) {
             $query->where(function($q) use ($search) {
-                $q->where('tr_pemusnahan.isbn', 'like', "%$search%")
+                $q->where('tr_pemusnahan_buku.isbn', 'like', "%$search%")
                   ->orWhere('mst_koleksi_buku.judul_koleksi', 'like', "%$search%")
-                  ->orWhere('tr_pemusnahan.alasan', 'like', "%$search%");
+                  ->orWhere('tr_pemusnahan_buku.alasan', 'like', "%$search%");
             });
         }
 
         if ($status && $status !== 'semua') {
-            $query->where('tr_pemusnahan.status', $status);
+            $query->where('tr_pemusnahan_buku.status', $status);
         }
 
-        return response()->json($query->orderBy('tr_pemusnahan.created_at', 'desc')->get());
+        return response()->json($query->orderBy('tr_pemusnahan_buku.created_at', 'desc')->get());
     }
 
     public function getBukuRusak()
@@ -459,7 +459,7 @@ class DashboardController extends Controller
     {
         $statusBaru = $request->get('status', 'soft_deleted');
 
-        DB::table('tr_pemusnahan')->where('id', $id)->update([
+        DB::table('tr_pemusnahan_buku')->where('id', $id)->update([
             'status' => $statusBaru,
             'updated_at' => Carbon::now()
         ]);
@@ -512,7 +512,7 @@ class DashboardController extends Controller
                     return response()->json(['message' => 'Konfirmasi pemusnahan hanya dapat dilakukan pustakawan.'], 403);
                 }
     
-                $pemusnahan = DB::table('tr_pemusnahan')->where('id', $id)->first();
+                $pemusnahan = DB::table('tr_pemusnahan_buku')->where('id', $id)->first();
     
                 if (!$pemusnahan || $pemusnahan->status === 'soft_deleted') {
                     return response()->json(['message' => 'Data pemusnahan tidak ditemukan.'], 404);
@@ -554,7 +554,7 @@ class DashboardController extends Controller
                         ->update(['status_buku' => 'Dimusnahkan']);
                 }
     
-                DB::table('tr_pemusnahan')
+                DB::table('tr_pemusnahan_buku_buku')
                     ->where('id', $id)
                     ->update([
                         'status' => 'disetujui',
@@ -580,7 +580,7 @@ class DashboardController extends Controller
     
         public function printBeritaAcaraPemusnahan($id)
         {
-            $data = DB::table('tr_pemusnahan as pemusnahan')
+            $data = DB::table('tr_pemusnahan_buku_buku as pemusnahan')
                 ->join('mst_koleksi_buku as buku', 'pemusnahan.isbn', '=', 'buku.ISBN')
                 ->leftJoin('mst_karyawan as petugas', 'pemusnahan.nip_karyawan', '=', 'petugas.nip_karyawan')
                 ->select(

@@ -362,6 +362,7 @@ class LaporanController extends Controller
                 ->where('id_ref_koleksi', 4) // Angka 4 = Kategori PKL
                 ->where('is_delete', 0)
                 ->select(
+                    'ISBN', 
                     'judul_koleksi', 
                     'pengarang as nama_siswa_tetap', 
                     'tahun'
