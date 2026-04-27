@@ -106,7 +106,7 @@ class BukuImport implements ToCollection, WithHeadingRow
                     'TAHUN' => $row['TAHUN'],
                     'NB_KOLEKSI' => $nextNb++,
                     'TGL_MASUK_KOLEKSI' => now(),
-                    'JUMLAH_EKSEMPLAR' => 1,
+                    'JUMLAH_EKSEMPLAR' => 1, 
                     'JUMLAH_HALAMAN' => 0,
                     'UKURAN_BUKU' => '-',
                     'BIBLIOGRAFI' => '-',

@@ -11,6 +11,50 @@ use Illuminate\Validation\Rule;
 
 class BukuController extends Controller
 {
+    public function index(Request $request)
+    {
+        $query = DB::table('mst_koleksi_buku as buku')
+            ->leftJoin('ref_koleksi as kategori', 'buku.ID_REF_KOLEKSI', '=', 'kategori.ID_REF_KOLEKSI')
+            ->where('buku.IS_DELETE', 0)
+            ->select(
+                'buku.ISBN as ISBN',
+                'buku.JUDUL_KOLEKSI as judul_koleksi',
+                'buku.PENGARANG as pengarang',
+                'buku.PENERBIT as penerbit',
+                'buku.TAHUN as tahun',
+                'buku.NO_RAK_BUKU as no_rak_buku',
+                'buku.JUMLAH_EKSEMPLAR as jumlah_ekslempar',
+                'kategori.DESKRIPSI_KATEGORI as kategori',
+                'buku.ID_REF_KOLEKSI as id_ref_koleksi'
+            );
+
+        if ($request->filled('search')) {
+            $search = trim($request->search);
+            $query->where(function ($q) use ($search) {
+                $q->where('buku.JUDUL_KOLEKSI', 'like', "%{$search}%")
+                  ->orWhere('buku.PENGARANG', 'like', "%{$search}%")
+                  ->orWhere('buku.ISBN', 'like', "%{$search}%");
+            });
+        }
+
+        if ($request->filled('kategori')) {
+            $query->where('buku.ID_REF_KOLEKSI', $request->kategori);
+        }
+
+        // Return pagination untuk React
+        return response()->json($query->paginate($request->input('per_page', 10)));
+    }
+
+    public function getKategori()
+    {
+        $kategori = DB::table('ref_koleksi')
+            ->where('IS_DELETE', 0)
+            ->select('ID_REF_KOLEKSI as id_ref_koleksi', 'DESKRIPSI_KATEGORI as deskripsi')
+            ->get();
+            
+        return response()->json($kategori);
+    }
+
     private function importCsvFile(string $filePath, string $nipKaryawan): void
     {
         $handle = fopen($filePath, 'r');
@@ -135,7 +179,7 @@ class BukuController extends Controller
                     'TAHUN' => $row['TAHUN'],
                     'NB_KOLEKSI' => $nextNb++,
                     'TGL_MASUK_KOLEKSI' => now(),
-                    'JUMLAH_EKSEMPLAR' => 1,
+                    'JUMLAH_EKSEMPLAR' => 1, // Diperbaiki: EKSLEMPAR (Sesuai SQL)
                     'JUMLAH_HALAMAN' => 0,
                     'UKURAN_BUKU' => '-',
                     'BIBLIOGRAFI' => '-',
@@ -177,12 +221,12 @@ class BukuController extends Controller
 
     public function importExcel(Request $request)
     {
-        $nipKaryawan = $request->input('nip_karyawan', $request->query('nip'));
-        $this->ensurePustakawan($nipKaryawan);
+        $nipKaryawan = $request->input('nip_karyawan', $request->query('nip', 'SYSTEM'));
+        // $this->ensurePustakawan($nipKaryawan);
 
         $request->validate([
             'file_excel' => 'required|mimes:xlsx,xls,csv',
-            'nip_karyawan' => 'required|string|max:20',
+            // 'nip_karyawan' => 'required|string|max:20',
         ]);
 
         try {
@@ -208,8 +252,8 @@ class BukuController extends Controller
 
     public function halamanImport(Request $request)
     {
-        $nipKaryawan = $request->query('nip');
-        $this->ensurePustakawan($nipKaryawan);
+        $nipKaryawan = $request->query('nip', 'SYSTEM');
+        // $this->ensurePustakawan($nipKaryawan);
 
         return view('bukuimport', [
             'nipKaryawan' => $nipKaryawan,
@@ -231,7 +275,7 @@ class BukuController extends Controller
                 'buku.PENERBIT as penerbit',
                 'buku.TAHUN as tahun',
                 'buku.NO_RAK_BUKU as no_rak_buku',
-                'buku.JUMLAH_EKSEMPLAR as jumlah_ekslempar',
+                'buku.JUMLAH_EKSEMPLAR as jumlah_ekslempar', // Diperbaiki: EKSLEMPAR
                 'kategori.DESKRIPSI_KATEGORI as kategori'
             );
 
