@@ -462,31 +462,34 @@ class LaporanController extends Controller
     }
 
     public function getLaporan(Request $request)
-    {
-        try {
-            $query = DB::table('pkl_siswa')
-                ->join('mst_siswa', 'pkl_siswa.ID_SISWA_TETAP', '=', 'mst_siswa.ID_SISWA_TETAP')
-                ->select(
-                    'pkl_siswa.ID_PKL_SISWA as ISBN', 
-                    'pkl_siswa.JUDUL_LAPORAN_PKL as judul_koleksi', 
-                    'mst_siswa.NAMA_SISWA_TETAP as nama_siswa_tetap', 
-                    'mst_siswa.TAHUN_LULUS as tahun'
-                );
-
-            if ($request->filled('judul')) {
-                $query->where('pkl_siswa.JUDUL_LAPORAN_PKL', 'like', '%' . $request->judul . '%');
+        {
+            try {
+                $query = DB::table('mst_koleksi_buku')
+                    ->where('ID_REF_KOLEKSI', 4) 
+                    ->where(function($q) {
+                        $q->where('IS_DELETE', 0)->orWhereNull('IS_DELETE');
+                    })
+                    ->select(
+                        'ISBN',
+                        'JUDUL_KOLEKSI as judul_koleksi',
+                        'PENGARANG as nama_siswa_tetap',
+                        'TAHUN as tahun'
+                    );
+                // Filter Judul
+                if ($request->filled('judul')) {
+                    $query->where('JUDUL_KOLEKSI', 'like', '%' . $request->judul . '%');
+                }
+                // Filter Penulis
+                if ($request->filled('penulis')) {
+                    $query->where('PENGARANG', 'like', '%' . $request->penulis . '%');
+                }
+                // Eksekusi query
+                $data = $query->paginate(5);
+                return response()->json($data);
+            } catch (\Exception $e) {
+                return response()->json(['message' => 'Error Database: ' . $e->getMessage()], 500);
             }
-
-            if ($request->filled('penulis')) {
-                $query->where('mst_siswa.NAMA_SISWA_TETAP', 'like', '%' . $request->penulis . '%');
-            }
-
-            return response()->json($query->paginate(5));
-
-        } catch (\Exception $e) {
-            return response()->json(['message' => 'Error Database: ' . $e->getMessage()], 500);
         }
-    }
 
     public function siswaTerajin()
     {

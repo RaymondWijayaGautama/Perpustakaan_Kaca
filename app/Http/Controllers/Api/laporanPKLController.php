@@ -16,9 +16,8 @@ class LaporanPklController extends Controller
             $tahun = $request->query('tahun');
             $perPage = $request->query('per_page', 10);
             
-            // Ambil data dasar buku dulu (hanya buku dengan id_ref_koleksi = 4 alias Laporan)
             $query = DB::table('mst_koleksi_buku')
-                ->where('mst_koleksi_buku.id_ref_koleksi', 4)
+                ->where('mst_koleksi_buku.id_ref_koleksi', 4) //ambil data dari refkoleksi = 4
                 ->where('mst_koleksi_buku.is_delete', 0);
 
             // Filter

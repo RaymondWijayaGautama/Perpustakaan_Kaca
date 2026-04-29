@@ -23,8 +23,8 @@ Route::get('/laporan/peminjaman-guru', [LaporanController::class, 'laporanPeminj
 Route::get('/laporan/kunjungan-distribusi-kelas', [LaporanController::class, 'distribusiKunjunganKelas']);
 Route::get('/laporan/kunjungan-distribusi-hari', [LaporanController::class, 'distribusiKunjunganHari']);
 Route::get('/laporan/inventarisasi-buku-baru', [LaporanController::class, 'inventarisasiBukuBaru']);
-Route::delete('/laporan/hapus/{id}', [LaporanController::class, 'destroy']);
-Route::post('/laporan/ubah/{id}', [LaporanController::class, 'update']);
+Route::delete('/laporan/hapus/{isbn}', [LaporanController::class, 'destroy']);
+Route::put('/laporan/ubah/{isbn}', [LaporanController::class, 'update']);
 Route::post('/laporan/tambah', [LaporanController::class, 'store']);
 Route::get('/laporan-pkl', [LaporanPklController::class, 'index']);
 Route::get('/buku/laporan', [LaporanPklController::class, 'index']);
