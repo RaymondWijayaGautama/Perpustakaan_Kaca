@@ -261,50 +261,56 @@ class BukuController extends Controller
     }
 
     public function exportExcel(Request $request)
-    {
-        $this->ensurePustakawan($request->query('nip'));
+{
+    // $this->ensurePustakawan($request->query('nip'));
 
-        $query = DB::table('mst_koleksi_buku as buku')
-            ->leftJoin('ref_koleksi as kategori', 'buku.ID_REF_KOLEKSI', '=', 'kategori.ID_REF_KOLEKSI')
-            ->where('buku.IS_DELETE', 0)
-            ->where('buku.ID_REF_KOLEKSI', '!=', 4)
-            ->select(
-                'buku.ISBN',
-                'buku.JUDUL_KOLEKSI as judul_koleksi',
-                'buku.PENGARANG as pengarang',
-                'buku.PENERBIT as penerbit',
-                'buku.TAHUN as tahun',
-                'buku.NO_RAK_BUKU as no_rak_buku',
-                'buku.JUMLAH_EKSEMPLAR as jumlah_ekslempar', // Diperbaiki: EKSLEMPAR
-                'kategori.DESKRIPSI_KATEGORI as kategori'
-            );
+    $query = DB::table('mst_koleksi_buku as buku')
+        ->leftJoin('ref_koleksi as kategori', 'buku.ID_REF_KOLEKSI', '=', 'kategori.ID_REF_KOLEKSI')
+        ->where('buku.IS_DELETE', 0)
+        ->where('buku.ID_REF_KOLEKSI', '!=', 4)
+        ->select(
+            'buku.NB_KOLEKSI as no_induk',             
+            'kategori.NO_KATEGORI_BUKU as no_kode',    
+            'buku.PENGARANG as pengarang',             
+            'buku.JUDUL_KOLEKSI as judul_koleksi',     
+            'buku.PENERBIT as penerbit',               
+            'buku.TAHUN as tahun',                     
+            'buku.TGL_MASUK_KOLEKSI as tgl_diterima',  
+            'buku.JUMLAH_EKSEMPLAR as jumlah_eksemplar',
+            'buku.JUMLAH_HALAMAN as jumlah_halaman',
+            'buku.UKURAN_BUKU as ukuran_buku',
+            'buku.BIBLIOGRAFI as bibliografi',
+            'buku.INDEKS_AWAL_AKHIR as indeks',
+            'buku.ISBN as isbn',
+            'buku.KETERANGAN_BUKU as keterangan'
+        );
 
-        if ($request->filled('search')) {
-            $search = trim($request->search);
-            $query->where(function ($subQuery) use ($search) {
-                $subQuery->where('buku.JUDUL_KOLEKSI', 'like', "%{$search}%")
-                    ->orWhere('buku.PENGARANG', 'like', "%{$search}%")
-                    ->orWhere('buku.ISBN', 'like', "%{$search}%");
-            });
-        }
-
-        if ($request->filled('kategori')) {
-            $query->where('buku.ID_REF_KOLEKSI', $request->kategori);
-        }
-
-        $dataBuku = $query
-            ->orderBy('buku.JUDUL_KOLEKSI')
-            ->get();
-
-        $namaFile = 'Data_Buku_KACA_' . date('Y-m-d_H-i-s') . '.xls';
-
-        $html = view('pustakawan.buku.export_excel', [
-            'dataBuku' => $dataBuku,
-        ])->render();
-
-        return response($html, 200, [
-            'Content-Type' => 'application/vnd.ms-excel; charset=UTF-8',
-            'Content-Disposition' => "attachment; filename=\"{$namaFile}\"",
-        ]);
+    if ($request->filled('search')) {
+        $search = trim($request->search);
+        $query->where(function ($subQuery) use ($search) {
+            $subQuery->where('buku.JUDUL_KOLEKSI', 'like', "%{$search}%")
+                ->orWhere('buku.PENGARANG', 'like', "%{$search}%")
+                ->orWhere('buku.ISBN', 'like', "%{$search}%");
+        });
     }
+
+    if ($request->filled('kategori')) {
+        $query->where('buku.ID_REF_KOLEKSI', $request->kategori);
+    }
+
+    $dataBuku = $query
+        ->orderBy('buku.JUDUL_KOLEKSI')
+        ->get();
+
+    $namaFile = 'Buku_Induk_Perpustakaan_' . date('Y-m-d_H-i-s') . '.xls';
+
+    $html = view('pustakawan.buku.export_excel', [
+        'dataBuku' => $dataBuku,
+    ])->render();
+
+    return response($html, 200, [
+        'Content-Type' => 'application/vnd.ms-excel; charset=UTF-8',
+        'Content-Disposition' => "attachment; filename=\"{$namaFile}\"",
+    ]);
+}
 }

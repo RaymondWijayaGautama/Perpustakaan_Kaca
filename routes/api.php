@@ -50,7 +50,7 @@ Route::delete('/koleksi/{id}', [MasterKoleksiController::class, 'destroy']);
 Route::get('/anggota/{identifier}', [DashboardController::class, 'getAnggotaByIdentifier']);
 Route::get('/peminjaman/cek-aktif', [App\Http\Controllers\Api\PeminjamanController::class, 'cekAktif']);
 Route::post('/pengembalian/batch', [App\Http\Controllers\Api\PeminjamanController::class, 'batchReturn']);
-
+Route::get('/pengembalian/history', [PengembalianController::class, 'history']);
 // --- BAGIAN BARU: RUTE PEMUSNAHAN BUKU ---
 // Pastikan fungsi-fungsi ini (getHistoryPemusnahan, storePemusnahan, dll) 
 // sudah dibuat di DashboardController atau controller terkait.
