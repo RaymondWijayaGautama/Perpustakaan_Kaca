@@ -23,7 +23,7 @@ class BukuController extends Controller
                 'buku.PENERBIT as penerbit',
                 'buku.TAHUN as tahun',
                 'buku.NO_RAK_BUKU as no_rak_buku',
-                'buku.JUMLAH_EKSEMPLAR as jumlah_ekslempar',
+                'buku.JUMLAH_EKSEMPLAR as jumlah_eksemplar',
                 'kategori.DESKRIPSI_KATEGORI as kategori',
                 'buku.ID_REF_KOLEKSI as id_ref_koleksi'
             );
@@ -179,7 +179,7 @@ class BukuController extends Controller
                     'TAHUN' => $row['TAHUN'],
                     'NB_KOLEKSI' => $nextNb++,
                     'TGL_MASUK_KOLEKSI' => now(),
-                    'JUMLAH_EKSEMPLAR' => 1, // Diperbaiki: EKSLEMPAR (Sesuai SQL)
+                    'JUMLAH_EKSEMPLAR' => 1, // Diperbaiki: eksemplar (Sesuai SQL)
                     'JUMLAH_HALAMAN' => 0,
                     'UKURAN_BUKU' => '-',
                     'BIBLIOGRAFI' => '-',
@@ -275,7 +275,7 @@ class BukuController extends Controller
                 'buku.PENERBIT as penerbit',
                 'buku.TAHUN as tahun',
                 'buku.NO_RAK_BUKU as no_rak_buku',
-                'buku.JUMLAH_EKSEMPLAR as jumlah_ekslempar', // Diperbaiki: EKSLEMPAR
+                'buku.JUMLAH_EKSEMPLAR as jumlah_eksemplar', // Diperbaiki: eksemplar
                 'kategori.DESKRIPSI_KATEGORI as kategori'
             );
 

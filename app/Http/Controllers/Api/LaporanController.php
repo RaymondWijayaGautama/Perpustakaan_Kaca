@@ -35,26 +35,37 @@ class LaporanController extends Controller
             $isbnPKL = "979" . time() . rand(10, 99); 
             $file = $request->file('file_laporan');
             $namaFile = $isbnPKL . '.' . $file->getClientOriginalExtension(); 
-            $file->storeAs('public/laporan', $namaFile);
+            $file->storeAs('laporan', $namaFile, 'public');
 
+            // Ambil ID_REF_KOLEKSI berdasarkan NO_KATEGORI_BUKU = 4
+            $kategoriLaporan = DB::table('ref_koleksi')
+                                ->where('NO_KATEGORI_BUKU', '4')
+                                ->first();
+            
+            $idRefKoleksi = $kategoriLaporan ? $kategoriLaporan->ID_REF_KOLEKSI : null;
+
+            // Gunakan nama kolom sesuai skema perpus_2.sql (huruf besar)
             DB::table('mst_koleksi_buku')->insert([
                 'ISBN' => $isbnPKL,
-                'judul_koleksi' => $request->judul_koleksi,
-                'pengarang' => $request->pengarang,
-                'penerbit' => 'SMK BODA', 
-                'tahun' => $request->tahun,
-                'id_ref_koleksi' => 4,
-                'tgl_masuk_koleksi' => Carbon::now(),
-                'jumlah_eksemplar' => 1,
-                'is_delete' => 0,
-                'keterangan_buku' => $namaFile 
+                'ID_REF_KOLEKSI' => $idRefKoleksi, // Menggantikan 'nomor_kategori_buku'
+                'JUDUL_KOLEKSI' => $request->judul_koleksi,
+                'PENGARANG' => $request->pengarang,
+                'PENERBIT' => 'SMK BODA', 
+                'TAHUN' => $request->tahun,
+                'TGL_MASUK_KOLEKSI' => \Carbon\Carbon::now(),
+                'JUMLAH_EKSEMPLAR' => 1,
+                'IS_DELETE' => 0,
+                'KETERANGAN_BUKU' => $namaFile 
             ]);
 
-            $idLaporanBaru = DB::table('mst_koleksi_laporan')->insertGetId(['is_delete' => 0]);
+            $idLaporanBaru = DB::table('mst_koleksi_laporan')->insertGetId([
+                'IS_DELETE' => 0
+            ]);
+
             DB::table('cp_koleksi')->insert([
                 'ISBN' => $isbnPKL,
-                'status_buku' => 'Tersedia',
-                'id_mst_laporan' => $idLaporanBaru
+                'STATUS_BUKU' => 'Tersedia',
+                'ID_MST_LAPORAN' => $idLaporanBaru
             ]);
 
             DB::commit();
@@ -222,7 +233,7 @@ class LaporanController extends Controller
                     'buku.tahun',
                     'buku.tgl_masuk_koleksi',
                     'buku.no_rak_buku',
-                    'buku.jumlah_ekslempar', // Note: Pastikan di database memang jumlah_ekslempar (bukan eksemplar)
+                    'buku.jumlah_eksemplar', // Note: Pastikan di database memang jumlah_eksemplar (bukan eksemplar)
                     'kategori.deskripsi as kategori'
                 )
                 ->distinct()
@@ -243,7 +254,7 @@ class LaporanController extends Controller
                 ],
                 'summary' => [
                     'total_buku_baru' => $books->count(),
-                    'total_eksemplar' => (int) $books->sum('jumlah_ekslempar'),
+                    'total_eksemplar' => (int) $books->sum('jumlah_eksemplar'),
                     'total_kategori' => $books->pluck('kategori')->unique()->count(),
                 ],
                 'data' => $books,
@@ -462,34 +473,46 @@ class LaporanController extends Controller
     }
 
     public function getLaporan(Request $request)
-        {
-            try {
-                $query = DB::table('mst_koleksi_buku')
-                    ->where('ID_REF_KOLEKSI', 4) 
-                    ->where(function($q) {
-                        $q->where('IS_DELETE', 0)->orWhereNull('IS_DELETE');
-                    })
-                    ->select(
-                        'ISBN',
-                        'JUDUL_KOLEKSI as judul_koleksi',
-                        'PENGARANG as nama_siswa_tetap',
-                        'TAHUN as tahun'
-                    );
-                // Filter Judul
-                if ($request->filled('judul')) {
-                    $query->where('JUDUL_KOLEKSI', 'like', '%' . $request->judul . '%');
-                }
-                // Filter Penulis
-                if ($request->filled('penulis')) {
-                    $query->where('PENGARANG', 'like', '%' . $request->penulis . '%');
-                }
-                // Eksekusi query
-                $data = $query->paginate(5);
-                return response()->json($data);
-            } catch (\Exception $e) {
-                return response()->json(['message' => 'Error Database: ' . $e->getMessage()], 500);
+    {
+        try {
+            // 1. Ambil ID_REF_KOLEKSI yang tepat untuk kategori '4' (laporan)
+            $kategoriLaporan = DB::table('ref_koleksi')
+                                ->where('NO_KATEGORI_BUKU', '4')
+                                ->first();
+            
+            $idRefKoleksi = $kategoriLaporan ? $kategoriLaporan->ID_REF_KOLEKSI : null;
+
+            // 2. Gunakan ID yang sudah didapat ke dalam query utama
+            $query = DB::table('mst_koleksi_buku')
+                ->where('ID_REF_KOLEKSI', $idRefKoleksi) // <-- Diperbaiki di sini
+                ->where(function($q) {
+                    $q->where('IS_DELETE', 0)->orWhereNull('IS_DELETE');
+                })
+                ->select(
+                    'ISBN',
+                    'JUDUL_KOLEKSI as judul_koleksi',
+                    'PENGARANG as nama_siswa_tetap',
+                    'TAHUN as tahun'
+                );
+
+            // Filter Judul
+            if ($request->filled('judul')) {
+                $query->where('JUDUL_KOLEKSI', 'like', '%' . $request->judul . '%');
             }
+
+            // Filter Penulis
+            if ($request->filled('penulis')) {
+                $query->where('PENGARANG', 'like', '%' . $request->penulis . '%');
+            }
+
+            // Eksekusi query
+            $data = $query->paginate(5);
+            return response()->json($data);
+
+        } catch (\Exception $e) {
+            return response()->json(['message' => 'Error Database: ' . $e->getMessage()], 500);
         }
+    }
 
     public function siswaTerajin()
     {
@@ -690,4 +713,54 @@ class LaporanController extends Controller
         $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('laporan.statistik_kunjungan_pdf', compact('laporanKunjungan', 'tahun'));
         return $pdf->download('Statistik_Kunjungan_'.$tahun.'.pdf');
     }
-}
+
+
+    public function downloadLaporan($isbn)
+    {
+        try {
+            // Cari data laporan berdasarkan ISBN
+            $laporan = DB::table('mst_koleksi_buku')
+                        ->where('ISBN', $isbn)
+                        ->where('IS_DELETE', 0)
+                        ->first();
+
+            if (!$laporan) {
+                return response()->json([
+                    'status' => 'error', 
+                    'pesan' => 'Data laporan tidak ditemukan.'
+                ], 404);
+            }
+
+            if (!$laporan->KETERANGAN_BUKU) {
+                return response()->json([
+                    'status' => 'error', 
+                    'pesan' => 'File tidak ditemukan di database.'
+                ], 404);
+            }
+
+            $pathToFile = storage_path('app/public/laporan/' . $laporan->KETERANGAN_BUKU);
+
+            if (!file_exists($pathToFile)) {
+                return response()->json([
+                    'status' => 'error', 
+                    'pesan' => 'File fisik tidak ditemukan di server.'
+                ], 404);
+            }
+
+            $extension = pathinfo($pathToFile, PATHINFO_EXTENSION);
+            $filename = $laporan->JUDUL_KOLEKSI . '.' . $extension;
+            
+            return response()->download($pathToFile, $filename, [
+                'Content-Type' => mime_content_type($pathToFile),
+            ]);
+            
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error', 
+                'pesan' => 'Terjadi kesalahan: ' . $e->getMessage()
+            ], 500);
+        }
+    
+
+    }
+}   

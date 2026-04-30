@@ -11,7 +11,7 @@ const emptyForm = {
     pengarang: '',
     penerbit: '',
     tahun: '',
-    jumlah_ekslempar: '1',
+    jumlah_eksemplar: '1',
     no_rak_buku: '',
     keterangan_buku: '',
     id_ref_koleksi: '',
@@ -144,7 +144,7 @@ const ManajemenBukuPanel = ({ user }) => {
             pengarang: book.pengarang ?? '',
             penerbit: book.penerbit ?? '',
             tahun: String(book.tahun ?? ''),
-            jumlah_ekslempar: String(book.jumlah_ekslempar ?? '1'),
+            jumlah_eksemplar: String(book.jumlah_eksemplar ?? '1'),
             no_rak_buku: book.no_rak_buku ?? '',
             keterangan_buku: book.keterangan_buku ?? '',
             id_ref_koleksi: String(book.id_ref_koleksi ?? ''),
@@ -172,7 +172,7 @@ const ManajemenBukuPanel = ({ user }) => {
             pengarang: formData.pengarang.trim(),
             penerbit: formData.penerbit.trim(),
             tahun: formData.tahun.trim(),
-            jumlah_ekslempar: Number(formData.jumlah_ekslempar),
+            jumlah_eksemplar: Number(formData.jumlah_eksemplar),
             no_rak_buku: formData.no_rak_buku.trim(),
             keterangan_buku: formData.keterangan_buku.trim(),
             id_ref_koleksi: Number(formData.id_ref_koleksi),
@@ -427,7 +427,7 @@ const ManajemenBukuPanel = ({ user }) => {
                                     <td className="p-4 text-[#585858]">{book.kategori}</td>
                                     <td className="p-4 text-[#585858]">{book.no_rak_buku || '-'}</td>
                                     <td className="p-4 text-center">
-                                        <span className="bg-gray-100 px-2 py-1 rounded text-xs font-mono">{book.jumlah_ekslempar}</span>
+                                        <span className="bg-gray-100 px-2 py-1 rounded text-xs font-mono">{book.jumlah_eksemplar}</span>
                                     </td>
                                     <td className="p-4 text-center">
                                         <div className="flex justify-center gap-2 flex-wrap">
@@ -537,8 +537,8 @@ const ManajemenBukuPanel = ({ user }) => {
                                 </div>
                                 <div>
                                     <label className="block text-xs font-bold uppercase text-[#585858] mb-2">Jumlah Eksemplar<RequiredMark /></label>
-                                    <input name="jumlah_ekslempar" type="number" min="1" value={formData.jumlah_ekslempar} onChange={handleFormChange} className="w-full rounded-xl border p-3 text-sm outline-none focus:ring-2 focus:ring-[#265F9C]" />
-                                    {formErrors.jumlah_ekslempar && <p className="mt-1 text-xs text-red-600">{formErrors.jumlah_ekslempar[0]}</p>}
+                                    <input name="jumlah_eksemplar" type="number" min="1" value={formData.jumlah_eksemplar} onChange={handleFormChange} className="w-full rounded-xl border p-3 text-sm outline-none focus:ring-2 focus:ring-[#265F9C]" />
+                                    {formErrors.jumlah_eksemplar && <p className="mt-1 text-xs text-red-600">{formErrors.jumlah_eksemplar[0]}</p>}
                                 </div>
                                 <div className="md:col-span-2">
                                     <label className="block text-xs font-bold uppercase text-[#585858] mb-2">Nomor Rak<RequiredMark /></label>

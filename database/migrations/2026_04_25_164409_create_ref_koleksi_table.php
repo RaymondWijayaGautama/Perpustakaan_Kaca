@@ -17,7 +17,7 @@ return new class extends Migration
             $table->string('DESKRIPSI_KATEGORI')->nullable();
             $table->boolean('IS_DELETE')->nullable();
 
-            $table->unique(['ID_REF_KOLEKSI'], 'ref_koleksi_pk');
+            $table->unique(['ID_REF_KOLEKSI'], 'eksemplarpk');
         });
     }
 

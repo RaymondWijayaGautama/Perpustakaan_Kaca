@@ -170,7 +170,7 @@ const LaporanInventarisasiBukuBaruPanel = () => {
                   <td className="p-4 font-medium text-[#585858]">{item.no_rak_buku}</td>
                   <td className="p-4 text-center">
                     <span className="inline-flex items-center rounded-full bg-gray-100 px-3 py-1 text-xs font-bold text-[#1A1A1A]">
-                      {item.jumlah_ekslempar}
+                      {item.jumlah_eksemplar}
                     </span>
                   </td>
                 </tr>

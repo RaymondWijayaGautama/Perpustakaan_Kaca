@@ -16,6 +16,7 @@ import LaporanSiswaTerajinPanel from './LaporanSiswaTerajinPanel';
 import KunjunganBulananPanel from './KunjunganBulananPanel';
 import BukuTerpopulerPanel from './BukuTerpopulerPanel';
 import KategoriPopulerPanel from './KategoriPopulerPanel';
+import KategoriPanel from './KategoriPanel';
 
 const AdminPanel = ({ user, onLogout }) => {
     const [activeTab, setActiveTab] = useState('dashboard');
@@ -86,6 +87,7 @@ const AdminPanel = ({ user, onLogout }) => {
                     <nav className="flex flex-col space-y-2">
                         <div onClick={() => setActiveTab('dashboard')} className={`p-3 rounded-lg cursor-pointer transition-all ${activeTab === 'dashboard' ? 'bg-white text-[#265F9C] font-bold shadow-md' : 'hover:bg-white/10'}`}>Dashboard</div>
                         <div onClick={() => setActiveTab('koleksi')} className={`p-3 rounded-lg cursor-pointer transition-all ${activeTab === 'koleksi' ? 'bg-white text-[#265F9C] font-bold shadow-md' : 'hover:bg-white/10'}`}>Master Koleksi</div>
+                        <div onClick={() => setActiveTab('kategori')} className={`p-3 rounded-lg cursor-pointer transition-all ${activeTab === 'kategori' ? 'bg-white text-[#265F9C] font-bold shadow-md' : 'hover:bg-white/10'}`}>Kategori</div>
                         <div onClick={() => setActiveTab('buku')} className={`p-3 rounded-lg cursor-pointer transition-all ${activeTab === 'buku' ? 'bg-white text-[#265F9C] font-bold shadow-md' : 'hover:bg-white/10'}`}>Manajemen Buku</div>
                         <div onClick={() => { setActiveTab('anggota'); setAnggotaPage(1); }} className={`p-3 rounded-lg cursor-pointer transition-all ${activeTab === 'anggota' ? 'bg-white text-[#265F9C] font-bold shadow-md' : 'hover:bg-white/10'}`}>Data Anggota</div>
                         <div onClick={() => setActiveTab('laporan')} className={`p-3 rounded-lg cursor-pointer transition-all ${activeTab === 'laporan' ? 'bg-white text-[#265F9C] font-bold shadow-md' : 'hover:bg-white/10'}`}>Laporan PKL</div>
@@ -205,6 +207,7 @@ const AdminPanel = ({ user, onLogout }) => {
 
                 {activeTab === 'laporan' && <LaporanPKLPanel />} 
                 {activeTab === 'pengembalian' && <PengembalianPanel user={user} />}
+                {activeTab === 'kategori' && <KategoriPanel user={user} />}
                 {activeTab === 'peminjaman' && <PeminjamanPanel user={user} />}
                 {activeTab === 'pemusnahan' && <PemusnahanPanelV2 user={user} />}
                 {activeTab === 'riwayat_pinjam' && <RiwayatPinjamPanel user={user} />}

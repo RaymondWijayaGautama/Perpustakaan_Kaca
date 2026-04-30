@@ -28,7 +28,7 @@
                     <td>{{ $buku->tahun }}</td>
                     <td>{{ $buku->kategori ?? '-' }}</td>
                     <td>{{ $buku->no_rak_buku ?? '-' }}</td>
-                    <td>{{ $buku->jumlah_ekslempar }}</td>
+                    <td>{{ $buku->jumlah_eksemplar }}</td>
                 </tr>
             @empty
                 <tr>

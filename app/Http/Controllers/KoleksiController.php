@@ -126,4 +126,6 @@ class KoleksiController extends Controller
             'message' => 'Kategori berhasil dihapus.'
         ], 200);
     }
+    
+
 }

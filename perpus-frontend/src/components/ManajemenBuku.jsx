@@ -103,7 +103,7 @@ const handleGenerateBarcode = async (buku) => {
                                     <td className="p-4 font-bold text-[#1A1A1A]">{b.judul_koleksi}</td>
                                     <td className="p-4 text-[#585858]">{b.pengarang}</td>
                                     <td className="p-4 text-[#585858] italic text-xs max-w-xs truncate">{b.keterangan_buku || '-'}</td>
-                                    <td className="p-4 text-center"><span className="bg-gray-100 px-2 py-1 rounded text-xs font-mono">{b.jumlah_ekslempar}</span></td>
+                                    <td className="p-4 text-center"><span className="bg-gray-100 px-2 py-1 rounded text-xs font-mono">{b.jumlah_eksemplar}</span></td>
                                     <td className="p-4 text-center">
                                     <button 
                                             onClick={() => handleGenerateBarcode(b)} 

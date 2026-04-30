@@ -41,7 +41,7 @@ class KoleksiBukuController extends Controller
             'pengarang' => 'Penulis',
             'penerbit' => 'Penerbit',
             'tahun' => 'Tahun',
-            'jumlah_ekslempar' => 'Jumlah eksemplar',
+            'jumlah_eksemplar' => 'Jumlah eksemplar',
             'no_rak_buku' => 'Nomor rak',
             'keterangan_buku' => 'Keterangan',
             'id_ref_koleksi' => 'Kategori',
@@ -111,7 +111,7 @@ class KoleksiBukuController extends Controller
             'pengarang' => ['required', 'string', 'max:100'],
             'penerbit' => ['required', 'string', 'max:100'],
             'tahun' => ['required', 'digits:4'],
-            'jumlah_ekslempar' => ['required', 'integer', 'min:1'],
+            'jumlah_eksemplar' => ['required', 'integer', 'min:1'],
             'no_rak_buku' => ['required', 'string', 'max:100'],
             'keterangan_buku' => ['nullable', 'string', 'max:255'],
             'id_ref_koleksi' => [
@@ -194,7 +194,7 @@ class KoleksiBukuController extends Controller
                 'buku.TAHUN as tahun',
                 'buku.NB_KOLEKSI as nb_koleksi',
                 'buku.TGL_MASUK_KOLEKSI as tgl_masuk_koleksi',
-                'buku.JUMLAH_EKSEMPLAR as jumlah_ekslempar',
+                'buku.JUMLAH_EKSEMPLAR as jumlah_eksemplar',
                 'buku.JUMLAH_HALAMAN as jumlah_halaman',
                 'buku.UKURAN_BUKU as ukuran_buku',
                 'buku.BIBLIOGRAFI as bibliografi',
@@ -236,7 +236,7 @@ class KoleksiBukuController extends Controller
                 'buku.TAHUN as tahun',
                 'buku.NB_KOLEKSI as nb_koleksi',
                 'buku.TGL_MASUK_KOLEKSI as tgl_masuk_koleksi',
-                'buku.JUMLAH_EKSEMPLAR as jumlah_ekslempar',
+                'buku.JUMLAH_EKSEMPLAR as jumlah_eksemplar',
                 'buku.JUMLAH_HALAMAN as jumlah_halaman',
                 'buku.UKURAN_BUKU as ukuran_buku',
                 'buku.BIBLIOGRAFI as bibliografi',
@@ -304,7 +304,7 @@ class KoleksiBukuController extends Controller
                 'TAHUN' => trim((string) $payload['tahun']),
                 'NB_KOLEKSI' => $this->nextNbKoleksi(),
                 'TGL_MASUK_KOLEKSI' => now(),
-                'JUMLAH_EKSEMPLAR' => $payload['jumlah_ekslempar'],
+                'JUMLAH_EKSEMPLAR' => $payload['jumlah_eksemplar'],
                 'JUMLAH_HALAMAN' => 0,
                 'UKURAN_BUKU' => '-',
                 'BIBLIOGRAFI' => '-',
@@ -314,7 +314,7 @@ class KoleksiBukuController extends Controller
                 'IS_DELETE' => 0,
             ]);
 
-            $this->syncCopyRows($normalizedIsbn, (int) $payload['jumlah_ekslempar']);
+            $this->syncCopyRows($normalizedIsbn, (int) $payload['jumlah_eksemplar']);
         });
 
         $book = $this->fetchBook($this->normalizeIsbn((string) $payload['ISBN']));
@@ -356,7 +356,7 @@ class KoleksiBukuController extends Controller
                         'PENGARANG' => trim((string) $payload['pengarang']),
                         'PENERBIT' => trim((string) $payload['penerbit']),
                         'TAHUN' => trim((string) $payload['tahun']),
-                        'JUMLAH_EKSEMPLAR' => $payload['jumlah_ekslempar'],
+                        'JUMLAH_EKSEMPLAR' => $payload['jumlah_eksemplar'],
                         'KETERANGAN_BUKU' => trim((string) ($payload['keterangan_buku'] ?? '')),
                         'NO_RAK_BUKU' => trim((string) $payload['no_rak_buku']),
                     ]);
@@ -367,7 +367,7 @@ class KoleksiBukuController extends Controller
                         ->update(['ISBN' => $normalizedIsbn]);
                 }
 
-                if (!$this->syncCopyRows($normalizedIsbn, (int) $payload['jumlah_ekslempar'])) {
+                if (!$this->syncCopyRows($normalizedIsbn, (int) $payload['jumlah_eksemplar'])) {
                     throw new \RuntimeException('__COPY_SYNC_FAILED__');
                 }
             });

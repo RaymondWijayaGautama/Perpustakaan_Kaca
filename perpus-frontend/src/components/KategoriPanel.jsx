@@ -10,7 +10,7 @@ import {
 const KategoriPanel = () => {
   const [categories, setCategories] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [modalState, setModalState] = useState({ isOpen: false, type: 'add' }); // type: 'add' | 'edit'
+  const [modalState, setModalState] = useState({ isOpen: false, type: 'add' }); 
   const [formData, setFormData] = useState({
     ID_REF_KOLEKSI: '',
     NO_KATEGORI_BUKU: '',
@@ -18,21 +18,22 @@ const KategoriPanel = () => {
   });
   const [message, setMessage] = useState({ type: '', text: '' });
 
-  // --- PERBAIKAN: Tambahkan Accept application/json ---
+  const API_URL = 'http://localhost:8000/api/kategori'; 
+
   const getAuthHeader = () => ({
     headers: { 
-      Authorization: `Bearer ${localStorage.getItem('token')}`,
-      Accept: 'application/json'
+      'Authorization': `Bearer ${localStorage.getItem('token')}`,
+      'Accept': 'application/json',
+      'Content-Type': 'application/json'
     }
   });
 
-  // --- READ: Ambil Data Kategori ---
   const fetchCategories = async () => {
     setIsLoading(true);
     try {
-      // --- PERBAIKAN: Gunakan /api/koleksi ---
-      const response = await axios.get('http://localhost:8000/api/koleksi', getAuthHeader());
-      setCategories(response.data.data);
+      const response = await axios.get(API_URL, getAuthHeader());
+      const result = response.data.data || response.data;
+      setCategories(Array.isArray(result) ? result : []);
     } catch (error) {
       showMessage('error', 'Gagal memuat data kategori.');
     } finally {
@@ -44,32 +45,43 @@ const KategoriPanel = () => {
     fetchCategories();
   }, []);
 
-  // --- CREATE & UPDATE: Submit Form ---
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    // Payload kembali seperti semula, tanpa editor_nip_karyawan
+    const payload = {
+      NO_KATEGORI_BUKU: formData.NO_KATEGORI_BUKU,
+      DESKRIPSI_KATEGORI: formData.DESKRIPSI_KATEGORI
+    };
+
     try {
       if (modalState.type === 'add') {
-        // --- PERBAIKAN: Gunakan /api/koleksi ---
-        await axios.post('http://localhost:8000/api/koleksi', formData, getAuthHeader());
+        await axios.post(API_URL, payload, getAuthHeader());
         showMessage('success', 'Kategori berhasil ditambahkan.');
       } else {
-        // --- PERBAIKAN: Gunakan /api/koleksi ---
-        await axios.put(`http://localhost:8000/api/koleksi/${formData.ID_REF_KOLEKSI}`, formData, getAuthHeader());
+        await axios.put(`${API_URL}/${formData.ID_REF_KOLEKSI}`, payload, getAuthHeader());
         showMessage('success', 'Kategori berhasil diperbarui.');
       }
       closeModal();
       fetchCategories();
     } catch (error) {
-      showMessage('error', 'Gagal menyimpan data kategori.');
+      let errorMsg = 'Gagal menyimpan data kategori.';
+      if (error.response && error.response.status === 422) {
+         const validationErrors = error.response.data.errors;
+         if (validationErrors) {
+             errorMsg = Object.values(validationErrors)[0][0]; 
+         } else if (error.response.data.message) {
+             errorMsg = error.response.data.message;
+         }
+      }
+      showMessage('error', errorMsg);
     }
   };
 
-  // --- DELETE: Hapus (Soft Delete) ---
   const handleDelete = async (id) => {
     if (window.confirm('Apakah Anda yakin ingin menghapus kategori ini?')) {
       try {
-        // --- PERBAIKAN: Gunakan /api/koleksi ---
-        await axios.delete(`http://localhost:8000/api/koleksi/${id}`, getAuthHeader());
+        await axios.delete(`${API_URL}/${id}`, getAuthHeader());
         showMessage('success', 'Kategori berhasil dihapus.');
         fetchCategories();
       } catch (error) {
@@ -78,30 +90,34 @@ const KategoriPanel = () => {
     }
   };
 
-  // --- FUNGSI PENDUKUNG ---
   const openModal = (type, category = null) => {
     setModalState({ isOpen: true, type });
     if (category) {
-      setFormData(category);
+      setFormData({
+        ID_REF_KOLEKSI: category.ID_REF_KOLEKSI,
+        NO_KATEGORI_BUKU: category.NO_KATEGORI_BUKU || '',
+        DESKRIPSI_KATEGORI: category.DESKRIPSI_KATEGORI || ''
+      });
     } else {
       setFormData({ ID_REF_KOLEKSI: '', NO_KATEGORI_BUKU: '', DESKRIPSI_KATEGORI: '' });
     }
   };
 
-  const closeModal = () => setModalState({ isOpen: false, type: 'add' });
+  const closeModal = () => {
+    setModalState({ isOpen: false, type: 'add' });
+    setFormData({ ID_REF_KOLEKSI: '', NO_KATEGORI_BUKU: '', DESKRIPSI_KATEGORI: '' });
+  };
 
   const showMessage = (type, text) => {
     setMessage({ type, text });
-    setTimeout(() => setMessage({ type: '', text: '' }), 3000);
+    setTimeout(() => setMessage({ type: '', text: '' }), 4000);
   };
 
   return (
-    // Background default sistem Boda (#F6F7F9)
     <div className="min-h-screen bg-[#F6F7F9] p-6">
       
       <div className="max-w-6xl mx-auto">
         
-        {/* --- HEADER KONTEN --- */}
         <div className="flex justify-between items-center mb-6">
           <div>
             <h1 className="text-[28px] font-montserrat font-semibold text-[#1A1A1A] leading-[36px]">
@@ -121,7 +137,6 @@ const KategoriPanel = () => {
           </button>
         </div>
 
-        {/* --- ALERT MESSAGES --- */}
         {message.text && (
           <div className={`mb-4 p-4 rounded-[8px] font-roboto font-medium flex items-center ${
             message.type === 'success' ? 'bg-[#2E7D32]/10 text-[#2E7D32]' : 'bg-[#C62828]/10 text-[#C62828]'
@@ -130,7 +145,6 @@ const KategoriPanel = () => {
           </div>
         )}
 
-        {/* --- TABEL DATA (Elevation 2) --- */}
         <div className="bg-white rounded-[8px] shadow-[0_4px_8px_rgba(0,0,0,0.15)] overflow-hidden">
           <table className="w-full text-left border-collapse">
             <thead className="bg-[#F6F7F9] border-b border-gray-200">
@@ -156,7 +170,6 @@ const KategoriPanel = () => {
                     <td className="px-6 py-4">{item.DESKRIPSI_KATEGORI}</td>
                     <td className="px-6 py-4 flex items-center justify-center gap-4">
                       
-                      {/* Tombol Edit (#265F9C) */}
                       <button 
                         onClick={() => openModal('edit', item)}
                         className="flex items-center gap-1 text-[#265F9C] hover:text-[#1d4775] transition-colors"
@@ -166,7 +179,6 @@ const KategoriPanel = () => {
                         <span className="text-[14px]">Edit</span>
                       </button>
 
-                      {/* Tombol Hapus (#C62828) */}
                       <button 
                         onClick={() => handleDelete(item.ID_REF_KOLEKSI)}
                         className="flex items-center gap-1 text-[#C62828] hover:text-[#9e2020] transition-colors"
@@ -186,7 +198,6 @@ const KategoriPanel = () => {
 
       </div>
 
-      {/* --- MODAL FORM --- */}
       {modalState.isOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
           <div className="bg-white rounded-[8px] shadow-[0_4px_8px_rgba(0,0,0,0.15)] w-full max-w-lg overflow-hidden">
@@ -218,14 +229,14 @@ const KategoriPanel = () => {
                 <label className="block font-roboto text-[14px] text-[#585858] mb-1">
                   Deskripsi Kategori <span className="text-[#C62828]">*</span>
                 </label>
-                <input 
-                  type="text" 
+                <textarea 
                   required
+                  rows="4"
                   value={formData.DESKRIPSI_KATEGORI}
                   onChange={(e) => setFormData({...formData, DESKRIPSI_KATEGORI: e.target.value})}
-                  className="w-full border border-gray-300 rounded-[4px] px-3 py-2 font-roboto text-[#1A1A1A] focus:outline-none focus:border-[#265F9C] focus:ring-1 focus:ring-[#265F9C]"
-                  placeholder="Misal: Karya Umum"
-                />
+                  className="w-full border border-gray-300 rounded-[4px] px-3 py-2 font-roboto text-[#1A1A1A] focus:outline-none focus:border-[#265F9C] focus:ring-1 focus:ring-[#265F9C] resize-none"
+                  placeholder="Misal: Karya Umum (Buku yang mencakup pengetahuan dasar dari berbagai bidang...)"
+                ></textarea>
               </div>
 
               <div className="flex justify-end gap-3 mt-8 pt-4 border-t border-gray-100">
