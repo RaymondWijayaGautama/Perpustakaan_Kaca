@@ -56,9 +56,6 @@ class PengembalianController extends Controller
         }
     }
 
-    // =====================================================================
-    // TAMBAHAN: FUNGSI BARU UNTUK MENGAMBIL DAN MENCARI DATA PENGEMBALIAN
-    // =====================================================================
     public function history(Request $request)
     {
         $query = DB::table('tr_peminjaman as tp')
