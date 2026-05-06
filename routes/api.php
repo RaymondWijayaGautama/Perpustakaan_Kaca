@@ -10,6 +10,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\KoleksiController;
 use App\Http\Controllers\Api\LaporanPklController;
 use App\Http\Controllers\Pustakawan\BukuController;
+use App\Http\Controllers\Pustakawan\PengembalianController;
 
 Route::get('/peminjaman', [App\Http\Controllers\Api\PeminjamanController::class, 'index']);
 

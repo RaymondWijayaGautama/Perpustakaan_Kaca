@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\Api;
+namespace App\Http\Controllers\Pustakawan;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
@@ -56,48 +56,63 @@ class PengembalianController extends Controller
         }
     }
 
-    public function history(Request $request)
+   public function history(Request $request)
     {
-        $query = DB::table('tr_peminjaman as tp')
-            // Join ke tabel koleksi & buku untuk dapat judul
-            ->join('cp_koleksi as ck', 'tp.id_cp_koleksi', '=', 'ck.id_cp_koleksi')
-            ->join('mst_koleksi_buku as buku', 'ck.ISBN', '=', 'buku.ISBN')
-            // Join ke siswa & karyawan (LEFT JOIN karena peminjam bisa siswa atau karyawan)
-            ->leftJoin('mst_siswa as ms', 'tp.ID_SISWA_TETAP', '=', 'ms.id_siswa_tetap')
-            ->leftJoin('mst_karyawan as mk', 'tp.NIP_KARYAWAN', '=', 'mk.NIP_KARYAWAN')
-            // Hanya ambil data yang SUDAH dikembalikan (tanggal kembali tidak kosong)
-            ->whereNotNull('tp.tgl_kembali')
-            ->select(
-                'tp.id_tr_peminjaman as id_peminjaman',
-                'tp.tgl_kembali as tgl_kembali',
-                DB::raw('COALESCE(ms.nama_siswa_tetap, mk.NAMA_KARYAWAN) as nama_peminjam'),
-                DB::raw('COALESCE(ms.nisn_siswa, mk.NIP_KARYAWAN) as nisn_nip'),
-                'buku.judul_koleksi as judul_koleksi',
-                // Catatan: Pastikan nama kolom 'denda' dan 'kondisi' di bawah ini 
-                // sesuai dengan yang ada di struktur database lo ya!
-                'tp.denda as denda', 
-                'tp.kondisi as kondisi_buku_kembali' 
-            );
+        try {
+            $query = DB::table('tr_peminjaman as tp')
+                ->join('cp_koleksi as ck', 'tp.ID_CP_KOLEKSI', '=', 'ck.ID_CP_KOLEKSI')
+                ->join('mst_koleksi_buku as buku', 'ck.ISBN', '=', 'buku.ISBN')
+                ->leftJoin('mst_siswa as ms', 'tp.ID_SISWA_TETAP', '=', 'ms.ID_SISWA_TETAP')
+                ->leftJoin('mst_karyawan as mk', 'tp.NIP_KARYAWAN', '=', 'mk.NIP_KARYAWAN')
+                // KITA UBAH DISINI: Ambil yang TGL_KEMBALI ada isinya ATAU Statusnya 'Dikembalikan'
+                ->where(function($q) {
+                    $q->whereNotNull('tp.TGL_KEMBALI')
+                      ->orWhere('tp.STATUS_PEMINJAMAN', 'Dikembalikan');
+                })
+                ->select(
+                    'tp.ID_PEMINJAMAN',
+                    'tp.TGL_KEMBALI',
+                    'tp.STATUS_PEMINJAMAN',
+                    'ms.NAMA_SISWA_TETAP',
+                    'mk.NAMA_KARYAWAN',
+                    'ms.NISN_SISWA',
+                    'mk.NIP_KARYAWAN',
+                    'buku.JUDUL_KOLEKSI',
+                    'tp.DENDA_PEMINJAMAN',
+                    'tp.KONDISI_BUKU'
+                );
 
-        // Menangani Parameter Pencarian (Search) dari React
-        if ($request->filled('search')) {
-            $search = trim($request->search);
-            $query->where(function($q) use ($search) {
-                $q->where('ms.nama_siswa_tetap', 'like', "%{$search}%")
-                  ->orWhere('mk.NAMA_KARYAWAN', 'like', "%{$search}%")
-                  ->orWhere('ms.nisn_siswa', 'like', "%{$search}%")
-                  ->orWhere('mk.NIP_KARYAWAN', 'like', "%{$search}%")
-                  ->orWhere('buku.judul_koleksi', 'like', "%{$search}%")
-                  ->orWhere('tp.id_tr_peminjaman', 'like', "%{$search}%");
+            if ($request->filled('search')) {
+                $search = trim($request->search);
+                $query->where(function($q) use ($search) {
+                    $q->where('ms.NAMA_SISWA_TETAP', 'like', "%{$search}%")
+                      ->orWhere('mk.NAMA_KARYAWAN', 'like', "%{$search}%")
+                      ->orWhere('ms.NISN_SISWA', 'like', "%{$search}%")
+                      ->orWhere('mk.NIP_KARYAWAN', 'like', "%{$search}%")
+                      ->orWhere('buku.JUDUL_KOLEKSI', 'like', "%{$search}%")
+                      ->orWhere('tp.ID_PEMINJAMAN', 'like', "%{$search}%");
+                });
+            }
+
+            $riwayat = $query->orderBy('tp.ID_PEMINJAMAN', 'desc')->get();
+
+            $formattedData = $riwayat->map(function ($item) {
+                return [
+                    'id_peminjaman' => $item->ID_PEMINJAMAN,
+                    // Jika TGL_KEMBALI null tapi status Dikembalikan, kita beri tanda
+                    'tgl_kembali' => $item->TGL_KEMBALI ?? 'Proses Kembali',
+                    'nama_peminjam' => $item->NAMA_SISWA_TETAP ?? $item->NAMA_KARYAWAN ?? '-',
+                    'nisn_nip' => $item->NISN_SISWA ?? $item->NIP_KARYAWAN ?? '-',
+                    'judul_koleksi' => $item->JUDUL_KOLEKSI,
+                    'denda' => $item->DENDA_PEMINJAMAN ?? 0,
+                    'kondisi_buku_kembali' => $item->KONDISI_BUKU ?? 'Baik'
+                ];
             });
+
+            return response()->json(['status' => 'success', 'data' => $formattedData]);
+
+        } catch (\Exception $e) {
+            return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
         }
-
-        // Urutkan data berdasarkan tanggal kembali paling baru
-        $riwayat = $query->orderBy('tp.tgl_kembali', 'desc')->get();
-
-        return response()->json([
-            'status' => 'success',
-            'data' => $riwayat
-        ]);
     }
 }
