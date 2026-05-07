@@ -27,3 +27,5 @@ Route::get('/pustakawan/pemusnahan/{id}/berita-acara', [DashboardController::cla
 Route::get('/', function () {
     return view('welcome');
 });
+Route::get('/pustakawan/pengunjung', [\App\Http\Controllers\PengunjungController::class, 'index']);
+Route::get('/pustakawan/pengunjung/search', [\App\Http\Controllers\PengunjungController::class, 'search']);
