@@ -70,6 +70,26 @@ Route::get('/laporan-pkl', [LaporanPklController::class, 'index']);
 Route::get('/buku/laporan', [LaporanPklController::class, 'index']);
 
 // --- PEMUSNAHAN BUKU ---
+// Group Dashboard & Data
+Route::get('/dashboard/stats', [DashboardController::class, 'getStats']);
+Route::get('/anggota', [DashboardController::class, 'getAnggota']);
+Route::get('/buku', [KoleksiBukuController::class, 'index']);
+Route::post('/buku', [KoleksiBukuController::class, 'store']);
+Route::put('/buku/{isbn}', [KoleksiBukuController::class, 'update']);
+Route::delete('/buku/{isbn}', [KoleksiBukuController::class, 'destroy']);
+Route::get('/pengembalian', [DashboardController::class, 'getPengembalian']);
+Route::get('/buku/kategori', [MasterKoleksiController::class, 'options']);
+Route::get('/koleksi', [MasterKoleksiController::class, 'index']);
+Route::post('/koleksi', [MasterKoleksiController::class, 'store']);
+Route::put('/koleksi/{id}', [MasterKoleksiController::class, 'update']);
+Route::delete('/koleksi/{id}', [MasterKoleksiController::class, 'destroy']);
+Route::get('/anggota/{identifier}', [DashboardController::class, 'getAnggotaByIdentifier']);
+Route::get('/peminjaman/cek-aktif', [App\Http\Controllers\Api\PeminjamanController::class, 'cekAktif']);
+Route::post('/pengembalian/batch', [App\Http\Controllers\Api\PeminjamanController::class, 'batchReturn']);
+Route::get('/pengembalian/history', [PengembalianController::class, 'history']);
+// --- BAGIAN BARU: RUTE PEMUSNAHAN BUKU ---
+// Pastikan fungsi-fungsi ini (getHistoryPemusnahan, storePemusnahan, dll) 
+// sudah dibuat di DashboardController atau controller terkait.
 Route::get('/pemusnahan', [DashboardController::class, 'getHistoryPemusnahan']);
 Route::post('/pemusnahan', [DashboardController::class, 'storePemusnahan']);
 Route::get('/buku-rusak', [DashboardController::class, 'getBukuRusak']);
