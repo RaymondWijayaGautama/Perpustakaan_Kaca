@@ -7,7 +7,7 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\KoleksiBukuController;
 use App\Http\Controllers\Api\MasterKoleksiController;
 use App\Http\Controllers\DashboardController;
-
+<<<<<<< HEAD
 use App\Http\Controllers\KoleksiController;
 use App\Http\Controllers\Api\LaporanPklController;
 use App\Http\Controllers\Pustakawan\BukuController;
@@ -15,6 +15,9 @@ use App\Http\Controllers\Pustakawan\PengembalianController;
 
 // 1. Tampil Data
 Route::get('/laporan', [LaporanController::class, 'getLaporan']);
+=======
+// Tambahkan Import Ini
+use App\Http\Controllers\Pustakawan\BukuController;
 
 Route::post('/login', [AuthController::class, 'login']);
 
@@ -22,13 +25,14 @@ Route::post('/login', [AuthController::class, 'login']);
 Route::get('/laporan', [LaporanController::class, 'getLaporan']); 
 Route::delete('/laporan/hapus/{id}', [LaporanController::class, 'destroy']);
 Route::post('/laporan/ubah/{id}', [LaporanController::class, 'update']);
-
+>>>>>>> checkin
 Route::post('/laporan/tambah', [LaporanController::class, 'store']);
 Route::put('/laporan/ubah/{isbn}', [LaporanController::class, 'update']);
 Route::delete('/laporan/hapus/{isbn}', [LaporanController::class, 'destroy']);
 
 Route::get('/peminjaman', [App\Http\Controllers\Api\PeminjamanController::class, 'index']);
 
+<<<<<<< HEAD
 Route::post('/login', [AuthController::class, 'login']);
 
 Route::post('/generate-barcode', [KoleksiBukuController::class, 'generateBarcode']);
@@ -50,7 +54,8 @@ Route::get('/laporan/siswa-terajin', [LaporanController::class, 'siswaTerajin'])
 Route::get('/laporan/kunjungan-bulanan', [LaporanController::class, 'kunjunganBulanan']);
 Route::get('/laporan/buku-terpopuler', [LaporanController::class, 'bukuTerpopuler']);
 Route::get('/laporan/kategori-populer', [LaporanController::class, 'kategoriPopuler']);
-
+=======
+>>>>>>> checkin
 // Group Dashboard & Data
 Route::get('/dashboard/stats', [DashboardController::class, 'getStats']);
 Route::get('/anggota', [DashboardController::class, 'getAnggota']);
@@ -85,6 +90,7 @@ Route::post('/peminjaman', [App\Http\Controllers\Api\PeminjamanController::class
 Route::put('/peminjaman/{id}', [App\Http\Controllers\Api\PeminjamanController::class, 'update']);
 Route::delete('/peminjaman/{id}', [App\Http\Controllers\Api\PeminjamanController::class, 'destroy']);
 
+<<<<<<< HEAD
 //kategori buku
 Route::get('/koleksi', [KoleksiController::class, 'index']);
 Route::post('/koleksi', [KoleksiController::class, 'store']);
@@ -107,10 +113,11 @@ Route::post('/pengembalian/proses/{id}', [App\Http\Controllers\Api\PeminjamanCon
 Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
 })->middleware('auth:sanctum');
-
+=======
 // --- ROUTE UNTUK DENDA BUKU RUSAK (API) ---
 Route::post('/buku/denda-kerusakan', [BukuController::class, 'simpanDendaKerusakan']);
 
 Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
 });
+>>>>>>> checkin
