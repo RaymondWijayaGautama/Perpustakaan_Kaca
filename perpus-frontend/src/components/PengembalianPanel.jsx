@@ -186,18 +186,17 @@ const PengembalianBulkPanel = () => {
   const fetchRiwayatPengembalian = async () => {
     setLoadingRiwayat(true);
     try {
-      // Endpoint GET ini harus ngereturn semua data pengembalian, 
-      // tapi bisa difilter kalo 'search' ada isinya.
       const res = await axios.get(`http://localhost:8000/api/pengembalian/history`, {
         params: { search: searchQuery }
       });
       
-      // Mengatasi struktur response JSON Laravel (biasanya ada di .data.data kalau dipaginate, 
-      // atau langsung di .data kalau pake ->get())
-      setRiwayatData(res.data.data || res.data);
+      // Karena kita udah ngerapihin di Controller pakai PHP (formattedData), 
+      // strukturnya pasti rapi masuk ke res.data.data
+      setRiwayatData(res.data.data || []);
     } catch (err) {
-      // Kita ga nampilin toast error tiap kali fetch awal gagal biar ga spam, 
-      // cukup set state aja
+      // PERBAIKAN: Kalau ada error dari Controller, sekarang bakal langsung muncul di Pop-up biar lo tau salahnya apa!
+      const errorMsg = err.response?.data?.message || err.message;
+      showToast('error', `SERVER ERROR: ${errorMsg}`);
       setRiwayatData([]);
     } finally {
       setLoadingRiwayat(false);
@@ -429,7 +428,10 @@ const PengembalianBulkPanel = () => {
               type="button"
               onClick={() => {
                 setSearchQuery('');
-                setTimeout(() => fetchRiwayatPengembalian(), 0); // Refresh tanpa query
+                setTimeout(() => {
+                  setSearchQuery('');
+                  fetchRiwayatPengembalian();
+                }, 0);
               }}
               className="bg-slate-100 text-slate-500 border border-slate-300 px-4 py-2 font-bold uppercase hover:bg-slate-200 transition-colors"
             >
