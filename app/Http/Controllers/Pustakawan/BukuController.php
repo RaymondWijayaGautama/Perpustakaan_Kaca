@@ -6,27 +6,12 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use App\Imports\BukuImport;
-<<<<<<< HEAD
 use Illuminate\Validation\ValidationException;
 use Illuminate\Validation\Rule;
 
 class BukuController extends Controller
 {
     public function index(Request $request)
-=======
-use App\Exports\BukuExport;
-use Maatwebsite\Excel\Facades\Excel;
-
-// Import Class Kalkulasi
-use App\Http\Controllers\Pustakawan\KalkulasiDendaBukuRusak;
-
-class BukuController extends Controller
-{
-    /**
-     * Menampilkan daftar buku (digunakan untuk view blade jika ada)
-     */
-    public function index()
->>>>>>> checkin
     {
         $query = DB::table('mst_koleksi_buku as buku')
             ->leftJoin('ref_koleksi as kategori', 'buku.ID_REF_KOLEKSI', '=', 'kategori.ID_REF_KOLEKSI')
@@ -234,17 +219,6 @@ class BukuController extends Controller
         }
     }
 
-    /**
-     * Menampilkan halaman import excel
-     */
-    public function halamanImport()
-    {
-        return view('bukuimport');
-    }
-
-    /**
-     * Proses import data buku dari Excel
-     */
     public function importExcel(Request $request)
     {
         $nipKaryawan = $request->input('nip_karyawan', $request->query('nip', 'SYSTEM'));
@@ -275,7 +249,6 @@ class BukuController extends Controller
             return redirect()->back()->with('error', 'Gagal: ' . $e->getMessage());
         }
     }
-<<<<<<< HEAD
 
     public function halamanImport(Request $request)
     {
@@ -286,12 +259,7 @@ class BukuController extends Controller
             'nipKaryawan' => $nipKaryawan,
         ]);
     }
-=======
->>>>>>> checkin
 
-    /**
-     * Proses export data buku ke Excel
-     */
     public function exportExcel(Request $request)
 {
     // $this->ensurePustakawan($request->query('nip'));
@@ -326,7 +294,6 @@ class BukuController extends Controller
         });
     }
 
-<<<<<<< HEAD
     if ($request->filled('kategori')) {
         $query->where('buku.ID_REF_KOLEKSI', $request->kategori);
     }
@@ -346,69 +313,4 @@ class BukuController extends Controller
         'Content-Disposition' => "attachment; filename=\"{$namaFile}\"",
     ]);
 }
-=======
-    /**
-     * Method Utama: Menyimpan denda kerusakan via API (React)
-     * Menggunakan ISBN sebagai identitas pencarian buku
-     */
-    public function simpanDendaKerusakan(Request $request)
-    {
-        // 1. Validasi input dari Axios
-        $request->validate([
-            'id_buku' => 'required', // Variabel ini berisi ISBN yang dikirim dari React
-            'nominal_denda' => 'required|numeric',
-            'jenis_kerusakan' => 'required|string'
-        ]);
-
-        try {
-            // 2. Inisialisasi Class Kalkulasi Denda
-            $kalkulator = new KalkulasiDendaBukuRusak();
-
-            // 3. Jalankan logika hitungan denda
-            $hasil = $kalkulator->hitung(
-                $request->nominal_denda, 
-                $request->jenis_kerusakan
-            );
-
-            /**
-             * 4. Cari buku berdasarkan ISBN
-             * Karena Anda tidak menggunakan ID (Auto Increment), 
-             * kita cari menggunakan kolom ISBN atau isbn.
-             */
-            $buku = MstKoleksiBuku::where('ISBN', $request->id_buku)
-                                  ->orWhere('isbn', $request->id_buku)
-                                  ->first();
-
-            if ($buku) {
-                // Contoh: Tandai buku tetap aktif (is_delete = 0) 
-                // atau Anda bisa menambahkan kolom 'status_kondisi' => 'rusak'
-                $buku->update([
-                    'is_delete' => 0 
-                ]);
-            } else {
-                // Jika ISBN benar-benar tidak ada di database
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Buku dengan ISBN ' . $request->id_buku . ' tidak ditemukan di database.'
-                ], 404);
-            }
-
-            // 5. Kembalikan Response JSON ke React
-            return response()->json([
-                'success' => true,
-                'message' => 'Laporan denda kerusakan berhasil dicatat.',
-                'keterangan_denda' => $hasil['keterangan'],
-                'sanksi' => $hasil['sanksi'],
-                'data_kalkulasi' => $hasil
-            ], 200);
-
-        } catch (\Exception $e) {
-            // Tangani error jika terjadi kesalahan sistem
-            return response()->json([
-                'success' => false,
-                'message' => 'Gagal memproses denda: ' . $e->getMessage()
-            ], 500);
-        }
-    }
->>>>>>> checkin
 }
