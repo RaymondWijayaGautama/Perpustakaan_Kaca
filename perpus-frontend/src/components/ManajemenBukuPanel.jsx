@@ -17,9 +17,19 @@ const emptyForm = {
     id_ref_koleksi: '',
 };
 
+const fallbackCopyStatusOptions = ['Tersedia', 'Kembali', 'Rusak', 'Hilang', 'Nonaktif'];
+
 const RequiredMark = () => <span className="text-red-500 ml-1">*</span>;
 
 const normalizeIsbn = (value) => value.replace(/\D/g, '').slice(0, 13);
+
+const getUserNip = (user) => (
+    user?.nip_karyawan ||
+    user?.NIP_KARYAWAN ||
+    user?.nip ||
+    user?.NIP ||
+    ''
+);
 
 const formatIsbn = (value) => {
     const digits = normalizeIsbn(value);
@@ -44,6 +54,24 @@ const fetchBooksRequest = async ({ search, sortBy, sortOrder, kategori, page }) 
         params: { search, sort_by: sortBy, sort_order: sortOrder, kategori, page, per_page: 10 },
     })
 );
+
+const statusBadgeClass = (status) => {
+    const normalized = String(status || '').toLowerCase();
+
+    if (normalized === 'tersedia' || normalized === 'kembali') {
+        return 'bg-green-50 text-green-700 border-green-200';
+    }
+
+    if (normalized === 'dipinjam') {
+        return 'bg-amber-50 text-amber-700 border-amber-200';
+    }
+
+    if (normalized === 'rusak' || normalized === 'hilang') {
+        return 'bg-red-50 text-red-700 border-red-200';
+    }
+
+    return 'bg-gray-100 text-gray-700 border-gray-200';
+};
 
 const ManajemenBukuPanel = ({ user }) => {
     const [books, setBooks] = useState([]);
@@ -70,6 +98,14 @@ const ManajemenBukuPanel = ({ user }) => {
     const [showBarcodeModal, setShowBarcodeModal] = useState(false);
     const [barcodeData, setBarcodeData] = useState('');
     const [isGeneratingBarcode, setIsGeneratingBarcode] = useState(false);
+
+    const [conditionBook, setConditionBook] = useState(null);
+    const [showConditionModal, setShowConditionModal] = useState(false);
+    const [bookCopies, setBookCopies] = useState([]);
+    const [copyStatusOptions, setCopyStatusOptions] = useState(fallbackCopyStatusOptions);
+    const [isLoadingCopies, setIsLoadingCopies] = useState(false);
+    const [savingCopyId, setSavingCopyId] = useState(null);
+    const [conditionFeedback, setConditionFeedback] = useState({ type: '', message: '' });
 
     const deferredBookSearch = useDeferredValue(bookSearch);
     const isYearSort = bookSortBy === 'tahun';
@@ -166,7 +202,7 @@ const ManajemenBukuPanel = ({ user }) => {
         setFeedback({ type: '', message: '' });
 
         const payload = {
-            editor_nip_karyawan: user?.nip_karyawan,
+            editor_nip_karyawan: getUserNip(user),
             ISBN: normalizeIsbn(formData.ISBN),
             judul_koleksi: formData.judul_koleksi.trim(),
             pengarang: formData.pengarang.trim(),
@@ -241,7 +277,7 @@ const ManajemenBukuPanel = ({ user }) => {
         try {
             await axios.delete(`${API_BASE_URL}/buku/${selectedBook.ISBN}`, {
                 data: {
-                    editor_nip_karyawan: user?.nip_karyawan,
+                    editor_nip_karyawan: getUserNip(user),
                 },
             });
 
@@ -274,7 +310,7 @@ const ManajemenBukuPanel = ({ user }) => {
         try {
             const response = await axios.post(`${API_BASE_URL}/generate-barcode`, {
                 isbn: book.ISBN,
-                editor_nip_karyawan: user?.nip_karyawan,
+                editor_nip_karyawan: getUserNip(user),
             });
 
             setBarcodeData(response.data);
@@ -283,6 +319,68 @@ const ManajemenBukuPanel = ({ user }) => {
             setBarcodeData("<div class='text-red-500 p-4 text-center'>Gagal membuat barcode.</div>");
         } finally {
             setIsGeneratingBarcode(false);
+        }
+    };
+
+    const openConditionModal = async (book) => {
+        setConditionBook(book);
+        setShowConditionModal(true);
+        setBookCopies([]);
+        setConditionFeedback({ type: '', message: '' });
+        setIsLoadingCopies(true);
+
+        try {
+            const response = await axios.get(`${API_BASE_URL}/buku/${book.ISBN}/copies`);
+            setBookCopies(response.data.data?.copies || []);
+            setCopyStatusOptions(response.data.data?.status_options || fallbackCopyStatusOptions);
+        } catch (error) {
+            console.error(error);
+            setConditionFeedback({
+                type: 'error',
+                message: error.response?.data?.message || 'Gagal memuat kondisi copy buku.',
+            });
+        } finally {
+            setIsLoadingCopies(false);
+        }
+    };
+
+    const closeConditionModal = () => {
+        setShowConditionModal(false);
+        setConditionBook(null);
+        setBookCopies([]);
+        setSavingCopyId(null);
+        setConditionFeedback({ type: '', message: '' });
+    };
+
+    const handleCopyStatusChange = async (copy, nextStatus) => {
+        if (!nextStatus || nextStatus === copy.status_buku) {
+            return;
+        }
+
+        setSavingCopyId(copy.id_cp_koleksi);
+        setConditionFeedback({ type: '', message: '' });
+
+        try {
+            const response = await axios.patch(`${API_BASE_URL}/buku/copies/${copy.id_cp_koleksi}/status`, {
+                editor_nip_karyawan: getUserNip(user),
+                status_buku: nextStatus,
+            });
+
+            setBookCopies((current) => current.map((item) => (
+                item.id_cp_koleksi === copy.id_cp_koleksi
+                    ? { ...item, status_buku: response.data.data?.status_buku || nextStatus, sedang_dipinjam: false }
+                    : item
+            )));
+
+            setConditionFeedback({ type: 'success', message: 'Kondisi copy berhasil diperbarui.' });
+        } catch (error) {
+            console.error(error);
+            setConditionFeedback({
+                type: 'error',
+                message: error.response?.data?.message || 'Kondisi copy gagal diperbarui.',
+            });
+        } finally {
+            setSavingCopyId(null);
         }
     };
 
@@ -297,12 +395,12 @@ const ManajemenBukuPanel = ({ user }) => {
             params.set('kategori', bookKategori);
         }
 
-        params.set('nip', user?.nip_karyawan ?? '');
+        params.set('nip', getUserNip(user));
         window.open(`${EXPORT_URL}?${params.toString()}`, '_blank', 'noopener,noreferrer');
     };
 
     const handleImportExcel = () => {
-        const nip = encodeURIComponent(user?.nip_karyawan ?? '');
+        const nip = encodeURIComponent(getUserNip(user));
         window.open(`${IMPORT_URL}?nip=${nip}`, '_blank', 'noopener,noreferrer');
     };
 
@@ -452,6 +550,13 @@ const ManajemenBukuPanel = ({ user }) => {
                                             >
                                                 Barcode
                                             </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => openConditionModal(book)}
+                                                className="bg-slate-700 text-white text-[10px] px-3 py-1.5 rounded shadow hover:bg-slate-800 transition-colors"
+                                            >
+                                                Kondisi
+                                            </button>
                                         </div>
                                     </td>
                                 </tr>
@@ -587,6 +692,95 @@ const ManajemenBukuPanel = ({ user }) => {
                             </button>
                             <button type="button" onClick={handleDeleteBook} disabled={isDeleting} className="px-5 py-2 bg-[#C62828] text-white rounded-xl text-sm font-bold hover:bg-red-700 shadow-md transition-all disabled:opacity-50">
                                 {isDeleting ? 'Menghapus...' : 'Ya, Hapus Buku'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {showConditionModal && conditionBook && (
+                <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+                    <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-3xl relative">
+                        <button type="button" onClick={closeConditionModal} className="absolute top-4 right-4 text-gray-400 hover:text-red-500 font-bold text-xl transition-colors">
+                            &times;
+                        </button>
+                        <h2 className="text-xl font-bold font-montserrat mb-1 text-[#265F9C]">Edit Kondisi Buku</h2>
+                        <p className="text-sm text-[#585858] mb-5">
+                            {conditionBook.judul_koleksi} <span className="font-mono text-xs">({formatIsbn(conditionBook.ISBN)})</span>
+                        </p>
+
+                        {conditionFeedback.message && (
+                            <div className={`mb-4 rounded-xl border px-4 py-3 text-sm font-medium ${conditionFeedback.type === 'success' ? 'border-green-200 bg-green-50 text-green-700' : 'border-red-200 bg-red-50 text-red-700'}`}>
+                                {conditionFeedback.message}
+                            </div>
+                        )}
+
+                        {isLoadingCopies ? (
+                            <div className="text-center py-10 text-gray-500">Memuat kondisi copy...</div>
+                        ) : (
+                            <div className="overflow-x-auto border rounded-xl">
+                                <table className="w-full text-left">
+                                    <thead className="bg-gray-50 uppercase text-[10px] font-bold text-[#585858] border-b">
+                                        <tr>
+                                            <th className="p-4">ID Copy</th>
+                                            <th className="p-4">Status Saat Ini</th>
+                                            <th className="p-4">Ubah Kondisi</th>
+                                            <th className="p-4">Catatan</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {bookCopies.length === 0 ? (
+                                            <tr>
+                                                <td colSpan="4" className="p-8 text-center text-sm text-gray-500">Belum ada copy fisik untuk buku ini.</td>
+                                            </tr>
+                                        ) : (
+                                            bookCopies.map((copy) => {
+                                                const locked = copy.sedang_dipinjam || String(copy.status_buku || '').toLowerCase() === 'dimusnahkan';
+
+                                                return (
+                                                    <tr key={copy.id_cp_koleksi} className="border-b last:border-b-0 text-sm">
+                                                        <td className="p-4 font-mono font-bold text-[#265F9C]">#{copy.id_cp_koleksi}</td>
+                                                        <td className="p-4">
+                                                            <span className={`inline-flex rounded-full border px-3 py-1 text-xs font-bold ${statusBadgeClass(copy.status_buku)}`}>
+                                                                {copy.status_buku || 'Tersedia'}
+                                                            </span>
+                                                        </td>
+                                                        <td className="p-4">
+                                                            <select
+                                                                value={copy.status_buku || 'Tersedia'}
+                                                                disabled={locked || savingCopyId === copy.id_cp_koleksi}
+                                                                onChange={(event) => handleCopyStatusChange(copy, event.target.value)}
+                                                                className="w-full min-w-[160px] rounded-xl border p-3 text-sm outline-none focus:ring-2 focus:ring-[#265F9C] disabled:bg-gray-100 disabled:text-gray-500"
+                                                            >
+                                                                {copyStatusOptions.map((status) => (
+                                                                    <option key={status} value={status}>{status}</option>
+                                                                ))}
+                                                                {!copyStatusOptions.includes(copy.status_buku) && copy.status_buku && (
+                                                                    <option value={copy.status_buku}>{copy.status_buku}</option>
+                                                                )}
+                                                            </select>
+                                                        </td>
+                                                        <td className="p-4 text-xs text-[#7D7D7E]">
+                                                            {copy.sedang_dipinjam
+                                                                ? 'Sedang dipinjam, ubah melalui proses pengembalian.'
+                                                                : String(copy.status_buku || '').toLowerCase() === 'dimusnahkan'
+                                                                    ? 'Sudah dimusnahkan.'
+                                                                    : savingCopyId === copy.id_cp_koleksi
+                                                                        ? 'Menyimpan...'
+                                                                        : '-'}
+                                                        </td>
+                                                    </tr>
+                                                );
+                                            })
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
+                        )}
+
+                        <div className="mt-6 flex justify-end">
+                            <button type="button" onClick={closeConditionModal} className="px-5 py-2 bg-gray-100 text-gray-700 rounded-xl text-sm font-bold hover:bg-gray-200 transition-colors">
+                                Tutup
                             </button>
                         </div>
                     </div>

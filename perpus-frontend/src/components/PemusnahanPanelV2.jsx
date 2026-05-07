@@ -32,6 +32,14 @@ const formatWibDateTime = (value) => {
     }).format(date)} WIB`;
 };
 
+const getUserNip = (user) => (
+    user?.nip_karyawan ||
+    user?.NIP_KARYAWAN ||
+    user?.nip ||
+    user?.NIP ||
+    ""
+);
+
 const PemusnahanPanelV2 = ({ user }) => {
     const [tab, setTab] = useState("input");
     const [rows, setRows] = useState([]);
@@ -65,7 +73,7 @@ const PemusnahanPanelV2 = ({ user }) => {
     }, [tab, search, status]);
 
     const submit = async (isbn, alasan) => {
-        await axios.post(`${API}/api/pemusnahan`, { isbn, alasan, nip_karyawan: user.nip_karyawan });
+        await axios.post(`${API}/api/pemusnahan`, { isbn, alasan, nip_karyawan: getUserNip(user) });
         setFlash({ type: "success", text: "Pengajuan pemusnahan berhasil dicatat dan menunggu konfirmasi admin." });
         setForm({ isbn: "", alasan: "" });
         setTab("history");
@@ -73,7 +81,7 @@ const PemusnahanPanelV2 = ({ user }) => {
     };
 
     const confirmRow = async (id) => {
-        await axios.patch(`${API}/api/pemusnahan/${id}/konfirmasi`, { nip_karyawan: user.nip_karyawan });
+        await axios.patch(`${API}/api/pemusnahan/${id}/konfirmasi`, { nip_karyawan: getUserNip(user) });
         setFlash({ type: "success", text: "Pemusnahan disetujui. Berita acara siap dicetak." });
         const response = await axios.get(`${API}/api/pemusnahan`, { params: { search, status } });
         setRows(response.data);

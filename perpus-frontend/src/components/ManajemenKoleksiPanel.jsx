@@ -10,6 +10,14 @@ const emptyForm = {
 
 const RequiredMark = () => <span className="text-red-500 ml-1">*</span>;
 
+const getUserNip = (user) => (
+    user?.nip_karyawan ||
+    user?.NIP_KARYAWAN ||
+    user?.nip ||
+    user?.NIP ||
+    ''
+);
+
 const ManajemenKoleksiPanel = ({ user }) => {
     const [collections, setCollections] = useState([]);
     const [search, setSearch] = useState('');
@@ -107,7 +115,7 @@ const ManajemenKoleksiPanel = ({ user }) => {
         setFeedback({ type: '', message: '' });
 
         const payload = {
-            editor_nip_karyawan: user?.nip_karyawan,
+            editor_nip_karyawan: getUserNip(user),
             kode_kategori: formData.kode_kategori.trim(),
             deskripsi_kategori: formData.deskripsi_kategori.trim(),
         };
@@ -163,7 +171,7 @@ const ManajemenKoleksiPanel = ({ user }) => {
         try {
             await axios.delete(`${API_BASE_URL}/koleksi/${selectedCollection.id_ref_koleksi}`, {
                 data: {
-                    editor_nip_karyawan: user?.nip_karyawan,
+                    editor_nip_karyawan: getUserNip(user),
                 },
             });
 

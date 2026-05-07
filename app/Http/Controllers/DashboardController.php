@@ -20,6 +20,11 @@ class DashboardController extends Controller
         return DB::table('mst_karyawan')
             ->where('nip_karyawan', $nipKaryawan)
             ->where('is_delete', 0)
+            ->select(
+                'NIP_KARYAWAN as nip_karyawan',
+                'NAMA_KARYAWAN as nama_karyawan',
+                'JABATAN_FUNGSIONAL as jabatan_fungsional'
+            )
             ->first();
     }
 
@@ -48,28 +53,66 @@ class DashboardController extends Controller
         return null;
     }
 
+    private function parsePemusnahanIdentifier(string $value): array
+    {
+        $raw = trim($value);
+        $normalized = preg_replace('/\s+/', '', $raw) ?? '';
+
+        if (preg_match('/(?<isbn>97[89]\d{10})\D+(?<copy>\d+)$/', $normalized, $matches)) {
+            return [
+                'raw' => $raw,
+                'isbn' => $matches['isbn'],
+                'id_cp_koleksi' => (int) $matches['copy'],
+            ];
+        }
+
+        if (preg_match('/(?<isbn>97[89]\d{10})/', $normalized, $matches)) {
+            return [
+                'raw' => $raw,
+                'isbn' => $matches['isbn'],
+                'id_cp_koleksi' => null,
+            ];
+        }
+
+        return [
+            'raw' => $raw,
+            'isbn' => $normalized,
+            'id_cp_koleksi' => ctype_digit($normalized) ? (int) $normalized : null,
+        ];
+    }
+
     public function getStats()
     {
-        // 1. Menghitung jumlah total fisik buku (Kecuali kategori Laporan/PKL ID 4)
-        $totalBuku = DB::table('mst_koleksi_buku')
-            ->where('is_delete', 0)
-            ->where('id_ref_koleksi', '!=', 4) 
-            ->sum('jumlah_eksemplar');
+        $kategoriLaporan = DB::table('ref_koleksi')
+            ->where('NO_KATEGORI_BUKU', '4')
+            ->where('IS_DELETE', 0)
+            ->value('ID_REF_KOLEKSI');
 
-        // 2. Menghitung total anggota (Siswa + Karyawan)
-        $jumlahSiswa = DB::table('mst_siswa')->where('is_delete', 0)->count();
-        $jumlahKaryawan = DB::table('mst_karyawan')->where('is_delete', 0)->count();
+        $koleksiAktif = DB::table('mst_koleksi_buku')
+            ->where('IS_DELETE', 0);
 
-        // 3. Menghitung total Laporan PKL (id_ref_koleksi = 4)
-        $totalLaporan = DB::table('mst_koleksi_buku')
-            ->where('is_delete', 0)
-            ->where('id_ref_koleksi', 4)
-            ->count();
+        $totalBuku = (clone $koleksiAktif)
+            ->when($kategoriLaporan, function ($query) use ($kategoriLaporan) {
+                $query->where(function ($subQuery) use ($kategoriLaporan) {
+                    $subQuery->where('ID_REF_KOLEKSI', '!=', $kategoriLaporan)
+                        ->orWhereNull('ID_REF_KOLEKSI');
+                });
+            })
+            ->sum(DB::raw('COALESCE(JUMLAH_EKSEMPLAR, 0)'));
+
+        $jumlahSiswa = DB::table('mst_siswa')->where('IS_DELETE', 0)->count();
+        $jumlahKaryawan = DB::table('mst_karyawan')->where('IS_DELETE', 0)->count();
+        $totalAnggota = $jumlahSiswa + $jumlahKaryawan;
+
+        $totalLaporan = $kategoriLaporan
+            ? (clone $koleksiAktif)->where('ID_REF_KOLEKSI', $kategoriLaporan)->count()
+            : 0;
 
         return response()->json([
-            'total_buku' => $totalBuku,
-            'total_siswa' => $jumlahSiswa + $jumlahKaryawan,
-            'total_laporan' => $totalLaporan
+            'total_buku' => (int) $totalBuku,
+            'total_siswa' => $totalAnggota,
+            'total_anggota' => $totalAnggota,
+            'total_laporan' => (int) $totalLaporan
         ]);
     }
 
@@ -154,7 +197,10 @@ class DashboardController extends Controller
                     'ref_koleksi.DESKRIPSI_KATEGORI as kategori',
                 ])
                 ->where('mst_koleksi_buku.IS_DELETE', 0)
-                ->where('mst_koleksi_buku.ID_REF_KOLEKSI', '!=', 4);
+                ->where(function ($query) {
+                    $query->where('ref_koleksi.NO_KATEGORI_BUKU', '!=', '4')
+                        ->orWhereNull('ref_koleksi.NO_KATEGORI_BUKU');
+                });
 
             if ($search !== '') {
                 $query->where(function ($subQuery) use ($search) {
@@ -197,7 +243,10 @@ class DashboardController extends Controller
         try {
             $kategori = DB::table('ref_koleksi')
                 ->where('IS_DELETE', 0)
-                ->where('ID_REF_KOLEKSI', '!=', 4)
+                ->where(function ($query) {
+                    $query->where('NO_KATEGORI_BUKU', '!=', '4')
+                        ->orWhereNull('NO_KATEGORI_BUKU');
+                })
                 ->orderBy('DESKRIPSI_KATEGORI')
                 ->get([
                     'ID_REF_KOLEKSI as id_ref_koleksi',
@@ -406,16 +455,67 @@ class DashboardController extends Controller
                 return response()->json(['message' => 'Hanya pustakawan yang dapat mencatat pemusnahan buku.'], 403);
             }
 
+            $identifier = $this->parsePemusnahanIdentifier($request->isbn);
+
+            if (!$identifier['isbn']) {
+                return response()->json(['message' => 'Format ISBN/barcode tidak dikenali. Gunakan ISBN atau barcode ISBN/ID copy.'], 422);
+            }
+
             $buku = DB::table('mst_koleksi_buku')
-                ->where('ISBN', $request->isbn)
+                ->where('ISBN', $identifier['isbn'])
                 ->where('is_delete', 0)
+                ->select(
+                    'ISBN as isbn',
+                    'JUDUL_KOLEKSI as judul_koleksi',
+                    'KETERANGAN_BUKU as keterangan_buku',
+                    'JUMLAH_EKSEMPLAR as jumlah_eksemplar'
+                )
                 ->first();
 
             if (!$buku) {
                 return response()->json(['message' => 'ISBN tidak ditemukan atau sudah dihapus.'], 404);
             }
 
-            $kategoriPemusnahan = $this->getKategoriPemusnahan($buku, $request->alasan);
+            $copy = null;
+            if ($identifier['id_cp_koleksi']) {
+                $copy = DB::table('cp_koleksi')
+                    ->where('ID_CP_KOLEKSI', $identifier['id_cp_koleksi'])
+                    ->where('ISBN', $identifier['isbn'])
+                    ->select(
+                        'ID_CP_KOLEKSI as id_cp_koleksi',
+                        'ISBN',
+                        'STATUS_BUKU as status_buku'
+                    )
+                    ->first();
+
+                if (!$copy) {
+                    return response()->json(['message' => 'Copy fisik dari barcode tidak ditemukan untuk ISBN ini.'], 404);
+                }
+            }
+
+            $copyAktifDipinjam = DB::table('cp_koleksi')
+                ->where('cp_koleksi.ISBN', $identifier['isbn'])
+                ->when($identifier['id_cp_koleksi'], function ($query) use ($identifier) {
+                    $query->where('cp_koleksi.ID_CP_KOLEKSI', $identifier['id_cp_koleksi']);
+                })
+                ->whereExists(function ($query) {
+                    $query->select(DB::raw(1))
+                        ->from('tr_peminjaman')
+                        ->whereColumn('tr_peminjaman.ID_CP_KOLEKSI', 'cp_koleksi.ID_CP_KOLEKSI')
+                        ->whereNull('tr_peminjaman.TGL_KEMBALI')
+                        ->whereIn('tr_peminjaman.STATUS_PEMINJAMAN', ['Dipinjam', 'Terlambat']);
+                })
+                ->exists();
+
+            if ($copyAktifDipinjam) {
+                return response()->json(['message' => 'Buku masih sedang dipinjam. Proses pengembalian terlebih dahulu sebelum pemusnahan.'], 422);
+            }
+
+            $kondisiCopy = $copy?->status_buku ?? '';
+            $kategoriPemusnahan = $this->getKategoriPemusnahan(
+                (object) ['keterangan_buku' => trim(($buku->keterangan_buku ?? '') . ' ' . $kondisiCopy)],
+                $request->alasan
+            );
 
             if (!$kategoriPemusnahan) {
                 return response()->json([
@@ -424,7 +524,10 @@ class DashboardController extends Controller
             }
 
             $existing = DB::table('tr_pemusnahan')
-                ->where('isbn', $request->isbn)
+                ->where('isbn', $identifier['isbn'])
+                ->when($identifier['id_cp_koleksi'], function ($query) use ($identifier) {
+                    $query->where('id_cp_koleksi', $identifier['id_cp_koleksi']);
+                })
                 ->whereIn('status', ['menunggu_konfirmasi', 'disetujui'])
                 ->exists();
 
@@ -433,7 +536,8 @@ class DashboardController extends Controller
             }
 
             DB::table('tr_pemusnahan')->insert([
-                'isbn' => $request->isbn,
+                'isbn' => $identifier['isbn'],
+                'id_cp_koleksi' => $identifier['id_cp_koleksi'],
                 'alasan' => '[' . $kategoriPemusnahan . '] ' . trim($request->alasan),
                 'nip_karyawan' => $request->nip_karyawan,
                 'tanggal_pemusnahan' => Carbon::now(),
@@ -443,7 +547,8 @@ class DashboardController extends Controller
             ]);
 
             Log::info('Pemusnahan buku diajukan.', [
-                'isbn' => $request->isbn,
+                'isbn' => $identifier['isbn'],
+                'id_cp_koleksi' => $identifier['id_cp_koleksi'],
                 'judul' => $buku->judul_koleksi,
                 'kategori_pemusnahan' => $kategoriPemusnahan,
                 'petugas_pengaju' => $petugas->nip_karyawan,
@@ -491,13 +596,28 @@ class DashboardController extends Controller
 
     public function getBukuRusak()
     {
-        return response()->json(
-            DB::table('mst_koleksi_buku')
-                ->where('is_delete', 0)
-                ->where('keterangan_buku', 'like', '%Rusak%')
-                ->select('ISBN as isbn', 'judul_koleksi as judul', 'keterangan_buku as kondisi')
-                ->get()
-        );
+        $rusakDariKeterangan = DB::table('mst_koleksi_buku')
+            ->where('is_delete', 0)
+            ->where('keterangan_buku', 'like', '%Rusak%')
+            ->select(
+                'ISBN as isbn',
+                'judul_koleksi as judul',
+                'keterangan_buku as kondisi'
+            )
+            ->get();
+
+        $rusakDariCopy = DB::table('cp_koleksi')
+            ->join('mst_koleksi_buku', 'cp_koleksi.ISBN', '=', 'mst_koleksi_buku.ISBN')
+            ->where('mst_koleksi_buku.is_delete', 0)
+            ->whereIn('cp_koleksi.STATUS_BUKU', ['Rusak', 'Hilang', 'Nonaktif'])
+            ->select(
+                DB::raw("CONCAT(cp_koleksi.ISBN, '/', cp_koleksi.ID_CP_KOLEKSI) as isbn"),
+                'mst_koleksi_buku.judul_koleksi as judul',
+                'cp_koleksi.STATUS_BUKU as kondisi'
+            )
+            ->get();
+
+        return response()->json($rusakDariKeterangan->merge($rusakDariCopy)->values());
     }
 
     public function getBukuOverdue()
@@ -587,6 +707,11 @@ class DashboardController extends Controller
                 $buku = DB::table('mst_koleksi_buku')
                     ->where('ISBN', $pemusnahan->isbn)
                     ->where('is_delete', 0)
+                    ->select(
+                        'ISBN as isbn',
+                        'JUDUL_KOLEKSI as judul_koleksi',
+                        'JUMLAH_EKSEMPLAR as jumlah_eksemplar'
+                    )
                     ->first();
     
                 if (!$buku || (int) $buku->jumlah_eksemplar < 1) {
@@ -597,23 +722,32 @@ class DashboardController extends Controller
                     ->where('ISBN', $pemusnahan->isbn)
                     ->decrement('jumlah_eksemplar', 1);
     
-                $copy = DB::table('cp_koleksi')
+                $copyQuery = DB::table('cp_koleksi')
                     ->where('ISBN', $pemusnahan->isbn)
-                    ->where('status_buku', '!=', 'Dimusnahkan')
+                    ->where('STATUS_BUKU', '!=', 'Dimusnahkan')
                     ->whereNotExists(function ($query) {
                         $query->select(DB::raw(1))
                             ->from('tr_peminjaman')
-                            ->whereColumn('tr_peminjaman.id_cp_koleksi', 'cp_koleksi.id_cp_koleksi')
-                            ->whereNull('tr_peminjaman.tgl_kembali')
-                            ->whereIn('tr_peminjaman.status_peminjaman', ['Dipinjam', 'Terlambat']);
+                            ->whereColumn('tr_peminjaman.ID_CP_KOLEKSI', 'cp_koleksi.ID_CP_KOLEKSI')
+                            ->whereNull('tr_peminjaman.TGL_KEMBALI')
+                            ->whereIn('tr_peminjaman.STATUS_PEMINJAMAN', ['Dipinjam', 'Terlambat']);
                     })
-                    ->orderByDesc('id_cp_koleksi')
-                    ->first();
+                    ->select(
+                        'ID_CP_KOLEKSI as id_cp_koleksi',
+                        'ISBN',
+                        'STATUS_BUKU as status_buku'
+                    );
+
+                if ($pemusnahan->id_cp_koleksi) {
+                    $copyQuery->where('ID_CP_KOLEKSI', $pemusnahan->id_cp_koleksi);
+                }
+
+                $copy = $copyQuery->orderByDesc('ID_CP_KOLEKSI')->first();
     
                 if ($copy) {
                     DB::table('cp_koleksi')
-                        ->where('id_cp_koleksi', $copy->id_cp_koleksi)
-                        ->update(['status_buku' => 'Dimusnahkan']);
+                        ->where('ID_CP_KOLEKSI', $copy->id_cp_koleksi)
+                        ->update(['STATUS_BUKU' => 'Dimusnahkan']);
                 }
     
                 DB::table('tr_pemusnahan')

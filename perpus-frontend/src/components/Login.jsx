@@ -38,7 +38,15 @@ const Login = ({ setLoggedInUser }) => {
             
             localStorage.setItem('token', response.data.token);
             localStorage.setItem('userRole', response.data.role); 
-            setLoggedInUser(response.data.user);
+            if (response.data.access_log_id) {
+              localStorage.setItem('access_log_id', response.data.access_log_id);
+            }
+
+            setLoggedInUser({
+              ...response.data.user,
+              ACCESS_LOG_ID: response.data.access_log_id,
+              ROLE_LABEL: response.data.role,
+            });
 
           } catch (err) {
             const status = err.response?.status;

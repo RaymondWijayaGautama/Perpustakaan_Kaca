@@ -64,7 +64,17 @@ class BukuImport implements ToCollection, WithHeadingRow
                 'id_kategori' => [
                     'required',
                     Rule::exists('ref_koleksi', 'ID_REF_KOLEKSI')->where('IS_DELETE', 0),
-                    Rule::notIn([4]),
+                    function (string $attribute, mixed $value, \Closure $fail) {
+                        $isLaporanPkl = DB::table('ref_koleksi')
+                            ->where('ID_REF_KOLEKSI', (int) $value)
+                            ->where('NO_KATEGORI_BUKU', '4')
+                            ->where('IS_DELETE', 0)
+                            ->exists();
+
+                        if ($isLaporanPkl) {
+                            $fail('Kategori laporan PKL hanya dapat diimpor melalui panel Laporan PKL.');
+                        }
+                    },
                 ],
             ], [], [
                 'isbn' => "ISBN baris {$line}",

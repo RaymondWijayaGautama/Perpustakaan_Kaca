@@ -5,28 +5,38 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\LaporanController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\KoleksiBukuController;
+use App\Http\Controllers\Api\MasterKoleksiController;
+use App\Http\Controllers\Api\PeminjamanController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\KoleksiController;
 use App\Http\Controllers\Api\LaporanPklController;
+use App\Http\Controllers\Api\LogController;
 use App\Http\Controllers\Pustakawan\BukuController;
 
 // --- AUTH & USER ---
 Route::post('/login', [AuthController::class, 'login']);
+Route::post('/logout', [AuthController::class, 'logout']);
 Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
 });
 
-// --- TRANSAKSI PEMINJAMAN & PENGEMBALIAN ---
-Route::get('/peminjaman', [App\Http\Controllers\Api\PeminjamanController::class, 'index']);
-Route::post('/peminjaman', [App\Http\Controllers\Api\PeminjamanController::class, 'store']);
-Route::put('/peminjaman/{id}', [App\Http\Controllers\Api\PeminjamanController::class, 'update']);
-Route::delete('/peminjaman/{id}', [App\Http\Controllers\Api\PeminjamanController::class, 'destroy']);
-Route::get('/peminjaman/cek-aktif', [App\Http\Controllers\Api\PeminjamanController::class, 'cekAktif']);
+// --- LOG SISTEM ---
+Route::get('/logs/access', [LogController::class, 'access']);
+Route::get('/logs/activity', [LogController::class, 'activity']);
 
+// --- TRANSAKSI PEMINJAMAN & PENGEMBALIAN ---
+Route::get('/peminjaman/cek-aktif', [PeminjamanController::class, 'cekAktif']);
+Route::get('/peminjaman/overdue', [PeminjamanController::class, 'overdue']);
+Route::get('/peminjaman', [PeminjamanController::class, 'index']);
+Route::post('/peminjaman', [PeminjamanController::class, 'store']);
+Route::put('/peminjaman/{id}', [PeminjamanController::class, 'update']);
+Route::delete('/peminjaman/{id}', [PeminjamanController::class, 'destroy']);
+
+Route::get('/pengembalian/history', [PeminjamanController::class, 'historyPengembalian']);
 Route::get('/pengembalian', [DashboardController::class, 'getPengembalian']);
-Route::post('/pengembalian/batch', [App\Http\Controllers\Api\PeminjamanController::class, 'batchReturn']);
-Route::post('/pengembalian/scan', [App\Http\Controllers\Api\PeminjamanController::class, 'scanPengembalian']);
-Route::post('/pengembalian/proses/{id}', [App\Http\Controllers\Api\PeminjamanController::class, 'prosesPengembalian']);
+Route::post('/pengembalian/batch', [PeminjamanController::class, 'batchReturn']);
+Route::post('/pengembalian/scan', [PeminjamanController::class, 'scanPengembalian']);
+Route::post('/pengembalian/proses/{id}', [PeminjamanController::class, 'prosesPengembalian']);
 
 // --- DASHBOARD & ANGGOTA ---
 Route::get('/dashboard/stats', [DashboardController::class, 'getStats']);
@@ -34,8 +44,11 @@ Route::get('/anggota', [DashboardController::class, 'getAnggota']);
 Route::get('/anggota/{identifier}', [DashboardController::class, 'getAnggotaByIdentifier']);
 
 // --- MANAJEMEN BUKU (Koleksi Fisik) ---
+Route::get('/buku/kategori', [MasterKoleksiController::class, 'options']);
 Route::get('/buku', [KoleksiBukuController::class, 'index']);
 Route::post('/buku', [KoleksiBukuController::class, 'store']);
+Route::get('/buku/{isbn}/copies', [KoleksiBukuController::class, 'copies']);
+Route::patch('/buku/copies/{idCpKoleksi}/status', [KoleksiBukuController::class, 'updateCopyStatus']);
 Route::put('/buku/{isbn}', [KoleksiBukuController::class, 'update']);
 Route::delete('/buku/{isbn}', [KoleksiBukuController::class, 'destroy']);
 Route::post('/generate-barcode', [KoleksiBukuController::class, 'generateBarcode']);
@@ -71,22 +84,20 @@ Route::get('/buku/laporan', [LaporanPklController::class, 'index']);
 
 // --- PEMUSNAHAN BUKU ---
 // Group Dashboard & Data
-Route::get('/dashboard/stats', [DashboardController::class, 'getStats']);
+// Route::get('/dashboard/stats', [DashboardController::class, 'getStats']);
 Route::get('/anggota', [DashboardController::class, 'getAnggota']);
 Route::get('/buku', [KoleksiBukuController::class, 'index']);
 Route::post('/buku', [KoleksiBukuController::class, 'store']);
+Route::get('/buku/{isbn}/copies', [KoleksiBukuController::class, 'copies']);
+Route::patch('/buku/copies/{idCpKoleksi}/status', [KoleksiBukuController::class, 'updateCopyStatus']);
 Route::put('/buku/{isbn}', [KoleksiBukuController::class, 'update']);
 Route::delete('/buku/{isbn}', [KoleksiBukuController::class, 'destroy']);
 Route::get('/pengembalian', [DashboardController::class, 'getPengembalian']);
-Route::get('/buku/kategori', [MasterKoleksiController::class, 'options']);
 Route::get('/koleksi', [MasterKoleksiController::class, 'index']);
 Route::post('/koleksi', [MasterKoleksiController::class, 'store']);
 Route::put('/koleksi/{id}', [MasterKoleksiController::class, 'update']);
 Route::delete('/koleksi/{id}', [MasterKoleksiController::class, 'destroy']);
 Route::get('/anggota/{identifier}', [DashboardController::class, 'getAnggotaByIdentifier']);
-Route::get('/peminjaman/cek-aktif', [App\Http\Controllers\Api\PeminjamanController::class, 'cekAktif']);
-Route::post('/pengembalian/batch', [App\Http\Controllers\Api\PeminjamanController::class, 'batchReturn']);
-Route::get('/pengembalian/history', [PengembalianController::class, 'history']);
 // --- BAGIAN BARU: RUTE PEMUSNAHAN BUKU ---
 // Pastikan fungsi-fungsi ini (getHistoryPemusnahan, storePemusnahan, dll) 
 // sudah dibuat di DashboardController atau controller terkait.

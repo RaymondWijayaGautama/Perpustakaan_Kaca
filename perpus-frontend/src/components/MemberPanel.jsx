@@ -33,6 +33,7 @@ const MemberPanel = ({ user, onLogout }) => {
   const [pagination, setPagination] = useState({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [downloadingId, setDownloadingId] = useState(null);
   
   const deferredJudul = useDeferredValue(searchJudul);
   const deferredPenulis = useDeferredValue(filterPenulis);
@@ -85,6 +86,46 @@ const MemberPanel = ({ user, onLogout }) => {
       setSearchJudul('');
       setFilterPenulis('');
       setKategori('');
+  };
+
+  const handleDownloadLaporan = async (isbn, judul) => {
+    if (!isbn) return;
+
+    setDownloadingId(isbn);
+    setError('');
+
+    try {
+      const response = await axios.get(`${API_BASE_URL}/laporan/download/${isbn}`, {
+        responseType: 'blob',
+      });
+
+      const blob = new Blob([response.data], {
+        type: response.headers['content-type'] || 'application/octet-stream',
+      });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      const contentDisposition = response.headers['content-disposition'];
+      let filename = `${judul || 'laporan-pkl'}.pdf`;
+
+      if (contentDisposition) {
+        const match = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
+        if (match?.[1]) {
+          filename = match[1].replace(/['"]/g, '');
+        }
+      }
+
+      link.href = url;
+      link.setAttribute('download', filename);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error(err);
+      setError('Gagal mengunduh laporan. Pastikan file laporan tersedia di server.');
+    } finally {
+      setDownloadingId(null);
+    }
   };
 
   const displayName = user.nama_siswa_tetap || user.nama_karyawan || 'Member';
@@ -204,6 +245,17 @@ const MemberPanel = ({ user, onLogout }) => {
                         <span className="text-[#265F9C] font-bold">{book.no_rak_buku || 'TBA'}</span>
                     </p>
                   </div>
+
+                  {activeTab === 'laporan' && (
+                    <button
+                      type="button"
+                      onClick={() => handleDownloadLaporan(book.ISBN, book.judul_koleksi)}
+                      disabled={downloadingId === book.ISBN || !book.file_laporan}
+                      className="mt-5 w-full rounded-xl bg-[#265F9C] px-4 py-3 text-xs font-black uppercase tracking-widest text-white shadow-sm transition-all hover:bg-[#1C4673] active:scale-[0.98] disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-500"
+                    >
+                      {downloadingId === book.ISBN ? 'Mengunduh...' : 'Download Laporan'}
+                    </button>
+                  )}
                   
                   <div className="absolute -right-2 -bottom-2 w-12 h-12 bg-slate-50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"></div>
                 </article>

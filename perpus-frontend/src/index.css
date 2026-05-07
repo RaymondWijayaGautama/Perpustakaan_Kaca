@@ -79,16 +79,26 @@
   }
 }
 
-#reader img[alt="Camera based scan"] {
+.barcode-camera-reader img[alt="Camera based scan"] {
     display: none !important;
 }
 
 /* Atau kalau mau lebih galak, hapus semua gambar di dalam region scan */
-#reader__scan_region img {
+.barcode-camera-reader [id$="__scan_region"] img {
     display: none !important;
 }
 
 /* Hapus juga garis-garis kotak gak jelas bawaan library */
-#reader {
+.barcode-camera-reader {
     border: none !important;
+}
+
+.barcode-camera-reader video {
+    width: 100% !important;
+    min-height: 300px;
+    object-fit: cover;
+}
+
+.barcode-camera-reader [id$="__scan_region"] {
+    min-height: 300px;
 }

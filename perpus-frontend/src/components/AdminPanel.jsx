@@ -6,6 +6,7 @@ import PengembalianPanel from './PengembalianPanel';
 import PeminjamanPanel from './PeminjamanPanel';
 import RiwayatPinjamPanel from './RiwayatPinjamPanel';
 import PemusnahanPanelV2 from './PemusnahanPanelV2';
+import BukuBelumKembaliPanel from './BukuBelumKembaliPanel';
 import LaporanPeminjamanBulananPanel from './LaporanPeminjamanBulananPanel';
 import LaporanPeminjamanGuruPanel from './LaporanPeminjamanGuruPanel';
 import LaporanDistribusiKunjunganKelasPanel from './LaporanDistribusiKunjunganKelasPanel';
@@ -17,6 +18,7 @@ import KunjunganBulananPanel from './KunjunganBulananPanel';
 import BukuTerpopulerPanel from './BukuTerpopulerPanel';
 import KategoriPopulerPanel from './KategoriPopulerPanel';
 import KategoriPanel from './KategoriPanel';
+import LogPanel from './LogPanel';
 
 const AdminPanel = ({ user, onLogout }) => {
     const [activeTab, setActiveTab] = useState('dashboard');
@@ -93,8 +95,10 @@ const AdminPanel = ({ user, onLogout }) => {
                         <div onClick={() => setActiveTab('laporan')} className={`p-3 rounded-lg cursor-pointer transition-all ${activeTab === 'laporan' ? 'bg-white text-[#265F9C] font-bold shadow-md' : 'hover:bg-white/10'}`}>Laporan PKL</div>
                         <div onClick={() => setActiveTab('pengembalian')} className={`p-3 rounded-lg cursor-pointer transition-all ${activeTab === 'pengembalian' ? 'bg-white text-[#265F9C] font-bold shadow-md' : 'hover:bg-white/10'}`}>Pengembalian</div>
                         <div onClick={() => setActiveTab('peminjaman')} className={`p-3 rounded-lg cursor-pointer transition-all ${activeTab === 'peminjaman' ? 'bg-white text-[#265F9C] font-bold shadow-md' : 'hover:bg-white/10'}`}>Peminjaman Buku</div>
+                        <div onClick={() => setActiveTab('buku_belum_kembali')} className={`p-3 rounded-lg cursor-pointer transition-all ${activeTab === 'buku_belum_kembali' ? 'bg-white text-[#265F9C] font-bold shadow-md' : 'hover:bg-white/10'}`}>Buku Belum Kembali</div>
                         <div onClick={() => setActiveTab('pemusnahan')} className={`p-3 rounded-lg cursor-pointer transition-all ${activeTab === 'pemusnahan' ? 'bg-white text-[#265F9C] font-bold shadow-md' : 'hover:bg-white/10'}`}>Pemusnahan Buku</div>
                         <div onClick={() => setActiveTab('riwayat_pinjam')} className={`p-3 rounded-lg cursor-pointer transition-all ${activeTab === 'riwayat_pinjam' ? 'bg-white text-[#265F9C] font-bold shadow-md' : 'hover:bg-white/10'}`}>Riwayat Peminjaman</div>
+                        <div onClick={() => setActiveTab('logs')} className={`p-3 rounded-lg cursor-pointer transition-all ${activeTab === 'logs' ? 'bg-white text-[#265F9C] font-bold shadow-md' : 'hover:bg-white/10'}`}>Log Sistem</div>
                         <div onClick={() => setActiveTab('laporan_peminjaman_bulanan')} className={`p-3 rounded-lg cursor-pointer transition-all ${activeTab === 'laporan_peminjaman_bulanan' ? 'bg-white text-[#265F9C] font-bold shadow-md' : 'hover:bg-white/10'}`}>Statistik Peminjaman</div>
                         <div onClick={() => setActiveTab('laporan_peminjaman_guru')} className={`p-3 rounded-lg cursor-pointer transition-all ${activeTab === 'laporan_peminjaman_guru' ? 'bg-white text-[#265F9C] font-bold shadow-md' : 'hover:bg-white/10'}`}>Peminjaman Guru</div>
                         <div onClick={() => setActiveTab('laporan_inventarisasi_buku_baru')} className={`p-3 rounded-lg cursor-pointer transition-all ${activeTab === 'laporan_inventarisasi_buku_baru' ? 'bg-white text-[#265F9C] font-bold shadow-md' : 'hover:bg-white/10'}`}>Inventarisasi Buku Baru</div>
@@ -209,8 +213,10 @@ const AdminPanel = ({ user, onLogout }) => {
                 {activeTab === 'pengembalian' && <PengembalianPanel user={user} />}
                 {activeTab === 'kategori' && <KategoriPanel user={user} />}
                 {activeTab === 'peminjaman' && <PeminjamanPanel user={user} />}
+                {activeTab === 'buku_belum_kembali' && <BukuBelumKembaliPanel user={user} />}
                 {activeTab === 'pemusnahan' && <PemusnahanPanelV2 user={user} />}
                 {activeTab === 'riwayat_pinjam' && <RiwayatPinjamPanel user={user} />}
+                {activeTab === 'logs' && <LogPanel />}
                 {activeTab === 'laporan_peminjaman_bulanan' && <LaporanPeminjamanBulananPanel />}
                 {activeTab === 'laporan_peminjaman_guru' && <LaporanPeminjamanGuruPanel />}
                 {activeTab === 'laporan_inventarisasi_buku_baru' && <LaporanInventarisasiBukuBaruPanel />}

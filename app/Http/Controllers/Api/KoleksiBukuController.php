@@ -46,7 +46,22 @@ class KoleksiBukuController extends Controller
             'keterangan_buku' => 'Keterangan',
             'id_ref_koleksi' => 'Kategori',
             'isbn' => 'ISBN',
+            'status_buku' => 'Kondisi buku',
         ];
+    }
+
+    private function editableCopyStatuses(): array
+    {
+        return ['Tersedia', 'Kembali', 'Rusak', 'Hilang', 'Nonaktif'];
+    }
+
+    private function hasActiveLoan(int $idCpKoleksi): bool
+    {
+        return DB::table('tr_peminjaman')
+            ->where('ID_CP_KOLEKSI', $idCpKoleksi)
+            ->whereNull('TGL_KEMBALI')
+            ->whereIn('STATUS_PEMINJAMAN', ['Dipinjam', 'Terlambat'])
+            ->exists();
     }
 
     private function getPustakawan(?string $nipKaryawan): ?object
@@ -72,6 +87,29 @@ class KoleksiBukuController extends Controller
         }
 
         return null;
+    }
+
+    private function laporanPklCategoryId(): ?int
+    {
+        $id = DB::table('ref_koleksi')
+            ->where('NO_KATEGORI_BUKU', '4')
+            ->where('IS_DELETE', 0)
+            ->value('ID_REF_KOLEKSI');
+
+        return $id === null ? null : (int) $id;
+    }
+
+    private function isLaporanPklCategory(?int $idRefKoleksi): bool
+    {
+        if ($idRefKoleksi === null) {
+            return false;
+        }
+
+        return DB::table('ref_koleksi')
+            ->where('ID_REF_KOLEKSI', $idRefKoleksi)
+            ->where('NO_KATEGORI_BUKU', '4')
+            ->where('IS_DELETE', 0)
+            ->exists();
     }
 
     private function isbnRules(?string $ignoreIsbn = null): array
@@ -118,7 +156,11 @@ class KoleksiBukuController extends Controller
                 'required',
                 'integer',
                 Rule::exists('ref_koleksi', 'ID_REF_KOLEKSI')->where('IS_DELETE', 0),
-                Rule::notIn([4]),
+                function (string $attribute, mixed $value, \Closure $fail) {
+                    if ($this->isLaporanPklCategory((int) $value)) {
+                        $fail('Kategori laporan PKL hanya dapat dikelola melalui panel Laporan PKL.');
+                    }
+                },
             ],
         ], array_merge($this->validationMessages(), [
             'id_ref_koleksi.not_in' => 'Kategori laporan PKL tidak dapat dipakai di menu koleksi buku.',
@@ -216,6 +258,7 @@ class KoleksiBukuController extends Controller
         $sortBy = $request->query('sort_by', 'judul_koleksi');
         $sortOrder = strtolower((string) $request->query('sort_order', 'asc')) === 'desc' ? 'desc' : 'asc';
         $perPage = max(1, min((int) $request->query('per_page', 10), 50));
+        $laporanPklCategoryId = $this->laporanPklCategoryId();
 
         $allowedSort = [
             'judul_koleksi' => 'buku.JUDUL_KOLEKSI',
@@ -227,7 +270,13 @@ class KoleksiBukuController extends Controller
         $query = DB::table('mst_koleksi_buku as buku')
             ->join('ref_koleksi as kategori', 'buku.ID_REF_KOLEKSI', '=', 'kategori.ID_REF_KOLEKSI')
             ->where('buku.IS_DELETE', 0)
-            ->where('buku.ID_REF_KOLEKSI', '!=', 4)
+            ->when($laporanPklCategoryId, function ($query) use ($laporanPklCategoryId) {
+                $query->where('buku.ID_REF_KOLEKSI', '!=', $laporanPklCategoryId);
+            })
+            ->where(function ($query) {
+                $query->where('kategori.NO_KATEGORI_BUKU', '!=', '4')
+                    ->orWhereNull('kategori.NO_KATEGORI_BUKU');
+            })
             ->select([
                 'buku.ISBN',
                 'buku.JUDUL_KOLEKSI as judul_koleksi',
@@ -473,6 +522,102 @@ class KoleksiBukuController extends Controller
         ]);
     }
 
+    public function copies(string $isbn): JsonResponse
+    {
+        $book = $this->fetchBook($isbn);
+
+        if (!$book) {
+            return response()->json([
+                'message' => 'Data buku tidak ditemukan.',
+            ], 404);
+        }
+
+        $copies = DB::table('cp_koleksi')
+            ->where('ISBN', $isbn)
+            ->orderBy('ID_CP_KOLEKSI')
+            ->get([
+                'ID_CP_KOLEKSI as id_cp_koleksi',
+                'ISBN',
+                'STATUS_BUKU as status_buku',
+            ])
+            ->map(function ($copy) {
+                $copy->sedang_dipinjam = $this->hasActiveLoan((int) $copy->id_cp_koleksi);
+                return $copy;
+            });
+
+        return response()->json([
+            'data' => [
+                'book' => $book,
+                'copies' => $copies,
+                'status_options' => $this->editableCopyStatuses(),
+            ],
+        ]);
+    }
+
+    public function updateCopyStatus(Request $request, int $idCpKoleksi): JsonResponse
+    {
+        $validator = validator($request->all(), [
+            'editor_nip_karyawan' => ['required', 'string', 'max:20'],
+            'status_buku' => ['required', 'string', Rule::in($this->editableCopyStatuses())],
+        ], $this->validationMessages(), $this->validationAttributes());
+
+        if ($validator->fails()) {
+            return response()->json([
+                'message' => 'Validasi data gagal.',
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
+        if ($authError = $this->ensurePustakawan($request->editor_nip_karyawan)) {
+            return $authError;
+        }
+
+        $copy = DB::table('cp_koleksi as copy')
+            ->join('mst_koleksi_buku as buku', 'copy.ISBN', '=', 'buku.ISBN')
+            ->where('copy.ID_CP_KOLEKSI', $idCpKoleksi)
+            ->where('buku.IS_DELETE', 0)
+            ->select([
+                'copy.ID_CP_KOLEKSI as id_cp_koleksi',
+                'copy.ISBN',
+                'copy.STATUS_BUKU as status_buku',
+                'buku.JUDUL_KOLEKSI as judul_koleksi',
+            ])
+            ->first();
+
+        if (!$copy) {
+            return response()->json([
+                'message' => 'Copy fisik buku tidak ditemukan.',
+            ], 404);
+        }
+
+        if ($this->hasActiveLoan($idCpKoleksi)) {
+            return response()->json([
+                'message' => 'Kondisi copy tidak bisa diubah karena buku sedang dipinjam.',
+            ], 409);
+        }
+
+        if (strtolower((string) $copy->status_buku) === 'dimusnahkan') {
+            return response()->json([
+                'message' => 'Copy yang sudah dimusnahkan tidak bisa diubah dari manajemen buku.',
+            ], 409);
+        }
+
+        DB::table('cp_koleksi')
+            ->where('ID_CP_KOLEKSI', $idCpKoleksi)
+            ->update(['STATUS_BUKU' => $request->status_buku]);
+
+        return response()->json([
+            'message' => 'Kondisi buku berhasil diperbarui.',
+            'data' => [
+                'id_cp_koleksi' => $idCpKoleksi,
+                'ISBN' => $copy->ISBN,
+                'judul_koleksi' => $copy->judul_koleksi,
+                'status_buku' => $request->status_buku,
+                'sedang_dipinjam' => false,
+            ],
+        ]);
+    }
+
     public function generateBarcode(Request $request): JsonResponse
     {
         $validator = validator($request->all(), [
@@ -503,6 +648,12 @@ class KoleksiBukuController extends Controller
             ], 404);
         }
 
+        if ($this->isLaporanPklCategory((int) $buku->ID_REF_KOLEKSI)) {
+            return response()->json([
+                'message' => 'Barcode laporan PKL hanya dikelola melalui panel Laporan PKL.',
+            ], 422);
+        }
+
         DB::transaction(function () use ($isbn, $buku) {
             $copyCount = (int) DB::table('cp_koleksi')->where('ISBN', $isbn)->count();
 
@@ -525,12 +676,12 @@ class KoleksiBukuController extends Controller
         try {
             $generator = new BarcodeGeneratorPNG();
             $barcodePng = base64_encode(
-                $generator->getBarcode($barcodeValue, $generator::TYPE_CODE_128, 2, 60)
+                $generator->getBarcode($barcodeValue, $generator::TYPE_CODE_128, 3, 90)
             );
             $barcodeHtml = "<img src='data:image/png;base64,{$barcodePng}' alt='Barcode {$barcodeValue}' style='display:block;max-width:100%;height:auto;' />";
         } catch (\Throwable $exception) {
             $generator = new BarcodeGeneratorSVG();
-            $barcodeSvg = $generator->getBarcode($barcodeValue, $generator::TYPE_CODE_128, 2, 60);
+            $barcodeSvg = $generator->getBarcode($barcodeValue, $generator::TYPE_CODE_128, 3, 90);
             $barcodeHtml = "<div style='display:flex;justify-content:center;width:100%;'>{$barcodeSvg}</div>";
         }
 

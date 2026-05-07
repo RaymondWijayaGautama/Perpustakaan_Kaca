@@ -1,6 +1,14 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import axios from "axios";
-import { Html5QrcodeScanner } from "html5-qrcode";
+import BarcodeCameraScanner from "./BarcodeCameraScanner";
+
+const getUserNip = (user) => (
+    user?.nip_karyawan ||
+    user?.NIP_KARYAWAN ||
+    user?.nip ||
+    user?.NIP ||
+    ''
+);
 
 const PeminjamanPanel = ({ user }) => {
     const [idCpKoleksi, setIdCpKoleksi] = useState("");
@@ -15,7 +23,7 @@ const PeminjamanPanel = ({ user }) => {
             await axios.post("http://localhost:8000/api/peminjaman", {
                 isbn: idCpKoleksi,  
                 id_siswa_tetap: idSiswa,
-                nip_karyawan: user.nip_karyawan || "P001" 
+                nip_karyawan: getUserNip(user)
             });
             setMsg({ status: "success", text: "Berhasil! Buku resmi dipinjam." });
             setIdCpKoleksi("");
@@ -24,20 +32,6 @@ const PeminjamanPanel = ({ user }) => {
             setMsg({ status: "error", text: error.response?.data?.message || "Gagal memproses." });
         }
     };
-
-    useEffect(() => {
-        const scanner = new Html5QrcodeScanner("reader", {
-            fps: 10,
-            qrbox: { width: 250, height: 150 },
-        });
-
-        scanner.render((data) => {
-            setIdCpKoleksi(data); 
-            scanner.clear(); 
-        }, () => {});
-
-        return () => scanner.clear();
-    }, []);
 
     return (
         <div className="bg-white rounded-2xl shadow-lg p-8 max-w-4xl mx-auto border border-gray-100">
@@ -54,13 +48,15 @@ const PeminjamanPanel = ({ user }) => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
                 <div>
                     <label className="block text-xs font-black uppercase text-gray-400 mb-2 tracking-widest">Langkah 1: Scan Barcode Buku</label>
-                    <div id="reader" className="overflow-hidden rounded-2xl border-2 border-dashed border-gray-200 bg-gray-50"></div>
-                    <p className="text-[20px] text-gray-500 mt-2 text-center ">Arahkan barcode buku ke scanner</p>
+                    <BarcodeCameraScanner
+                        readerId="peminjaman-reader"
+                        onScan={(data) => setIdCpKoleksi(data)}
+                    />
                 </div>
 
                 <form onSubmit={handlePinjam} className="space-y-5">
                     <div>
-                        <label className="block text-sm font-bold mb-2">ISBN Koleksi Buku Terisi Otomatis</label>
+                        <label className="block text-sm font-bold mb-2">Barcode Koleksi Buku</label>
                         <input 
                             type="text" value={idCpKoleksi} onChange={(e) => setIdCpKoleksi(e.target.value)}
                             placeholder="Scan barcode atau ketik ISBN buku"

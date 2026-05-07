@@ -10,6 +10,192 @@ use Illuminate\Support\Facades\Log;
 
 class PeminjamanController extends Controller
 {
+    private const ACTIVE_LOAN_STATUSES = ['Dipinjam', 'Terlambat'];
+
+    private function getPustakawan(?string $nipKaryawan): ?object
+    {
+        if (!$nipKaryawan) {
+            return null;
+        }
+
+        return DB::table('mst_karyawan')
+            ->where('NIP_KARYAWAN', $nipKaryawan)
+            ->where('IS_DELETE', 0)
+            ->first();
+    }
+
+    private function ensurePustakawan(?string $nipKaryawan)
+    {
+        $petugas = $this->getPustakawan($nipKaryawan);
+
+        if (!$petugas || strtolower((string) $petugas->JABATAN_FUNGSIONAL) !== 'pustakawan') {
+            return response()->json([
+                'message' => 'Hanya pustakawan yang dapat mengecek buku overdue.',
+            ], 403);
+        }
+
+        return null;
+    }
+
+    private function parseBarcodeInput(?string $value): array
+    {
+        $raw = trim((string) $value);
+
+        if ($raw === '') {
+            return [
+                'raw' => '',
+                'isbn' => null,
+                'id_cp_koleksi' => null,
+            ];
+        }
+
+        if (preg_match('/^(?<isbn>.+)\/(?<copy>\d+)$/', $raw, $matches)) {
+            $isbn = trim($matches['isbn']);
+            $isbnDigits = preg_replace('/\D/', '', $isbn);
+
+            return [
+                'raw' => $raw,
+                'isbn' => strlen($isbnDigits) >= 10 ? $isbnDigits : $isbn,
+                'id_cp_koleksi' => (int) $matches['copy'],
+            ];
+        }
+
+        $numeric = preg_replace('/\D/', '', $raw);
+
+        if (preg_match('/^97[89]\d{10}$/', $numeric)) {
+            return [
+                'raw' => $raw,
+                'isbn' => $numeric,
+                'id_cp_koleksi' => null,
+            ];
+        }
+
+        if (preg_match('/^(?<isbn>.+)-(?<copy>\d+)$/', $raw, $matches)) {
+            $isbn = trim($matches['isbn']);
+            $isbnDigits = preg_replace('/\D/', '', $isbn);
+
+            return [
+                'raw' => $raw,
+                'isbn' => strlen($isbnDigits) >= 10 ? $isbnDigits : $isbn,
+                'id_cp_koleksi' => (int) $matches['copy'],
+            ];
+        }
+
+        if ($numeric !== '' && strlen($numeric) >= 10) {
+            return [
+                'raw' => $raw,
+                'isbn' => $numeric,
+                'id_cp_koleksi' => null,
+            ];
+        }
+
+        return [
+            'raw' => $raw,
+            'isbn' => null,
+            'id_cp_koleksi' => ctype_digit($raw) ? (int) $raw : null,
+        ];
+    }
+
+    private function copyQuery()
+    {
+        return DB::table('cp_koleksi as copy')
+            ->join('mst_koleksi_buku as buku', 'copy.ISBN', '=', 'buku.ISBN')
+            ->where('buku.IS_DELETE', 0)
+            ->select(
+                'copy.ID_CP_KOLEKSI as id_cp_koleksi',
+                'copy.ISBN',
+                'copy.STATUS_BUKU as status_buku',
+                'buku.JUDUL_KOLEKSI as judul_koleksi'
+            );
+    }
+
+    private function normalizeStatus(?string $status): string
+    {
+        return strtolower(trim((string) $status));
+    }
+
+    private function hasActiveLoan(int $idCpKoleksi): bool
+    {
+        return $this->activeLoanQuery()
+            ->where('ID_CP_KOLEKSI', $idCpKoleksi)
+            ->exists();
+    }
+
+    private function activeLoanQuery()
+    {
+        return DB::table('tr_peminjaman')
+            ->whereNull('TGL_KEMBALI')
+            ->whereIn('STATUS_PEMINJAMAN', self::ACTIVE_LOAN_STATUSES);
+    }
+
+    private function prepareBorrowableCopy(object $copy): object|string
+    {
+        if ($this->hasActiveLoan((int) $copy->id_cp_koleksi)) {
+            return 'Buku ini sedang dipinjam atau belum diproses pengembaliannya.';
+        }
+
+        $status = $this->normalizeStatus($copy->status_buku);
+
+        if (in_array($status, ['tersedia', 'kembali'], true)) {
+            return $copy;
+        }
+
+        if ($status === 'dipinjam') {
+            DB::table('cp_koleksi')
+                ->where('ID_CP_KOLEKSI', $copy->id_cp_koleksi)
+                ->update(['STATUS_BUKU' => 'Tersedia']);
+
+            $copy->status_buku = 'Tersedia';
+
+            return $copy;
+        }
+
+        return "Buku tidak bisa dipinjam karena status fisik saat ini: {$copy->status_buku}.";
+    }
+
+    private function resolveBorrowableCopy(array $barcode): object|array|null
+    {
+        if ($barcode['id_cp_koleksi']) {
+            $query = $this->copyQuery()
+                ->where('copy.ID_CP_KOLEKSI', $barcode['id_cp_koleksi']);
+
+            if ($barcode['isbn']) {
+                $query->where('copy.ISBN', $barcode['isbn']);
+            }
+
+            $copy = $query->first();
+
+            if (!$copy) {
+                return null;
+            }
+
+            $prepared = $this->prepareBorrowableCopy($copy);
+
+            return is_string($prepared) ? ['message' => $prepared] : $prepared;
+        }
+
+        if (!$barcode['isbn']) {
+            return ['message' => 'Format barcode tidak dikenali. Gunakan format ISBN/ID_COPY dari barcode buku.'];
+        }
+
+        $copies = $this->copyQuery()
+            ->where('copy.ISBN', $barcode['isbn'])
+            ->orderBy('copy.ID_CP_KOLEKSI')
+            ->get();
+
+        foreach ($copies as $copy) {
+            $prepared = $this->prepareBorrowableCopy($copy);
+
+            if (!is_string($prepared)) {
+                return $prepared;
+            }
+        }
+
+        return $copies->isEmpty()
+            ? null
+            : ['message' => 'Semua eksemplar buku ini sedang dipinjam atau tidak tersedia.'];
+    }
+
     public function index(Request $request)
     {
         try {
@@ -47,31 +233,112 @@ class PeminjamanController extends Controller
         }
     }
 
+    public function overdue(Request $request)
+    {
+        $validator = validator($request->all(), [
+            'editor_nip_karyawan' => ['required', 'string', 'max:20'],
+            'min_hari_terlambat' => ['nullable', 'integer', 'min:1', 'max:3650'],
+            'search' => ['nullable', 'string', 'max:100'],
+        ], [
+            'editor_nip_karyawan.required' => 'Identitas pustakawan wajib dikirim.',
+            'min_hari_terlambat.integer' => 'Batas hari harus berupa angka.',
+            'min_hari_terlambat.min' => 'Batas hari minimal 1 hari.',
+            'min_hari_terlambat.max' => 'Batas hari terlalu besar.',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'message' => 'Validasi data gagal.',
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
+        if ($authError = $this->ensurePustakawan($request->editor_nip_karyawan)) {
+            return $authError;
+        }
+
+        $minHariTerlambat = (int) $request->query('min_hari_terlambat', 30);
+        $search = trim((string) $request->query('search', ''));
+        $today = Carbon::now()->toDateString();
+
+        $query = DB::table('tr_peminjaman as peminjaman')
+            ->join('cp_koleksi as copy', 'peminjaman.ID_CP_KOLEKSI', '=', 'copy.ID_CP_KOLEKSI')
+            ->join('mst_koleksi_buku as buku', 'copy.ISBN', '=', 'buku.ISBN')
+            ->leftJoin('mst_siswa as siswa', 'peminjaman.ID_SISWA_TETAP', '=', 'siswa.ID_SISWA_TETAP')
+            ->leftJoin('mst_karyawan as petugas', 'peminjaman.NIP_KARYAWAN', '=', 'petugas.NIP_KARYAWAN')
+            ->whereNull('peminjaman.TGL_KEMBALI')
+            ->whereIn('peminjaman.STATUS_PEMINJAMAN', self::ACTIVE_LOAN_STATUSES)
+            ->whereRaw('DATEDIFF(?, peminjaman.TGL_HARUS_KEMBALI) >= ?', [$today, $minHariTerlambat])
+            ->select(
+                'peminjaman.ID_PEMINJAMAN as id_peminjaman',
+                'peminjaman.ID_CP_KOLEKSI as id_cp_koleksi',
+                'peminjaman.TGL_PINJAM as tgl_pinjam',
+                'peminjaman.TGL_HARUS_KEMBALI as tgl_harus_kembali',
+                'peminjaman.STATUS_PEMINJAMAN as status_peminjaman',
+                'peminjaman.KETERANGAN_PEMINJAMAN as keterangan_peminjaman',
+                'peminjaman.NIP_KARYAWAN as nip_karyawan',
+                'copy.ISBN',
+                'copy.STATUS_BUKU as status_buku',
+                'buku.JUDUL_KOLEKSI as judul_buku',
+                'siswa.NAMA_SISWA_TETAP as nama_peminjam',
+                'siswa.NISN_SISWA as nisn_siswa',
+                'petugas.NAMA_KARYAWAN as nama_petugas',
+                DB::raw("DATEDIFF('{$today}', peminjaman.TGL_HARUS_KEMBALI) as hari_terlambat")
+            );
+
+        if ($search !== '') {
+            $query->where(function ($subQuery) use ($search) {
+                $subQuery->where('buku.JUDUL_KOLEKSI', 'like', "%{$search}%")
+                    ->orWhere('copy.ISBN', 'like', "%{$search}%")
+                    ->orWhere('copy.ID_CP_KOLEKSI', 'like', "%{$search}%")
+                    ->orWhere('peminjaman.ID_PEMINJAMAN', 'like', "%{$search}%")
+                    ->orWhere('siswa.NAMA_SISWA_TETAP', 'like', "%{$search}%")
+                    ->orWhere('siswa.NISN_SISWA', 'like', "%{$search}%");
+            });
+        }
+
+        $rows = $query
+            ->orderByDesc('hari_terlambat')
+            ->orderBy('buku.JUDUL_KOLEKSI')
+            ->get();
+
+        return response()->json([
+            'status' => 'success',
+            'filters' => [
+                'min_hari_terlambat' => $minHariTerlambat,
+                'tanggal_cek' => $today,
+            ],
+            'summary' => [
+                'total' => $rows->count(),
+                'maks_hari_terlambat' => (int) ($rows->max('hari_terlambat') ?? 0),
+            ],
+            'data' => $rows,
+        ]);
+    }
+
     public function store(Request $request)
     {
+        $barcode = $this->parseBarcodeInput($request->input('isbn'));
 
-        $hasil_scan = trim($request->isbn); 
-        $pecah = explode('-', $hasil_scan);
-        if (count($pecah) < 2) {
-            return response()->json(['message' => 'Gagal Format Barcode salah ! Harus mengandung ID.'], 400);
+        if ($barcode['raw'] === '') {
+            return response()->json(['message' => 'Barcode atau ISBN buku wajib diisi.'], 422);
         }
-        
-        $id_fisik = array_pop($pecah);      
-        $isbn_murni = implode('-', $pecah); 
-        $bukuFisik = DB::table('cp_koleksi')
-            ->where('id_cp_koleksi', $id_fisik)
-            ->where('ISBN', $isbn_murni) 
-            ->first();
-            
+
+        $bukuFisik = $this->resolveBorrowableCopy($barcode);
+
         if (!$bukuFisik) {
-            return response()->json(['message' => "Gagal Buku ID '$id_fisik' & ISBN '$isbn_murni' tidak ada di database!"], 404);
+            return response()->json(['message' => 'Buku fisik tidak ditemukan atau tidak tersedia untuk dipinjam.'], 404);
         }
 
-        if ($bukuFisik->status_buku !== 'Tersedia') {
-            return response()->json(['message' => "Gagal ! Buku ini sedang dipinjam !"], 400);
+        if (is_array($bukuFisik)) {
+            return response()->json(['message' => $bukuFisik['message']], 400);
         }
 
-        $siswa = DB::table('mst_siswa')->where('nisn_siswa', $request->id_siswa_tetap)->first();
+        $siswa = DB::table('mst_siswa')
+            ->where('NISN_SISWA', $request->id_siswa_tetap)
+            ->where('IS_DELETE', 0)
+            ->select('ID_SISWA_TETAP as id_siswa_tetap')
+            ->first();
             
         if (!$siswa) {
             return response()->json(['message' => 'Gagal Siswa dengan NISN tersebut tidak terdaftar!'], 404);
@@ -81,20 +348,20 @@ class PeminjamanController extends Controller
             DB::beginTransaction();
 
             DB::table('tr_peminjaman')->insert([
-                'id_cp_koleksi'         => $bukuFisik->id_cp_koleksi,
-                'id_siswa_tetap'        => $siswa->id_siswa_tetap, 
-                'nip_karyawan'          => $request->nip_karyawan,
-                'tgl_peminjaman'        => now(),
-                'tgl_harus_kembali'     => now()->addDays(7), 
-                'status_peminjaman'     => 'Dipinjam',
-                'kondisi_buku'          => 'Baik',  
-                'keterangan_peminjaman' => '-',   
-                'denda_peminjaman'      => 0        
+                'ID_CP_KOLEKSI' => $bukuFisik->id_cp_koleksi,
+                'ID_SISWA_TETAP' => $siswa->id_siswa_tetap,
+                'NIP_KARYAWAN' => $request->nip_karyawan,
+                'TGL_PINJAM' => now(),
+                'TGL_HARUS_KEMBALI' => now()->addDays(7),
+                'STATUS_PEMINJAMAN' => 'Dipinjam',
+                'KONDISI_BUKU' => 'Baik',
+                'KETERANGAN_PEMINJAMAN' => '-',
+                'DENDA_PEMINJAMAN' => 0,
             ]);
 
             DB::table('cp_koleksi')
-                ->where('id_cp_koleksi', $bukuFisik->id_cp_koleksi)
-                ->update(['status_buku' => 'Dipinjam']);
+                ->where('ID_CP_KOLEKSI', $bukuFisik->id_cp_koleksi)
+                ->update(['STATUS_BUKU' => 'Dipinjam']);
 
             DB::commit();
             return response()->json(['message' => 'Peminjaman berhasil dicatat!']);
@@ -115,23 +382,30 @@ class PeminjamanController extends Controller
         try {
             DB::beginTransaction();
 
-            $peminjamanLama = DB::table('tr_peminjaman')->where('id_peminjaman', $id)->first();
+            $peminjamanLama = DB::table('tr_peminjaman')->where('ID_PEMINJAMAN', $id)->first();
             if (!$peminjamanLama) {
                 return response()->json(['message' => 'Data tidak ditemukan'], 404);
             }
 
             DB::table('tr_peminjaman')
-                ->where('id_peminjaman', $id)
-                ->update([
-                    'status_peminjaman'     => $request->status_peminjaman,
-                    'kondisi_buku'          => $request->kondisi_buku,
-                    'keterangan_peminjaman' => $request->keterangan ?? '-',
-                ]);
+                ->where('ID_PEMINJAMAN', $id)
+                ->update(array_filter([
+                    'STATUS_PEMINJAMAN' => $request->status_peminjaman,
+                    'TGL_KEMBALI' => $request->status_peminjaman === 'Kembali'
+                        ? ($peminjamanLama->TGL_KEMBALI ?: now()->toDateString())
+                        : null,
+                    'KONDISI_BUKU' => $request->kondisi_buku,
+                    'KETERANGAN_PEMINJAMAN' => $request->keterangan ?? '-',
+                ], fn ($value) => $value !== null || $request->status_peminjaman !== 'Kembali'));
 
             if ($request->status_peminjaman === 'Kembali') {
                 DB::table('cp_koleksi')
-                    ->where('id_cp_koleksi', $peminjamanLama->id_cp_koleksi)
-                    ->update(['status_buku' => 'Tersedia']);
+                    ->where('ID_CP_KOLEKSI', $peminjamanLama->ID_CP_KOLEKSI)
+                    ->update(['STATUS_BUKU' => 'Kembali']);
+            } elseif (in_array($request->status_peminjaman, self::ACTIVE_LOAN_STATUSES, true)) {
+                DB::table('cp_koleksi')
+                    ->where('ID_CP_KOLEKSI', $peminjamanLama->ID_CP_KOLEKSI)
+                    ->update(['STATUS_BUKU' => 'Dipinjam']);
             }
 
             DB::commit();
@@ -147,21 +421,21 @@ class PeminjamanController extends Controller
     {
         try {
             DB::beginTransaction();
-            $peminjaman = DB::table('tr_peminjaman')->where('id_peminjaman', $id)->first();
+            $peminjaman = DB::table('tr_peminjaman')->where('ID_PEMINJAMAN', $id)->first();
             if (!$peminjaman) {
                 return response()->json(['message' => 'Data tidak ditemukan'], 404);
             }
 
             DB::table('tr_peminjaman')
-                ->where('id_peminjaman', $id)
+                ->where('ID_PEMINJAMAN', $id)
                 ->update([
-                    'status_peminjaman' => 'Dihapus',
+                    'STATUS_PEMINJAMAN' => 'Dihapus',
                 ]);
 
-            if ($peminjaman->status_peminjaman === 'Dipinjam') {
+            if ($peminjaman->STATUS_PEMINJAMAN === 'Dipinjam') {
                 DB::table('cp_koleksi')
-                    ->where('id_cp_koleksi', $peminjaman->id_cp_koleksi)
-                    ->update(['status_buku' => 'Tersedia']);
+                    ->where('ID_CP_KOLEKSI', $peminjaman->ID_CP_KOLEKSI)
+                    ->update(['STATUS_BUKU' => 'Kembali']);
             }
             DB::commit();
             return response()->json(['message' => 'Data transaksi berhasil diarsipkan !']);
@@ -176,24 +450,34 @@ class PeminjamanController extends Controller
     {
         $idMember = $request->id_member; // ID internal siswa/karyawan
         $inputBuku = $request->id_pinjam; // Input dari frontend (ISBN atau ID Peminjaman)
+        $barcode = $this->parseBarcodeInput($inputBuku);
 
         // Melakukan JOIN untuk melacak ISBN melalui cp_koleksi
         $peminjaman = DB::table('tr_peminjaman')
-            ->join('cp_koleksi', 'tr_peminjaman.id_cp_koleksi', '=', 'cp_koleksi.id_cp_koleksi')
+            ->join('cp_koleksi', 'tr_peminjaman.ID_CP_KOLEKSI', '=', 'cp_koleksi.ID_CP_KOLEKSI')
             ->join('mst_koleksi_buku', 'cp_koleksi.ISBN', '=', 'mst_koleksi_buku.ISBN')
-            ->where('tr_peminjaman.id_siswa_tetap', $idMember)
-            ->whereNull('tr_peminjaman.tgl_kembali') // Memastikan buku belum dikembalikan
-            ->where(function ($query) use ($inputBuku) {
+            ->where('tr_peminjaman.ID_SISWA_TETAP', $idMember)
+            ->whereNull('tr_peminjaman.TGL_KEMBALI') // Memastikan buku belum dikembalikan
+            ->whereIn('tr_peminjaman.STATUS_PEMINJAMAN', self::ACTIVE_LOAN_STATUSES)
+            ->where(function ($query) use ($inputBuku, $barcode) {
                 // Cek apakah input cocok dengan ISBN atau ID Transaksi atau ID Fisik Buku
                 $query->where('cp_koleksi.ISBN', $inputBuku)
-                      ->orWhere('tr_peminjaman.id_peminjaman', $inputBuku)
-                      ->orWhere('cp_koleksi.id_cp_koleksi', $inputBuku); 
+                      ->orWhere('tr_peminjaman.ID_PEMINJAMAN', $inputBuku)
+                      ->orWhere('cp_koleksi.ID_CP_KOLEKSI', $inputBuku);
+
+                if ($barcode['isbn']) {
+                    $query->orWhere('cp_koleksi.ISBN', $barcode['isbn']);
+                }
+
+                if ($barcode['id_cp_koleksi']) {
+                    $query->orWhere('cp_koleksi.ID_CP_KOLEKSI', $barcode['id_cp_koleksi']);
+                }
             })
             ->select(
-                'tr_peminjaman.id_peminjaman',
-                'tr_peminjaman.id_cp_koleksi',
-                'tr_peminjaman.tgl_harus_kembali',
-                'mst_koleksi_buku.judul_koleksi',
+                'tr_peminjaman.ID_PEMINJAMAN as id_peminjaman',
+                'tr_peminjaman.ID_CP_KOLEKSI as id_cp_koleksi',
+                'tr_peminjaman.TGL_HARUS_KEMBALI as tgl_harus_kembali',
+                'mst_koleksi_buku.JUDUL_KOLEKSI as judul_koleksi',
                 'cp_koleksi.ISBN'
             )
             ->first();
@@ -207,30 +491,51 @@ class PeminjamanController extends Controller
 
     public function batchReturn(Request $request)
     {
-        $items = $request->items;
+        $items = $request->input('items', []);
+
+        if (!is_array($items) || count($items) === 0) {
+            return response()->json(['message' => 'Daftar buku pengembalian masih kosong.'], 422);
+        }
+
         // Panggil class kalkulator
         $kalkulator = new \App\Http\Controllers\Pustakawan\KalkulasiKeterlambatanPengembalian();;
 
         DB::beginTransaction();
         try {
             foreach ($items as $item) {
+                $peminjaman = DB::table('tr_peminjaman')
+                    ->where('ID_PEMINJAMAN', $item['id_peminjaman'] ?? null)
+                    ->whereNull('TGL_KEMBALI')
+                    ->whereIn('STATUS_PEMINJAMAN', self::ACTIVE_LOAN_STATUSES)
+                    ->lockForUpdate()
+                    ->first();
+
+                if (!$peminjaman) {
+                    throw new \RuntimeException('Transaksi peminjaman aktif tidak ditemukan atau sudah pernah dikembalikan.');
+                }
+
                 // Eksekusi kalkulasi keterlambatan
-                $hasilKalkulasi = $kalkulator->hitung($item['tgl_harus_kembali'], $item['tgl_kembali_manual']);
+                $hasilKalkulasi = $kalkulator->hitung($peminjaman->TGL_HARUS_KEMBALI, $item['tgl_kembali_manual'] ?? null);
 
                 // Update status di tabel transaksi
-                DB::table('tr_peminjaman')
-                    ->where('id_peminjaman', $item['id_peminjaman'])
+                $updated = DB::table('tr_peminjaman')
+                    ->where('ID_PEMINJAMAN', $peminjaman->ID_PEMINJAMAN)
+                    ->whereNull('TGL_KEMBALI')
                     ->update([
-                        'tgl_kembali' => $hasilKalkulasi['tgl_kembali'],
-                        'status_peminjaman' => 'Selesai',
-                        'kondisi_buku' => $item['kondisi'],
-                        'keterangan_peminjaman' => $hasilKalkulasi['keterangan']
+                        'TGL_KEMBALI' => $hasilKalkulasi['tgl_kembali'],
+                        'STATUS_PEMINJAMAN' => 'Kembali',
+                        'KONDISI_BUKU' => $item['kondisi'] ?? 'Baik',
+                        'KETERANGAN_PEMINJAMAN' => $hasilKalkulasi['keterangan'],
                     ]);
 
-                // Update status fisik buku menjadi Tersedia
+                if ($updated === 0) {
+                    throw new \RuntimeException('Pengembalian gagal disimpan karena transaksi sudah berubah.');
+                }
+
+                // Update status fisik buku menjadi Kembali setelah pengembalian tercatat.
                 DB::table('cp_koleksi')
-                    ->where('id_cp_koleksi', $item['id_cp_koleksi'])
-                    ->update(['status_buku' => 'Tersedia']);
+                    ->where('ID_CP_KOLEKSI', $peminjaman->ID_CP_KOLEKSI)
+                    ->update(['STATUS_BUKU' => 'Kembali']);
             }
 
             DB::commit();
@@ -239,5 +544,135 @@ class PeminjamanController extends Controller
             DB::rollBack();
             return response()->json(['message' => 'Gagal memproses data: ' . $e->getMessage()], 500);
         }
+    }
+
+    public function scanPengembalian(Request $request)
+    {
+        $inputBuku = $request->input('barcode', $request->input('id_pinjam', $request->input('isbn')));
+        $barcode = $this->parseBarcodeInput($inputBuku);
+
+        if ($barcode['raw'] === '') {
+            return response()->json(['message' => 'Barcode buku wajib diisi.'], 422);
+        }
+
+        $peminjaman = DB::table('tr_peminjaman')
+            ->join('cp_koleksi', 'tr_peminjaman.ID_CP_KOLEKSI', '=', 'cp_koleksi.ID_CP_KOLEKSI')
+            ->join('mst_koleksi_buku', 'cp_koleksi.ISBN', '=', 'mst_koleksi_buku.ISBN')
+            ->join('mst_siswa', 'tr_peminjaman.ID_SISWA_TETAP', '=', 'mst_siswa.ID_SISWA_TETAP')
+            ->whereNull('tr_peminjaman.TGL_KEMBALI')
+            ->whereIn('tr_peminjaman.STATUS_PEMINJAMAN', self::ACTIVE_LOAN_STATUSES)
+            ->where(function ($query) use ($inputBuku, $barcode) {
+                $query->where('cp_koleksi.ISBN', $inputBuku)
+                    ->orWhere('tr_peminjaman.ID_PEMINJAMAN', $inputBuku)
+                    ->orWhere('cp_koleksi.ID_CP_KOLEKSI', $inputBuku);
+
+                if ($barcode['isbn']) {
+                    $query->orWhere('cp_koleksi.ISBN', $barcode['isbn']);
+                }
+
+                if ($barcode['id_cp_koleksi']) {
+                    $query->orWhere('cp_koleksi.ID_CP_KOLEKSI', $barcode['id_cp_koleksi']);
+                }
+            })
+            ->select(
+                'tr_peminjaman.ID_PEMINJAMAN as id_peminjaman',
+                'tr_peminjaman.ID_CP_KOLEKSI as id_cp_koleksi',
+                'tr_peminjaman.ID_SISWA_TETAP as id_siswa_tetap',
+                'tr_peminjaman.TGL_HARUS_KEMBALI as tgl_harus_kembali',
+                'mst_koleksi_buku.JUDUL_KOLEKSI as judul_koleksi',
+                'cp_koleksi.ISBN',
+                'mst_siswa.NISN_SISWA as nisn_siswa',
+                'mst_siswa.NAMA_SISWA_TETAP as nama_peminjam'
+            )
+            ->first();
+
+        if (!$peminjaman) {
+            return response()->json(['message' => 'Buku tidak sedang dipinjam atau barcode tidak ditemukan.'], 404);
+        }
+
+        return response()->json($peminjaman);
+    }
+
+    public function prosesPengembalian(Request $request, $id)
+    {
+        $kalkulator = new \App\Http\Controllers\Pustakawan\KalkulasiKeterlambatanPengembalian();
+
+        DB::beginTransaction();
+        try {
+            $peminjaman = DB::table('tr_peminjaman')
+                ->where('ID_PEMINJAMAN', $id)
+                ->whereNull('TGL_KEMBALI')
+                ->whereIn('STATUS_PEMINJAMAN', self::ACTIVE_LOAN_STATUSES)
+                ->lockForUpdate()
+                ->first();
+
+            if (!$peminjaman) {
+                return response()->json(['message' => 'Data peminjaman aktif tidak ditemukan.'], 404);
+            }
+
+            $hasilKalkulasi = $kalkulator->hitung(
+                $peminjaman->TGL_HARUS_KEMBALI,
+                $request->input('tgl_kembali_manual')
+            );
+
+            DB::table('tr_peminjaman')
+                ->where('ID_PEMINJAMAN', $id)
+                ->update([
+                    'TGL_KEMBALI' => $hasilKalkulasi['tgl_kembali'],
+                    'STATUS_PEMINJAMAN' => 'Kembali',
+                    'KONDISI_BUKU' => $request->input('kondisi', 'Baik'),
+                    'KETERANGAN_PEMINJAMAN' => $hasilKalkulasi['keterangan'],
+                ]);
+
+            DB::table('cp_koleksi')
+                ->where('ID_CP_KOLEKSI', $peminjaman->ID_CP_KOLEKSI)
+                ->update(['STATUS_BUKU' => 'Kembali']);
+
+            DB::commit();
+            return response()->json(['message' => 'Pengembalian buku berhasil diproses.']);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json(['message' => 'Gagal memproses pengembalian: ' . $e->getMessage()], 500);
+        }
+    }
+
+    public function historyPengembalian(Request $request)
+    {
+        $search = trim((string) $request->query('search', ''));
+
+        $query = DB::table('tr_peminjaman as peminjaman')
+            ->join('cp_koleksi as copy', 'peminjaman.ID_CP_KOLEKSI', '=', 'copy.ID_CP_KOLEKSI')
+            ->join('mst_koleksi_buku as buku', 'copy.ISBN', '=', 'buku.ISBN')
+            ->leftJoin('mst_siswa as siswa', 'peminjaman.ID_SISWA_TETAP', '=', 'siswa.ID_SISWA_TETAP')
+            ->leftJoin('mst_karyawan as karyawan', 'peminjaman.NIP_KARYAWAN', '=', 'karyawan.NIP_KARYAWAN')
+            ->whereNotNull('peminjaman.TGL_KEMBALI')
+            ->select(
+                'peminjaman.ID_PEMINJAMAN as id_peminjaman',
+                'peminjaman.ID_CP_KOLEKSI as id_cp_koleksi',
+                'peminjaman.TGL_KEMBALI as tgl_kembali',
+                'peminjaman.KONDISI_BUKU as kondisi_buku_kembali',
+                'peminjaman.DENDA_PEMINJAMAN as denda',
+                'buku.JUDUL_KOLEKSI as judul_koleksi',
+                'copy.ISBN',
+                DB::raw("COALESCE(siswa.NAMA_SISWA_TETAP, karyawan.NAMA_KARYAWAN, '-') as nama_peminjam"),
+                DB::raw("COALESCE(siswa.NISN_SISWA, karyawan.NIP_KARYAWAN, '-') as nisn_nip")
+            );
+
+        if ($search !== '') {
+            $query->where(function ($subQuery) use ($search) {
+                $subQuery->where('siswa.NAMA_SISWA_TETAP', 'like', "%{$search}%")
+                    ->orWhere('karyawan.NAMA_KARYAWAN', 'like', "%{$search}%")
+                    ->orWhere('siswa.NISN_SISWA', 'like', "%{$search}%")
+                    ->orWhere('karyawan.NIP_KARYAWAN', 'like', "%{$search}%")
+                    ->orWhere('buku.JUDUL_KOLEKSI', 'like', "%{$search}%")
+                    ->orWhere('copy.ISBN', 'like', "%{$search}%")
+                    ->orWhere('peminjaman.ID_PEMINJAMAN', 'like', "%{$search}%");
+            });
+        }
+
+        return response()->json([
+            'status' => 'success',
+            'data' => $query->orderBy('peminjaman.TGL_KEMBALI', 'desc')->get(),
+        ]);
     }
 }

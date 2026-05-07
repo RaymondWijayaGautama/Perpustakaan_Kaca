@@ -11,7 +11,6 @@ const LaporanSiswaTerajinPanel = () => {
             try {
                 // Pakai URL langsung untuk tes
                 const res = await axios.get('http://127.0.0.1:8000/api/laporan/siswa-terajin');
-                console.log("DATA BERHASIL MASUK:", res.data);
                 setData(res.data);
             } catch (err) {
                 console.error("ERROR KONEKSI:", err);

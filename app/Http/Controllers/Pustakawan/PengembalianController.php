@@ -40,13 +40,13 @@ class PengembalianController extends Controller
                 ->where('id_tr_peminjaman', $peminjaman->id_tr_peminjaman)
                 ->update([
                     'tgl_kembali' => Carbon::now()->toDateString(),
-                    'status_peminjaman' => 'Selesai'
+                    'status_peminjaman' => 'Kembali'
                 ]);
 
-            // Update status fisik buku menjadi Tersedia 
+            // Update status fisik buku menjadi Kembali setelah transaksi selesai.
             DB::table('cp_koleksi')
                 ->where('id_cp_koleksi', $peminjaman->id_cp_koleksi)
-                ->update(['status_buku' => 'Tersedia']);
+                ->update(['status_buku' => 'Kembali']);
 
             DB::commit();
             return response()->json(['status' => 'success', 'message' => 'Buku berhasil dikembalikan!']);

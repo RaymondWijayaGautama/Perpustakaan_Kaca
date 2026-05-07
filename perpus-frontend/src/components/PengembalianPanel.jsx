@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import axios from 'axios';
+import BarcodeCameraScanner from './BarcodeCameraScanner';
 
 const PengembalianBulkPanel = () => {
   const [memberInput, setMemberInput] = useState('');
@@ -8,6 +9,7 @@ const PengembalianBulkPanel = () => {
   const [bukuInput, setBukuInput] = useState('');
   const [daftarKembali, setDaftarKembali] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [scanningLookup, setScanningLookup] = useState(false);
   
   // State untuk Pop-up Toast
   const [toast, setToast] = useState({ show: false, type: '', text: '' });
@@ -20,6 +22,39 @@ const PengembalianBulkPanel = () => {
   const [loadingRiwayat, setLoadingRiwayat] = useState(false);
 
   const inputBukuRef = useRef(null);
+  const memberDataRef = useRef(null);
+  const daftarKembaliRef = useRef([]);
+  const tglKembaliManualRef = useRef(tglKembaliManual);
+
+  useEffect(() => {
+    memberDataRef.current = memberData;
+  }, [memberData]);
+
+  useEffect(() => {
+    daftarKembaliRef.current = daftarKembali;
+  }, [daftarKembali]);
+
+  useEffect(() => {
+    tglKembaliManualRef.current = tglKembaliManual;
+  }, [tglKembaliManual]);
+
+  const getMemberId = (data = memberDataRef.current) => (
+    data?.id_siswa_tetap ||
+    data?.ID_SISWA_TETAP ||
+    data?.id_member ||
+    data?.id_peminjam ||
+    data?.id_karyawan ||
+    data?.ID_KARYAWAN
+  );
+
+  const getMemberName = (data = memberDataRef.current) => (
+    data?.nama_siswa_tetap ||
+    data?.NAMA_SISWA_TETAP ||
+    data?.nama_peminjam ||
+    data?.nama_karyawan ||
+    data?.NAMA_KARYAWAN ||
+    '-'
+  );
 
   // Fungsi pembantu untuk memunculkan Pop-up
   const showToast = (type, text) => {
@@ -34,45 +69,90 @@ const PengembalianBulkPanel = () => {
     try {
       const res = await axios.get(`http://localhost:8000/api/anggota/${memberInput}`);
       setMemberData(res.data);
+      setTimeout(() => inputBukuRef.current?.focus(), 0);
     } catch (err) {
       showToast('error', 'IDENTITAS TIDAK DITEMUKAN');
     }
   };
 
-  // 2. Tambah Buku ke Daftar
-  const tambahBuku = async (e) => {
-    e.preventDefault();
-    if (!memberData) return;
+  const syncMemberFromScan = (dataPinjam) => {
+    const activeMemberId = getMemberId(memberDataRef.current);
+    const scannedMemberId = dataPinjam.id_siswa_tetap || dataPinjam.ID_SISWA_TETAP;
 
+    if (activeMemberId && scannedMemberId && String(activeMemberId) !== String(scannedMemberId)) {
+      return false;
+    }
+
+    if (!activeMemberId && scannedMemberId) {
+      const scannedMember = {
+        id_siswa_tetap: scannedMemberId,
+        NISN_SISWA: dataPinjam.nisn_siswa,
+        nama_siswa_tetap: dataPinjam.nama_peminjam,
+        nama_peminjam: dataPinjam.nama_peminjam,
+      };
+
+      setMemberData(scannedMember);
+      setMemberInput(dataPinjam.nisn_siswa || '');
+      memberDataRef.current = scannedMember;
+    }
+
+    return true;
+  };
+
+  const masukDaftarPengembalian = (dataPinjam) => {
+    if (daftarKembaliRef.current.some(item => item.id_peminjaman === dataPinjam.id_peminjaman)) {
+      showToast('error', 'BUKU SUDAH ADA DI DALAM DAFTAR PENGEMBALIAN');
+      setBukuInput('');
+      return;
+    }
+
+    const deadline = new Date(dataPinjam.tgl_harus_kembali);
+    const realita = new Date(tglKembaliManualRef.current);
+    const terlambat = realita > deadline ? Math.ceil((realita - deadline) / (1000 * 60 * 60 * 24)) : 0;
+
+    setDaftarKembali(current => [...current, {
+      ...dataPinjam,
+      kondisi: 'Baik',
+      tgl_kembali_manual: tglKembaliManualRef.current,
+      estimasi_terlambat: terlambat
+    }]);
+
+    setBukuInput('');
+    inputBukuRef.current?.focus();
+    showToast('success', 'BUKU BERHASIL MASUK DAFTAR PENGEMBALIAN');
+  };
+
+  // 2. Tambah Buku ke Daftar
+  const tambahBukuByKode = async (kodeBuku) => {
+    const kode = String(kodeBuku || '').trim();
+
+    if (kode === '' || scanningLookup) return;
+
+    setScanningLookup(true);
     try {
-      const res = await axios.get(`http://localhost:8000/api/peminjaman/cek-aktif`, {
-        params: { id_pinjam: bukuInput, id_member: memberData.id_siswa_tetap || memberData.id_karyawan }
+      const res = await axios.post(`http://localhost:8000/api/pengembalian/scan`, {
+        barcode: kode,
+        tgl_kembali_manual: tglKembaliManualRef.current
       });
 
       const dataPinjam = res.data;
 
-      if (daftarKembali.some(item => item.id_peminjaman === dataPinjam.id_peminjaman)) {
-        showToast('error', 'BUKU SUDAH ADA DI DALAM DAFTAR PENGEMBALIAN');
-        setBukuInput('');
+      if (!syncMemberFromScan(dataPinjam)) {
+        showToast('error', 'BUKU INI DIPINJAM OLEH PEMUSTAKA LAIN');
         return;
       }
 
-      const deadline = new Date(dataPinjam.tgl_harus_kembali);
-      const realita = new Date(tglKembaliManual);
-      const terlambat = realita > deadline ? Math.ceil((realita - deadline) / (1000 * 60 * 60 * 24)) : 0;
-
-      setDaftarKembali([...daftarKembali, {
-        ...dataPinjam,
-        kondisi: 'Baik',
-        tgl_kembali_manual: tglKembaliManual,
-        estimasi_terlambat: terlambat
-      }]);
-
-      setBukuInput('');
-      inputBukuRef.current.focus(); 
+      masukDaftarPengembalian(dataPinjam);
     } catch (err) {
-      showToast('error', 'BUKU TIDAK TERDAFTAR PADA PEMINJAM INI');
+      showToast('error', err.response?.data?.message || 'BARCODE TIDAK TERDAFTAR PADA PINJAMAN AKTIF');
+    } finally {
+      setScanningLookup(false);
     }
+  };
+
+  const tambahBuku = async (e) => {
+    e.preventDefault();
+    await tambahBukuByKode(bukuInput);
   };
 
   // 3. Eksekusi ke Backend
@@ -83,11 +163,12 @@ const PengembalianBulkPanel = () => {
         items: daftarKembali
       });
       
-      showToast('success', `${daftarKembali.length} KOLEKSI BERHASIL DIKEMBALIKAN (A.N. ${memberData.nama_siswa_tetap || memberData.nama_karyawan})`);
+      showToast('success', `${daftarKembali.length} KOLEKSI BERHASIL DIKEMBALIKAN (A.N. ${getMemberName(memberData)})`);
       
       setDaftarKembali([]);
       setMemberData(null);
       setMemberInput('');
+      setBukuInput('');
       
       // Auto refresh riwayat setelah pengembalian sukses
       fetchRiwayatPengembalian();
@@ -178,7 +259,7 @@ const PengembalianBulkPanel = () => {
           </div>
           {memberData && (
             <div className="p-4 bg-slate-100 border-l-4 border-slate-900">
-              <p className="font-bold uppercase">{memberData.nama_siswa_tetap || memberData.nama_karyawan}</p>
+              <p className="font-bold uppercase">{getMemberName(memberData)}</p>
               <p className="text-slate-500 uppercase">Status Terverifikasi</p>
             </div>
           )}
@@ -198,22 +279,61 @@ const PengembalianBulkPanel = () => {
         </div>
       </div>
 
-      {memberData && (
-        <div className="mb-10 p-6 bg-slate-50 border border-slate-200">
-          <label className="font-bold text-slate-400 uppercase tracking-widest block mb-4">03. Daftar Buku Kembali</label>
-          <form onSubmit={tambahBuku} className="flex gap-2">
-            <input 
-              ref={inputBukuRef}
-              type="text" 
-              value={bukuInput} 
-              onChange={(e) => setBukuInput(e.target.value)}
-              className="flex-1 p-3 border border-slate-300 outline-none focus:border-slate-900 font-bold"
-              placeholder="Scan ISBN atau Input Manual ID Buku"
-            />
-            <button type="submit" className="bg-slate-200 text-slate-900 border border-slate-300 px-8 py-2 font-bold uppercase hover:bg-slate-300 transition-colors">Input</button>
-          </form>
+      <div className="mb-10 p-6 bg-slate-50 border border-slate-200">
+        <div className="mb-4 flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
+          <div>
+            <label className="font-bold text-slate-400 uppercase tracking-widest block">03. Scan Buku Kembali</label>
+            <p className="mt-1 text-[10px] text-slate-400 leading-relaxed uppercase tracking-widest">
+              Scan barcode buku untuk mencari pinjaman aktif dan mengisi pemustaka otomatis.
+            </p>
+          </div>
+          {scanningLookup && (
+            <span className="w-fit bg-blue-50 text-[#265F9C] border border-blue-100 px-3 py-1 text-[10px] font-bold uppercase tracking-widest">
+              Memeriksa barcode...
+            </span>
+          )}
         </div>
-      )}
+
+        <div className="grid grid-cols-1 md:grid-cols-[320px_1fr] gap-6">
+          <BarcodeCameraScanner
+            readerId="pengembalian-reader"
+            panelClassName="text-slate-900"
+            active={!scanningLookup}
+            onScan={(data) => {
+              setBukuInput(data);
+              tambahBukuByKode(data);
+            }}
+          />
+          <div className="space-y-4 self-start">
+            <form onSubmit={tambahBuku} className="flex gap-2">
+              <input
+                ref={inputBukuRef}
+                type="text"
+                value={bukuInput}
+                onChange={(e) => setBukuInput(e.target.value)}
+                className="flex-1 p-3 border border-slate-300 outline-none focus:border-slate-900 font-bold"
+                placeholder="Scan barcode atau input manual ISBN/ID buku"
+              />
+              <button
+                type="submit"
+                disabled={scanningLookup}
+                className="bg-slate-200 text-slate-900 border border-slate-300 px-8 py-2 font-bold uppercase hover:bg-slate-300 transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Input
+              </button>
+            </form>
+
+            {!memberData && (
+              <div className="p-4 bg-blue-50 border-l-4 border-[#265F9C] text-[#265F9C]">
+                <p className="font-bold uppercase">Scan buku terlebih dahulu juga bisa.</p>
+                <p className="mt-1 text-[10px] uppercase tracking-widest">
+                  Sistem akan mencari transaksi aktif dan menampilkan pemustakanya otomatis.
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
 
       {daftarKembali.length > 0 && (
         <div className="mb-10 overflow-x-auto">

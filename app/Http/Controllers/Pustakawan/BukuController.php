@@ -16,6 +16,10 @@ class BukuController extends Controller
         $query = DB::table('mst_koleksi_buku as buku')
             ->leftJoin('ref_koleksi as kategori', 'buku.ID_REF_KOLEKSI', '=', 'kategori.ID_REF_KOLEKSI')
             ->where('buku.IS_DELETE', 0)
+            ->where(function ($query) {
+                $query->where('kategori.NO_KATEGORI_BUKU', '!=', '4')
+                    ->orWhereNull('kategori.NO_KATEGORI_BUKU');
+            })
             ->select(
                 'buku.ISBN as ISBN',
                 'buku.JUDUL_KOLEKSI as judul_koleksi',
@@ -49,6 +53,10 @@ class BukuController extends Controller
     {
         $kategori = DB::table('ref_koleksi')
             ->where('IS_DELETE', 0)
+            ->where(function ($query) {
+                $query->where('NO_KATEGORI_BUKU', '!=', '4')
+                    ->orWhereNull('NO_KATEGORI_BUKU');
+            })
             ->select('ID_REF_KOLEKSI as id_ref_koleksi', 'DESKRIPSI_KATEGORI as deskripsi')
             ->get();
             
@@ -137,7 +145,17 @@ class BukuController extends Controller
                 'id_kategori' => [
                     'required',
                     Rule::exists('ref_koleksi', 'ID_REF_KOLEKSI')->where('IS_DELETE', 0),
-                    Rule::notIn([4]),
+                    function (string $attribute, mixed $value, \Closure $fail) {
+                        $isLaporanPkl = DB::table('ref_koleksi')
+                            ->where('ID_REF_KOLEKSI', (int) $value)
+                            ->where('NO_KATEGORI_BUKU', '4')
+                            ->where('IS_DELETE', 0)
+                            ->exists();
+
+                        if ($isLaporanPkl) {
+                            $fail('Kategori laporan PKL hanya dapat diimpor melalui panel Laporan PKL.');
+                        }
+                    },
                 ],
             ], [], [
                 'isbn' => "ISBN baris {$line}",
@@ -267,7 +285,10 @@ class BukuController extends Controller
     $query = DB::table('mst_koleksi_buku as buku')
         ->leftJoin('ref_koleksi as kategori', 'buku.ID_REF_KOLEKSI', '=', 'kategori.ID_REF_KOLEKSI')
         ->where('buku.IS_DELETE', 0)
-        ->where('buku.ID_REF_KOLEKSI', '!=', 4)
+        ->where(function ($query) {
+            $query->where('kategori.NO_KATEGORI_BUKU', '!=', '4')
+                ->orWhereNull('kategori.NO_KATEGORI_BUKU');
+        })
         ->select(
             'buku.NB_KOLEKSI as no_induk',             
             'kategori.NO_KATEGORI_BUKU as no_kode',    

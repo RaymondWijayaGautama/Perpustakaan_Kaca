@@ -56,6 +56,23 @@ class MasterKoleksiController extends Controller
         return null;
     }
 
+    private function laporanPklCategory()
+    {
+        return DB::table('ref_koleksi')
+            ->where('NO_KATEGORI_BUKU', '4')
+            ->where('IS_DELETE', 0)
+            ->first();
+    }
+
+    private function isLaporanPklCategoryId(int $id): bool
+    {
+        return DB::table('ref_koleksi')
+            ->where('ID_REF_KOLEKSI', $id)
+            ->where('NO_KATEGORI_BUKU', '4')
+            ->where('IS_DELETE', 0)
+            ->exists();
+    }
+
     public function index(Request $request): JsonResponse
     {
         $search = trim((string) $request->query('search', ''));
@@ -71,7 +88,10 @@ class MasterKoleksiController extends Controller
 
         $query = DB::table('ref_koleksi')
             ->where('IS_DELETE', 0)
-            ->where('ID_REF_KOLEKSI', '!=', 4);
+            ->where(function ($query) {
+                $query->where('NO_KATEGORI_BUKU', '!=', '4')
+                    ->orWhereNull('NO_KATEGORI_BUKU');
+            });
 
         if ($search !== '') {
             $query->where(function ($subQuery) use ($search) {
@@ -96,7 +116,10 @@ class MasterKoleksiController extends Controller
     {
         $kategori = DB::table('ref_koleksi')
             ->where('IS_DELETE', 0)
-            ->where('ID_REF_KOLEKSI', '!=', 4)
+            ->where(function ($query) {
+                $query->where('NO_KATEGORI_BUKU', '!=', '4')
+                    ->orWhereNull('NO_KATEGORI_BUKU');
+            })
             ->orderBy('DESKRIPSI_KATEGORI')
             ->get([
                 'ID_REF_KOLEKSI as id_ref_koleksi',
@@ -154,7 +177,7 @@ class MasterKoleksiController extends Controller
 
     public function update(Request $request, int $id): JsonResponse
     {
-        if ($id === 4) {
+        if ($this->isLaporanPklCategoryId($id)) {
             return response()->json([
                 'message' => 'Kategori laporan PKL dikunci oleh sistem dan tidak dapat diubah.',
             ], 403);
@@ -217,7 +240,7 @@ class MasterKoleksiController extends Controller
 
     public function destroy(Request $request, int $id): JsonResponse
     {
-        if ($id === 4) {
+        if ($this->isLaporanPklCategoryId($id)) {
             return response()->json([
                 'message' => 'Kategori laporan PKL dikunci oleh sistem dan tidak dapat dihapus.',
             ], 403);
