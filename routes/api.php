@@ -10,6 +10,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\KoleksiController;
 use App\Http\Controllers\Api\LaporanPklController;
 use App\Http\Controllers\Pustakawan\BukuController;
+use App\Http\Controllers\Pustakawan\PengembalianController;
 
 // 1. Tampil Data
 Route::get('/laporan', [LaporanController::class, 'getLaporan']);

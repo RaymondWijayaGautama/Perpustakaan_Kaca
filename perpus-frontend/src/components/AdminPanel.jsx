@@ -140,20 +140,35 @@ const AdminPanel = ({ user, onLogout }) => {
                 )}
 
                 {activeTab === 'dashboard' && (
-                    <div className="grid grid-cols-3 gap-6">
-                        <div className="bg-white p-8 rounded-xl shadow-sm border-t-4 border-[#265F9C]">
-                            <h3 className="text-[#585858] font-bold text-xs uppercase font-montserrat">Total Koleksi Buku</h3>
-                            <p className="text-5xl font-bold mt-2 text-[#265F9C]">{stats.total_buku.toLocaleString('id-ID')}</p>
+                    <>
+                        {/* 3 Kotak KPI */}
+                        <div className="grid grid-cols-3 gap-6">
+                            <div className="bg-white p-8 rounded-xl shadow-sm border-t-4 border-[#265F9C]">
+                                <h3 className="text-[#585858] font-bold text-xs uppercase font-montserrat">Total Koleksi Buku</h3>
+                                <p className="text-5xl font-bold mt-2 text-[#265F9C]">{stats.total_buku.toLocaleString('id-ID')}</p>
+                            </div>
+                            <div className="bg-white p-8 rounded-xl shadow-sm border-t-4 border-[#2E7D32]">
+                                <h3 className="text-[#585858] font-bold text-xs uppercase font-montserrat">Total Anggota</h3>
+                                <p className="text-5xl font-bold mt-2 text-[#2E7D32]">{stats.total_siswa.toLocaleString('id-ID')}</p>
+                            </div>
+                            <div className="bg-white p-8 rounded-xl shadow-sm border-t-4 border-[#EDA60F]">
+                                <h3 className="text-[#585858] font-bold text-xs uppercase font-montserrat">Arsip Laporan PKL</h3>
+                                <p className="text-5xl font-bold mt-2 text-[#EDA60F]">{stats.total_laporan.toLocaleString('id-ID')}</p>
+                            </div>
                         </div>
-                        <div className="bg-white p-8 rounded-xl shadow-sm border-t-4 border-[#2E7D32]">
-                            <h3 className="text-[#585858] font-bold text-xs uppercase font-montserrat">Total Anggota</h3>
-                            <p className="text-5xl font-bold mt-2 text-[#2E7D32]">{stats.total_siswa.toLocaleString('id-ID')}</p>
+
+                        {/* --- DASHBOARD POWER BI --- */}
+                        <div className="w-full mt-8 bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden" style={{ height: '700px' }}>
+                            <iframe
+                                title="Dashboard_Perpus_Kaca"
+                                className="w-full h-full border-none"
+                                src="https://app.powerbi.com/reportEmbed?reportId=59b6f7c9-e7b6-4559-b42a-01565c6c929f&autoAuth=true&navContentPaneEnabled=false&filterPaneEnabled=false"
+                                allowFullScreen={true}
+                            ></iframe>
+                            
                         </div>
-                        <div className="bg-white p-8 rounded-xl shadow-sm border-t-4 border-[#EDA60F]">
-                            <h3 className="text-[#585858] font-bold text-xs uppercase font-montserrat">Arsip Laporan PKL</h3>
-                            <p className="text-5xl font-bold mt-2 text-[#EDA60F]">{stats.total_laporan.toLocaleString('id-ID')}</p>
-                        </div>
-                    </div>
+                        {/* ---------------------------- */}
+                    </>
                 )}
                 
                 {/* PANEL COMPONENTS */}
