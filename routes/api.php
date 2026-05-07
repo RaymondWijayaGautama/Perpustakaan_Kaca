@@ -11,6 +11,12 @@ use App\Http\Controllers\KoleksiController;
 use App\Http\Controllers\Api\LaporanPklController;
 use App\Http\Controllers\Pustakawan\BukuController;
 
+// 1. Tampil Data
+Route::get('/laporan', [LaporanController::class, 'getLaporan']);
+Route::post('/laporan/tambah', [LaporanController::class, 'store']);
+Route::put('/laporan/ubah/{isbn}', [LaporanController::class, 'update']);
+Route::delete('/laporan/hapus/{isbn}', [LaporanController::class, 'destroy']);
+
 Route::get('/peminjaman', [App\Http\Controllers\Api\PeminjamanController::class, 'index']);
 
 Route::post('/login', [AuthController::class, 'login']);
