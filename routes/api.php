@@ -30,6 +30,7 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
 // --- LOG SISTEM ---
 Route::get('/logs/access', [LogController::class, 'access']);
 Route::get('/logs/activity', [LogController::class, 'activity']);
+Route::get('/logs/roles', [LogController::class, 'roles']);
 
 // --- TRANSAKSI PEMINJAMAN & PENGEMBALIAN ---
 Route::get('/peminjaman/cek-aktif', [PeminjamanController::class, 'cekAktif']);
@@ -41,6 +42,7 @@ Route::delete('/peminjaman/{id}', [PeminjamanController::class, 'destroy']);
 
 Route::get('/pengembalian/history', [PeminjamanController::class, 'historyPengembalian']);
 Route::get('/pengembalian', [DashboardController::class, 'getPengembalian']);
+Route::get('/pengembalian/export', [PengembalianController::class, 'exportExcel']);
 Route::post('/pengembalian/batch', [PeminjamanController::class, 'batchReturn']);
 Route::post('/pengembalian/scan', [PeminjamanController::class, 'scanPengembalian']);
 Route::post('/pengembalian/proses/{id}', [PeminjamanController::class, 'prosesPengembalian']);
@@ -112,5 +114,6 @@ Route::get('/pemusnahan', [DashboardController::class, 'getHistoryPemusnahan']);
 Route::post('/pemusnahan', [DashboardController::class, 'storePemusnahan']);
 Route::get('/buku-rusak', [DashboardController::class, 'getBukuRusak']);
 Route::get('/buku-overdue', [DashboardController::class, 'getBukuOverdue']);
+Route::put('/pemusnahan/{id}', [DashboardController::class, 'updatePemusnahan']);
 Route::patch('/pemusnahan/{id}', [DashboardController::class, 'updateStatusPemusnahan']);
 Route::patch('/pemusnahan/{id}/konfirmasi', [DashboardController::class, 'confirmPemusnahan']);

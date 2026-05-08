@@ -19,6 +19,21 @@ import BukuTerpopulerPanel from './BukuTerpopulerPanel';
 import KategoriPopulerPanel from './KategoriPopulerPanel';
 import KategoriPanel from './KategoriPanel';
 import LogPanel from './LogPanel';
+import ProfilePanel from './ProfilePanel';
+
+const getAdminDisplayName = (user) => (
+    user?.NAMA_KARYAWAN ||
+    user?.nama_karyawan ||
+    user?.NAMA_LENGKAP_GELAR ||
+    user?.nama_lengkap_gelar ||
+    'Admin'
+);
+
+const getInitials = (name) => {
+    const parts = String(name || 'A').trim().split(/\s+/).filter(Boolean);
+
+    return parts.slice(0, 2).map((part) => part.charAt(0)).join('').toUpperCase() || 'A';
+};
 
 const AdminPanel = ({ user, onLogout }) => {
     const [activeTab, setActiveTab] = useState('dashboard');
@@ -80,8 +95,19 @@ const AdminPanel = ({ user, onLogout }) => {
             {/* SIDEBAR */}
             <aside className="w-64 h-screen sticky top-0 bg-[#265F9C] text-white flex flex-col shadow-xl print:hidden">
                 {/* BLOK LOGO */}
-                <div className="p-6 pb-2 shrink-0">
-                    <h2 className="font-montserrat font-bold text-xl tracking-tight text-center uppercase">Kaca Admin</h2>
+                <div className="p-5 pb-3 shrink-0">
+                    <div className="flex items-center justify-between gap-3">
+                        <h2 className="font-montserrat font-bold text-lg tracking-tight uppercase">Kaca Admin</h2>
+                        <button
+                            type="button"
+                            onClick={() => setActiveTab('profile')}
+                            title="Profil Saya"
+                            aria-label="Profil Saya"
+                            className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full border text-xs font-black shadow-sm transition-all ${activeTab === 'profile' ? 'border-white bg-white text-[#265F9C]' : 'border-white/30 bg-white/10 text-white hover:bg-white hover:text-[#265F9C]'}`}
+                        >
+                            {getInitials(getAdminDisplayName(user))}
+                        </button>
+                    </div>
                 </div>
 
                 {/* BLOK MENU BISA DI-SCROLL */}
@@ -125,16 +151,6 @@ const AdminPanel = ({ user, onLogout }) => {
                     </nav>
                 </div>
 
-                {/* BLOK TOMBOL KELUAR */}
-                <div className="p-4 border-t border-white/20 shrink-0 bg-[#265F9C]">
-                    <button 
-                        onClick={onLogout} 
-                        className="w-full flex items-center justify-center gap-2 p-3 bg-red-500/20 text-red-200 font-bold hover:bg-red-500 hover:text-white rounded-lg transition-colors shadow-sm"
-                    >
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
-                        Keluar Sistem
-                    </button>
-                </div>
             </aside>
 
             {/* MAIN CONTENT */}
@@ -178,6 +194,7 @@ const AdminPanel = ({ user, onLogout }) => {
                 )}
                 
                 {/* PANEL COMPONENTS */}
+                {activeTab === 'profile' && <ProfilePanel user={user} onLogout={onLogout} context="admin" />}
                 {activeTab === 'koleksi' && <ManajemenKoleksiPanel user={user} />}
                 {activeTab === 'buku' && <ManajemenBukuPanel user={user} />}
                 

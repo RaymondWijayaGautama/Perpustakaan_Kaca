@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
+import useConfirmDialog from './useConfirmDialog';
 
 const RiwayatPinjamPanel = () => {
+    const { confirm, ConfirmDialog } = useConfirmDialog();
     const [data, setData] = useState([]);
     const [filterStatus, setFilterStatus] = useState('Semua');
     const [loading, setLoading] = useState(false);
@@ -28,37 +30,51 @@ const RiwayatPinjamPanel = () => {
         const statusBaru = statusLama === 'Dipinjam' ? 'Kembali' : 'Dipinjam';
         const confirmMsg = `Ubah status transaksi ID #${id} menjadi "${statusBaru}"?`;
 
-        if (window.confirm(confirmMsg)) {
-            try {
-                setLoading(true);
-                await axios.put(`http://localhost:8000/api/peminjaman/${id}`, {
-                    status_peminjaman: statusBaru,
-                    kondisi_buku: 'Baik' 
-                });
-                alert("Data berhasil diupdate!");
-                fetchData(); 
-            } catch (error) {
-                alert("Gagal update data!");
-                console.error(error);
-            } finally {
-                setLoading(false);
-            }
+        const approved = await confirm({
+            title: 'Ubah Status',
+            message: confirmMsg,
+            confirmLabel: 'Ya, Ubah',
+            tone: 'primary',
+        });
+
+        if (!approved) return;
+
+        try {
+            setLoading(true);
+            await axios.put(`http://localhost:8000/api/peminjaman/${id}`, {
+                status_peminjaman: statusBaru,
+                kondisi_buku: 'Baik' 
+            });
+            alert("Data berhasil diupdate!");
+            fetchData(); 
+        } catch (error) {
+            alert("Gagal update data!");
+            console.error(error);
+        } finally {
+            setLoading(false);
         }
     };
 
     const handleDelete = async (id) => {
-        if (window.confirm("Apakah anda yakin ingin menghapus (mengarsipkan) data ini?")) {
-            try {
-                setLoading(true);
-                await axios.delete(`http://localhost:8000/api/peminjaman/${id}`);
-                alert("Data berhasil dihapus dari daftar aktif!");
-                fetchData();
-            } catch (error) {
-                alert("Gagal menghapus data!");
-                console.error(error);
-            } finally {
-                setLoading(false);
-            }
+        const approved = await confirm({
+            title: 'Arsipkan Transaksi',
+            message: 'Apakah Anda yakin ingin menghapus atau mengarsipkan data ini?',
+            confirmLabel: 'Ya, Arsipkan',
+            tone: 'danger',
+        });
+
+        if (!approved) return;
+
+        try {
+            setLoading(true);
+            await axios.delete(`http://localhost:8000/api/peminjaman/${id}`);
+            alert("Data berhasil dihapus dari daftar aktif!");
+            fetchData();
+        } catch (error) {
+            alert("Gagal menghapus data!");
+            console.error(error);
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -136,6 +152,7 @@ const RiwayatPinjamPanel = () => {
                     <div className="text-center py-10 text-gray-400 italic text-sm">Belum ada data transaksi.</div>
                 )}
             </div>
+            <ConfirmDialog />
         </div>
     );
 };

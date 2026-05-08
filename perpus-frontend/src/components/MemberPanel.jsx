@@ -1,5 +1,6 @@
 import { useDeferredValue, useEffect, useState } from 'react';
 import axios from 'axios';
+import ProfilePanel from './ProfilePanel';
 
 const API_BASE_URL = 'http://localhost:8000/api';
 
@@ -17,6 +18,24 @@ const fetchBooksRequest = async ({ judul, penulis, sortBy, sortOrder, kategori, 
       per_page: 8,
     },
   });
+};
+
+const getInitials = (name) => {
+  const parts = String(name || 'M').trim().split(/\s+/).filter(Boolean);
+
+  return parts.slice(0, 2).map((part) => part.charAt(0)).join('').toUpperCase() || 'M';
+};
+
+const pick = (source, keys, fallback = '') => {
+  for (const key of keys) {
+    const value = source?.[key];
+
+    if (value !== undefined && value !== null && String(value).trim() !== '') {
+      return value;
+    }
+  }
+
+  return fallback;
 };
 
 const MemberPanel = ({ user, onLogout }) => {
@@ -52,6 +71,10 @@ const MemberPanel = ({ user, onLogout }) => {
 
   useEffect(() => {
     const fetchBooks = async () => {
+      if (activeTab === 'profile') {
+        return;
+      }
+
       setLoading(true);
       setError('');
       try {
@@ -128,8 +151,14 @@ const MemberPanel = ({ user, onLogout }) => {
     }
   };
 
-  const displayName = user.nama_siswa_tetap || user.nama_karyawan || 'Member';
-  const displayRole = user.nama_siswa_tetap ? 'Pemustaka Siswa' : 'Pemustaka Karyawan';
+  const isSiswa = Boolean(user.NISN_SISWA || user.nisn_siswa || user.NAMA_SISWA_TETAP || user.nama_siswa_tetap);
+  const displayName = isSiswa
+    ? pick(user, ['NAMA_SISWA_TETAP', 'nama_siswa_tetap', 'nama'], 'Member')
+    : pick(user, ['NAMA_KARYAWAN', 'nama_karyawan', 'NAMA_LENGKAP_GELAR', 'nama_lengkap_gelar'], 'Member');
+  const displayRole = pick(user, ['ROLE_LABEL', 'JABATAN_FUNGSIONAL', 'jabatan_fungsional'], isSiswa ? 'Pemustaka Siswa' : 'Pemustaka Karyawan');
+  const displayId = isSiswa
+    ? pick(user, ['NISN_SISWA', 'nisn_siswa'])
+    : pick(user, ['NIP_KARYAWAN', 'nip_karyawan']);
 
   return (
     <div className="min-h-screen bg-[#F6F7F9] font-roboto p-6">
@@ -142,10 +171,16 @@ const MemberPanel = ({ user, onLogout }) => {
           <div className="flex items-center gap-4">
             <div className="text-right hidden sm:block">
               <span className="text-sm font-bold block text-[#1A1A1A]">{displayName}</span>
-              <span className="text-[10px] text-[#7D7D7E]">ID: {user.nisn_siswa || user.nip_karyawan}</span>
+              <span className="text-[10px] text-[#7D7D7E]">ID: {displayId || '-'}</span>
             </div>
-            <button onClick={onLogout} className="bg-[#C62828] hover:bg-red-800 text-white px-5 py-2 rounded-lg text-xs font-bold transition-all active:scale-95 shadow-sm">
-              KELUAR
+            <button
+              type="button"
+              onClick={() => handleTabChange('profile')}
+              title="Profil"
+              aria-label="Profil"
+              className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full border text-[10px] font-black shadow-sm transition-all ${activeTab === 'profile' ? 'border-[#265F9C] bg-[#265F9C] text-white' : 'border-slate-200 bg-slate-50 text-[#265F9C] hover:border-[#265F9C] hover:bg-blue-50'}`}
+            >
+              {getInitials(displayName)}
             </button>
           </div>
         </nav>
@@ -165,6 +200,10 @@ const MemberPanel = ({ user, onLogout }) => {
             </button>
         </div>
 
+        {activeTab === 'profile' ? (
+          <ProfilePanel user={user} onLogout={onLogout} context="member" />
+        ) : (
+          <>
         <section className="bg-white p-8 rounded-b-2xl rounded-tr-2xl shadow-sm border border-slate-100 mb-8">
             <div className="grid grid-cols-1 md:grid-cols-2 xl:flex gap-4">
                 <div className="relative flex-1">
@@ -281,6 +320,8 @@ const MemberPanel = ({ user, onLogout }) => {
                 </div>
               </div>
             )}
+          </>
+        )}
           </>
         )}
       </div>

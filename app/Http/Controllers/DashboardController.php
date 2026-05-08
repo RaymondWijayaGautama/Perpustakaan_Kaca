@@ -637,6 +637,129 @@ class DashboardController extends Controller
         );
     }
 
+    public function updatePemusnahan(Request $request, $id)
+    {
+        $request->validate([
+            'isbn' => 'required|string',
+            'alasan' => 'required|string',
+            'nip_karyawan' => 'required|string',
+        ]);
+
+        $petugas = $this->getPetugasPemusnahan($request->nip_karyawan);
+
+        if (!$this->isPustakawan($petugas)) {
+            return response()->json(['message' => 'Hanya pustakawan yang dapat mengubah proses pemusnahan buku.'], 403);
+        }
+
+        $pemusnahan = DB::table('tr_pemusnahan')->where('id', $id)->first();
+
+        if (!$pemusnahan || $pemusnahan->status === 'soft_deleted') {
+            return response()->json(['message' => 'Data pemusnahan tidak ditemukan.'], 404);
+        }
+
+        if ($pemusnahan->status !== 'menunggu_konfirmasi') {
+            return response()->json(['message' => 'Pemusnahan yang sudah dikonfirmasi tidak bisa diedit.'], 409);
+        }
+
+        $identifier = $this->parsePemusnahanIdentifier($request->isbn);
+
+        if (!$identifier['isbn']) {
+            return response()->json(['message' => 'Format ISBN/barcode tidak dikenali. Gunakan ISBN atau barcode ISBN/ID copy.'], 422);
+        }
+
+        $buku = DB::table('mst_koleksi_buku')
+            ->where('ISBN', $identifier['isbn'])
+            ->where('is_delete', 0)
+            ->select(
+                'ISBN as isbn',
+                'JUDUL_KOLEKSI as judul_koleksi',
+                'KETERANGAN_BUKU as keterangan_buku'
+            )
+            ->first();
+
+        if (!$buku) {
+            return response()->json(['message' => 'ISBN tidak ditemukan atau sudah dihapus.'], 404);
+        }
+
+        $copy = null;
+        if ($identifier['id_cp_koleksi']) {
+            $copy = DB::table('cp_koleksi')
+                ->where('ID_CP_KOLEKSI', $identifier['id_cp_koleksi'])
+                ->where('ISBN', $identifier['isbn'])
+                ->select(
+                    'ID_CP_KOLEKSI as id_cp_koleksi',
+                    'STATUS_BUKU as status_buku'
+                )
+                ->first();
+
+            if (!$copy) {
+                return response()->json(['message' => 'Copy fisik dari barcode tidak ditemukan untuk ISBN ini.'], 404);
+            }
+        }
+
+        $copyAktifDipinjam = DB::table('cp_koleksi')
+            ->where('cp_koleksi.ISBN', $identifier['isbn'])
+            ->when($identifier['id_cp_koleksi'], function ($query) use ($identifier) {
+                $query->where('cp_koleksi.ID_CP_KOLEKSI', $identifier['id_cp_koleksi']);
+            })
+            ->whereExists(function ($query) {
+                $query->select(DB::raw(1))
+                    ->from('tr_peminjaman')
+                    ->whereColumn('tr_peminjaman.ID_CP_KOLEKSI', 'cp_koleksi.ID_CP_KOLEKSI')
+                    ->whereNull('tr_peminjaman.TGL_KEMBALI')
+                    ->whereIn('tr_peminjaman.STATUS_PEMINJAMAN', ['Dipinjam', 'Terlambat']);
+            })
+            ->exists();
+
+        if ($copyAktifDipinjam) {
+            return response()->json(['message' => 'Buku masih sedang dipinjam. Proses pengembalian terlebih dahulu sebelum pemusnahan.'], 422);
+        }
+
+        $kondisiCopy = $copy?->status_buku ?? '';
+        $kategoriPemusnahan = $this->getKategoriPemusnahan(
+            (object) ['keterangan_buku' => trim(($buku->keterangan_buku ?? '') . ' ' . $kondisiCopy)],
+            $request->alasan
+        );
+
+        if (!$kategoriPemusnahan) {
+            return response()->json([
+                'message' => 'Buku hanya dapat dimusnahkan bila statusnya rusak atau non-aktif. Perbarui keterangan buku terlebih dahulu.'
+            ], 422);
+        }
+
+        $existing = DB::table('tr_pemusnahan')
+            ->where('id', '!=', $id)
+            ->where('isbn', $identifier['isbn'])
+            ->when($identifier['id_cp_koleksi'], function ($query) use ($identifier) {
+                $query->where('id_cp_koleksi', $identifier['id_cp_koleksi']);
+            })
+            ->whereIn('status', ['menunggu_konfirmasi', 'disetujui'])
+            ->exists();
+
+        if ($existing) {
+            return response()->json(['message' => 'Buku ini sudah memiliki proses pemusnahan aktif.'], 409);
+        }
+
+        DB::table('tr_pemusnahan')->where('id', $id)->update([
+            'isbn' => $identifier['isbn'],
+            'id_cp_koleksi' => $identifier['id_cp_koleksi'],
+            'alasan' => '[' . $kategoriPemusnahan . '] ' . trim($request->alasan),
+            'nip_karyawan' => $request->nip_karyawan,
+            'updated_at' => Carbon::now(),
+        ]);
+
+        Log::info('Data pemusnahan buku diedit.', [
+            'id_pemusnahan' => $id,
+            'isbn' => $identifier['isbn'],
+            'id_cp_koleksi' => $identifier['id_cp_koleksi'],
+            'judul' => $buku->judul_koleksi,
+            'kategori_pemusnahan' => $kategoriPemusnahan,
+            'petugas_editor' => $petugas->nip_karyawan,
+        ]);
+
+        return response()->json(['message' => 'Data pemusnahan berhasil diperbarui.']);
+    }
+
     public function updateStatusPemusnahan(Request $request, $id)
     {
         $statusBaru = $request->get('status', 'soft_deleted');

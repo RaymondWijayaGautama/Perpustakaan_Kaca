@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
+import useConfirmDialog from "./useConfirmDialog";
 
 const API = "http://localhost:8000";
 
@@ -40,13 +41,37 @@ const getUserNip = (user) => (
     ""
 );
 
+const getUserName = (user) => (
+    user?.nama_karyawan ||
+    user?.NAMA_KARYAWAN ||
+    user?.nama ||
+    user?.NAMA ||
+    ""
+);
+
+const getPetugasName = (row, user) => {
+    if (row?.nama_petugas) return row.nama_petugas;
+
+    if (String(row?.nip_karyawan || "") === String(getUserNip(user))) {
+        return getUserName(user) || row?.nip_karyawan || "-";
+    }
+
+    return row?.nip_karyawan || "-";
+};
+
+const cleanAlasan = (value) => String(value || "").replace(/^\[[^\]]+\]\s*/, "");
+
 const PemusnahanPanelV2 = ({ user }) => {
+    const { confirm, ConfirmDialog } = useConfirmDialog();
     const [tab, setTab] = useState("input");
     const [rows, setRows] = useState([]);
     const [books, setBooks] = useState([]);
     const [search, setSearch] = useState("");
     const [status, setStatus] = useState("semua");
     const [form, setForm] = useState({ isbn: "", alasan: "" });
+    const [editForm, setEditForm] = useState({ id: null, isbn: "", alasan: "" });
+    const [showEditModal, setShowEditModal] = useState(false);
+    const [isSavingEdit, setIsSavingEdit] = useState(false);
     const [flash, setFlash] = useState({ type: "", text: "" });
 
     useEffect(() => {
@@ -61,10 +86,6 @@ const PemusnahanPanelV2 = ({ user }) => {
             }
             if (tab === "rusak") {
                 const response = await axios.get(`${API}/api/buku-rusak`);
-                setBooks(response.data);
-            }
-            if (tab === "overdue") {
-                const response = await axios.get(`${API}/api/buku-overdue`);
                 setBooks(response.data);
             }
         };
@@ -87,6 +108,35 @@ const PemusnahanPanelV2 = ({ user }) => {
         setRows(response.data);
     };
 
+    const openEditModal = (row) => {
+        setEditForm({
+            id: row.id,
+            isbn: row.id_cp_koleksi ? `${row.isbn}/${row.id_cp_koleksi}` : row.isbn,
+            alasan: cleanAlasan(row.alasan),
+        });
+        setShowEditModal(true);
+        setFlash({ type: "", text: "" });
+    };
+
+    const closeEditModal = () => {
+        setShowEditModal(false);
+        setEditForm({ id: null, isbn: "", alasan: "" });
+        setIsSavingEdit(false);
+    };
+
+    const updateRow = async () => {
+        setIsSavingEdit(true);
+        await axios.put(`${API}/api/pemusnahan/${editForm.id}`, {
+            isbn: editForm.isbn,
+            alasan: editForm.alasan,
+            nip_karyawan: getUserNip(user),
+        });
+        setFlash({ type: "success", text: "Data pemusnahan berhasil diperbarui." });
+        closeEditModal();
+        const response = await axios.get(`${API}/api/pemusnahan`, { params: { search, status } });
+        setRows(response.data);
+    };
+
     const archiveRow = async (id) => {
         await axios.patch(`${API}/api/pemusnahan/${id}`, { status: "soft_deleted" });
         setFlash({ type: "success", text: "Data pemusnahan berhasil diarsipkan." });
@@ -98,16 +148,51 @@ const PemusnahanPanelV2 = ({ user }) => {
 
     const safeSubmit = async (isbn, alasan) => {
         if (!isbn || !alasan.trim()) return window.alert("ISBN dan alasan wajib diisi.");
-        if (!window.confirm(`Ajukan pemusnahan untuk ISBN ${isbn}?`)) return;
+        const approved = await confirm({
+            title: "Ajukan Pemusnahan",
+            message: `Ajukan pemusnahan untuk ISBN ${isbn}?`,
+            confirmLabel: "Ya, Ajukan",
+            tone: "danger",
+        });
+        if (!approved) return;
         try { await submit(isbn, alasan); } catch (error) { setFlash({ type: "error", text: error.response?.data?.message || "Gagal mengajukan pemusnahan." }); }
     };
 
+    const safeUpdate = async () => {
+        if (!editForm.isbn || !editForm.alasan.trim()) return window.alert("ISBN dan alasan wajib diisi.");
+        const approved = await confirm({
+            title: "Simpan Perubahan",
+            message: "Simpan perubahan data pemusnahan ini?",
+            confirmLabel: "Ya, Simpan",
+            tone: "primary",
+        });
+        if (!approved) return;
+        try { await updateRow(); } catch (error) { setFlash({ type: "error", text: error.response?.data?.message || "Gagal mengubah data pemusnahan." }); setIsSavingEdit(false); }
+    };
+
     const safeConfirm = async (id) => {
-        if (!window.confirm("Konfirmasi pemusnahan buku ini?")) return;
+        const approved = await confirm({
+            title: "Konfirmasi Pemusnahan",
+            message: "Konfirmasi pemusnahan buku ini?",
+            confirmLabel: "Ya, Konfirmasi",
+            tone: "primary",
+        });
+        if (!approved) return;
         try { await confirmRow(id); } catch (error) { setFlash({ type: "error", text: error.response?.data?.message || "Gagal mengonfirmasi pemusnahan." }); }
     };
 
-    const tabs = [["input", "Input ISBN"], ["rusak", "Buku Rusak"], ["overdue", "Buku Overdue"], ["history", "Riwayat Proses"], ["berita", "Berita Acara"]];
+    const safeArchive = async (id) => {
+        const approved = await confirm({
+            title: "Arsipkan Data",
+            message: "Arsipkan data pemusnahan ini dari daftar aktif?",
+            confirmLabel: "Ya, Arsipkan",
+            tone: "danger",
+        });
+        if (!approved) return;
+        try { await archiveRow(id); } catch (error) { setFlash({ type: "error", text: error.response?.data?.message || "Gagal mengarsipkan data pemusnahan." }); }
+    };
+
+    const tabs = [["input", "Input ISBN"], ["rusak", "Buku Rusak"], ["history", "Riwayat Proses"], ["berita", "Berita Acara"]];
 
     return (
         <div className="bg-white rounded-2xl shadow-lg p-8 max-w-6xl mx-auto border border-gray-100">
@@ -119,14 +204,17 @@ const PemusnahanPanelV2 = ({ user }) => {
             {flash.text && <div className={`mt-6 rounded-xl border px-4 py-3 text-sm font-bold ${flash.type === "success" ? "border-green-200 bg-green-50 text-green-700" : "border-red-200 bg-red-50 text-red-700"}`}>{flash.text}</div>}
 
             {tab === "input" && <div className="mt-6 max-w-xl space-y-4">
+                <div className="rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm text-[#265F9C]">
+                    <span className="font-bold">Petugas Pustakawan:</span> {getUserName(user) || getUserNip(user) || "-"}
+                </div>
                 <input value={form.isbn} onChange={(e) => setForm({ ...form, isbn: e.target.value })} className="w-full rounded-xl border bg-gray-50 p-4 outline-none focus:ring-2 focus:ring-[#265F9C]" placeholder="ISBN buku" />
                 <textarea value={form.alasan} onChange={(e) => setForm({ ...form, alasan: e.target.value })} className="h-32 w-full rounded-xl border bg-gray-50 p-4 outline-none focus:ring-2 focus:ring-[#265F9C]" placeholder="Alasan pemusnahan" />
                 <button onClick={() => safeSubmit(form.isbn, form.alasan)} className="rounded-xl bg-red-600 px-6 py-4 font-bold text-white hover:bg-red-700">Ajukan Pemusnahan</button>
             </div>}
 
-            {(tab === "rusak" || tab === "overdue") && <div className="mt-6 overflow-x-auto">
+            {tab === "rusak" && <div className="mt-6 overflow-x-auto">
                 <table className="w-full text-left"><thead className="bg-gray-50 text-[10px] font-bold uppercase text-gray-400"><tr><th className="p-4">ISBN</th><th className="p-4">Judul</th><th className="p-4">Status</th><th className="p-4 text-right">Aksi</th></tr></thead><tbody>
-                    {books.length > 0 ? books.map((item, index) => <tr key={`${item.isbn}-${index}`} className="border-b text-sm"><td className="p-4 font-mono font-bold text-[#265F9C]">{item.isbn}</td><td className="p-4 font-semibold">{item.judul}</td><td className="p-4">{tab === "rusak" ? "Rusak / Layak Musnah" : `${item.hari_terlambat} hari`}</td><td className="p-4 text-right"><button onClick={() => safeSubmit(item.isbn, tab === "rusak" ? "Rusak berat dan tidak layak pakai" : "Non-aktif karena tidak dikembalikan dalam waktu lama")} className="rounded-lg bg-red-50 px-3 py-2 text-xs font-bold text-red-600 hover:bg-red-600 hover:text-white">Ajukan</button></td></tr>) : <tr><td colSpan="4" className="p-10 text-center text-gray-400">Tidak ada data.</td></tr>}
+                    {books.length > 0 ? books.map((item, index) => <tr key={`${item.isbn}-${index}`} className="border-b text-sm"><td className="p-4 font-mono font-bold text-[#265F9C]">{item.isbn}</td><td className="p-4 font-semibold">{item.judul}</td><td className="p-4">Rusak / Layak Musnah</td><td className="p-4 text-right"><button onClick={() => safeSubmit(item.isbn, "Rusak berat dan tidak layak pakai")} className="rounded-lg bg-red-50 px-3 py-2 text-xs font-bold text-red-600 hover:bg-red-600 hover:text-white">Ajukan</button></td></tr>) : <tr><td colSpan="4" className="p-10 text-center text-gray-400">Tidak ada data.</td></tr>}
                 </tbody></table>
             </div>}
 
@@ -141,10 +229,30 @@ const PemusnahanPanelV2 = ({ user }) => {
                 </div>
                 <div className="mt-6 overflow-x-auto">
                     <table className="w-full text-left"><thead className="bg-gray-50 text-[10px] font-bold uppercase text-gray-400"><tr><th className="p-4">Tanggal</th><th className="p-4">ISBN</th><th className="p-4">Judul</th><th className="p-4">Alasan</th><th className="p-4">Status</th><th className="p-4">Petugas</th><th className="p-4 text-right">Aksi</th></tr></thead><tbody>
-                        {rows.length > 0 ? rows.map((row) => <tr key={row.id} className="border-b text-sm"><td className="p-4">{formatWibDateTime(row.tanggal_pemusnahan)}</td><td className="p-4 font-mono font-bold text-[#265F9C]">{row.isbn}</td><td className="p-4 font-semibold">{row.judul}</td><td className="p-4 max-w-sm">{row.alasan}</td><td className="p-4"><span className={`rounded-full border px-3 py-1 text-[10px] font-bold uppercase ${badgeClass(row.status)}`}>{row.status.replaceAll("_", " ")}</span></td><td className="p-4">{row.nama_petugas || row.nip_karyawan}</td><td className="p-4"><div className="flex justify-end gap-2">{row.status === "menunggu_konfirmasi" && <button onClick={() => safeConfirm(row.id)} className="rounded-lg bg-[#265F9C] px-3 py-2 text-xs font-bold text-white">Konfirmasi</button>}{row.status === "disetujui" && <button onClick={() => openPrint(row.id)} className="rounded-lg bg-green-600 px-3 py-2 text-xs font-bold text-white">Cetak BA</button>}<button onClick={() => archiveRow(row.id)} className="rounded-lg bg-red-50 px-3 py-2 text-xs font-bold text-red-600">Arsipkan</button></div></td></tr>) : <tr><td colSpan="7" className="p-10 text-center text-gray-400">Belum ada data pemusnahan.</td></tr>}
+                        {rows.length > 0 ? rows.map((row) => <tr key={row.id} className="border-b text-sm"><td className="p-4">{formatWibDateTime(row.tanggal_pemusnahan)}</td><td className="p-4 font-mono font-bold text-[#265F9C]">{row.id_cp_koleksi ? `${row.isbn}/${row.id_cp_koleksi}` : row.isbn}</td><td className="p-4 font-semibold">{row.judul}</td><td className="p-4 max-w-sm">{row.alasan}</td><td className="p-4"><span className={`rounded-full border px-3 py-1 text-[10px] font-bold uppercase ${badgeClass(row.status)}`}>{row.status.replaceAll("_", " ")}</span></td><td className="p-4">{getPetugasName(row, user)}</td><td className="p-4"><div className="flex justify-end gap-2">{row.status === "menunggu_konfirmasi" && <button onClick={() => openEditModal(row)} className="rounded-lg bg-amber-500 px-3 py-2 text-xs font-bold text-white">Edit</button>}{row.status === "menunggu_konfirmasi" && <button onClick={() => safeConfirm(row.id)} className="rounded-lg bg-[#265F9C] px-3 py-2 text-xs font-bold text-white">Konfirmasi</button>}{row.status === "disetujui" && <button onClick={() => openPrint(row.id)} className="rounded-lg bg-green-600 px-3 py-2 text-xs font-bold text-white">Cetak BA</button>}<button onClick={() => safeArchive(row.id)} className="rounded-lg bg-red-50 px-3 py-2 text-xs font-bold text-red-600">Arsipkan</button></div></td></tr>) : <tr><td colSpan="7" className="p-10 text-center text-gray-400">Belum ada data pemusnahan.</td></tr>}
                     </tbody></table>
                 </div>
             </>}
+
+            {showEditModal && <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+                <div className="w-full max-w-xl rounded-2xl bg-white p-6 shadow-2xl">
+                    <div className="flex items-start justify-between gap-4">
+                        <div>
+                            <h2 className="text-xl font-bold text-[#265F9C]">Edit Proses Pemusnahan</h2>
+                            <p className="mt-1 text-sm text-gray-500">Data hanya bisa diedit selama masih menunggu konfirmasi.</p>
+                        </div>
+                        <button type="button" onClick={closeEditModal} className="text-2xl font-bold text-gray-400 hover:text-red-500">&times;</button>
+                    </div>
+                    <div className="mt-6 space-y-4">
+                        <input value={editForm.isbn} onChange={(e) => setEditForm({ ...editForm, isbn: e.target.value })} className="w-full rounded-xl border bg-gray-50 p-4 outline-none focus:ring-2 focus:ring-[#265F9C]" placeholder="ISBN atau barcode ISBN/ID copy" />
+                        <textarea value={editForm.alasan} onChange={(e) => setEditForm({ ...editForm, alasan: e.target.value })} className="h-32 w-full rounded-xl border bg-gray-50 p-4 outline-none focus:ring-2 focus:ring-[#265F9C]" placeholder="Alasan pemusnahan" />
+                    </div>
+                    <div className="mt-6 flex justify-end gap-3">
+                        <button type="button" onClick={closeEditModal} className="rounded-xl bg-gray-100 px-5 py-3 text-sm font-bold text-gray-700 hover:bg-gray-200">Batal</button>
+                        <button type="button" onClick={safeUpdate} disabled={isSavingEdit} className="rounded-xl bg-[#265F9C] px-5 py-3 text-sm font-bold text-white hover:bg-blue-700 disabled:opacity-50">{isSavingEdit ? "Menyimpan..." : "Simpan Perubahan"}</button>
+                    </div>
+                </div>
+            </div>}
 
             {tab === "berita" && <>
                 <div className="mt-6 flex items-center gap-3">
@@ -152,9 +260,10 @@ const PemusnahanPanelV2 = ({ user }) => {
                     <div className="rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm font-semibold text-green-700">Hanya data yang sudah disetujui admin.</div>
                 </div>
                 <div className="mt-6 grid gap-4 md:grid-cols-2">
-                    {rows.length > 0 ? rows.map((row) => <div key={row.id} className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm"><p className="text-xs font-bold uppercase tracking-[0.3em] text-[#265F9C]">Berita Acara</p><h3 className="mt-2 text-xl font-bold text-[#1F2937]">{row.judul}</h3><p className="mt-2 font-mono text-sm text-gray-500">{row.isbn}</p><div className="mt-4 space-y-2 text-sm text-[#4B5563]"><p><span className="font-bold text-[#1F2937]">Tanggal:</span> {formatWibDateTime(row.updated_at || row.tanggal_pemusnahan)}</p><p><span className="font-bold text-[#1F2937]">Petugas:</span> {row.nama_petugas || row.nip_karyawan}</p><p><span className="font-bold text-[#1F2937]">Alasan:</span> {row.alasan}</p></div><div className="mt-5 flex justify-end"><button onClick={() => openPrint(row.id)} className="rounded-xl bg-[#265F9C] px-4 py-3 text-xs font-bold text-white">Buka Printable</button></div></div>) : <div className="col-span-full rounded-2xl border border-dashed border-gray-300 bg-gray-50 px-6 py-12 text-center text-gray-500">Belum ada berita acara yang siap dicetak.</div>}
+                    {rows.length > 0 ? rows.map((row) => <div key={row.id} className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm"><p className="text-xs font-bold uppercase tracking-[0.3em] text-[#265F9C]">Berita Acara</p><h3 className="mt-2 text-xl font-bold text-[#1F2937]">{row.judul}</h3><p className="mt-2 font-mono text-sm text-gray-500">{row.isbn}</p><div className="mt-4 space-y-2 text-sm text-[#4B5563]"><p><span className="font-bold text-[#1F2937]">Tanggal:</span> {formatWibDateTime(row.updated_at || row.tanggal_pemusnahan)}</p><p><span className="font-bold text-[#1F2937]">Petugas:</span> {getPetugasName(row, user)}</p><p><span className="font-bold text-[#1F2937]">Alasan:</span> {row.alasan}</p></div><div className="mt-5 flex justify-end"><button onClick={() => openPrint(row.id)} className="rounded-xl bg-[#265F9C] px-4 py-3 text-xs font-bold text-white">Buka Printable</button></div></div>) : <div className="col-span-full rounded-2xl border border-dashed border-gray-300 bg-gray-50 px-6 py-12 text-center text-gray-500">Belum ada berita acara yang siap dicetak.</div>}
                 </div>
             </>}
+            <ConfirmDialog />
         </div>
     );
 };

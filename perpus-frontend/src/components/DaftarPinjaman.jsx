@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
+import useConfirmDialog from './useConfirmDialog';
 
 const DaftarPeminjaman = () => {
+    const { confirm, ConfirmDialog } = useConfirmDialog();
     const [data, setData] = useState([]);
     const [filterStatus, setFilterStatus] = useState('Semua');
     const [loading, setLoading] = useState(false);
@@ -24,7 +26,12 @@ const DaftarPeminjaman = () => {
         fetchData();
     }, [fetchData]);
     const handleKembalikan = async (idPeminjaman, judulBuku, namaPeminjam) => {
-        const yakin = window.confirm(`Terima pengembalian buku "${judulBuku}" dari ${namaPeminjam}?`);
+        const yakin = await confirm({
+            title: 'Terima Pengembalian',
+            message: `Terima pengembalian buku "${judulBuku}" dari ${namaPeminjam}?`,
+            confirmLabel: 'Ya, Terima',
+            tone: 'primary',
+        });
         if (!yakin) return;
 
         try {
@@ -119,6 +126,7 @@ const DaftarPeminjaman = () => {
                     </tbody>
                 </table>
             </div>
+            <ConfirmDialog />
         </div>
     );
 };

@@ -51,6 +51,7 @@ const LogPanel = () => {
   const [page, setPage] = useState(1);
   const [accessLogs, setAccessLogs] = useState(emptyPager);
   const [activityLogs, setActivityLogs] = useState(emptyPager);
+  const [roleOptions, setRoleOptions] = useState([]);
   const [loading, setLoading] = useState(false);
 
   const pager = activeLog === 'access' ? accessLogs : activityLogs;
@@ -86,6 +87,32 @@ const LogPanel = () => {
 
     fetchLogs();
   }, [activeLog, params]);
+
+  useEffect(() => {
+    const fetchRoles = async () => {
+      try {
+        const response = await axios.get(`${API_BASE}/logs/roles`, {
+          params: { type: activeLog },
+        });
+        const roles = response.data.data || [];
+
+        setRoleOptions(roles);
+
+        setFilters((current) => {
+          if (!current.role || roles.includes(current.role)) {
+            return current;
+          }
+
+          return { ...current, role: '' };
+        });
+      } catch (error) {
+        console.error(error);
+        setRoleOptions([]);
+      }
+    };
+
+    fetchRoles();
+  }, [activeLog]);
 
   const updateFilter = (key, value) => {
     setFilters((current) => ({ ...current, [key]: value }));
@@ -153,11 +180,9 @@ const LogPanel = () => {
           className="h-11 rounded-lg border border-slate-200 bg-slate-50 px-3 text-sm font-bold text-slate-700 outline-none transition focus:border-[#265F9C] focus:bg-white focus:ring-2 focus:ring-[#265F9C]/20"
         >
           <option value="">Semua Role</option>
-          <option value="Pustakawan">Pustakawan</option>
-          <option value="Admin">Admin</option>
-          <option value="Siswa">Siswa</option>
-          <option value="Karyawan">Karyawan</option>
-          <option value="Guru">Guru</option>
+          {roleOptions.map((role) => (
+            <option key={role} value={role}>{role}</option>
+          ))}
         </select>
 
         <input

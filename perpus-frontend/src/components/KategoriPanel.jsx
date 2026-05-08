@@ -6,8 +6,10 @@ import {
   TrashIcon, 
   XMarkIcon 
 } from '@heroicons/react/24/outline';
+import useConfirmDialog from './useConfirmDialog';
 
 const KategoriPanel = () => {
+  const { confirm, ConfirmDialog } = useConfirmDialog();
   const [categories, setCategories] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [modalState, setModalState] = useState({ isOpen: false, type: 'add' }); 
@@ -79,14 +81,21 @@ const KategoriPanel = () => {
   };
 
   const handleDelete = async (id) => {
-    if (window.confirm('Apakah Anda yakin ingin menghapus kategori ini?')) {
-      try {
-        await axios.delete(`${API_URL}/${id}`, getAuthHeader());
-        showMessage('success', 'Kategori berhasil dihapus.');
-        fetchCategories();
-      } catch (error) {
-        showMessage('error', 'Gagal menghapus kategori.');
-      }
+    const approved = await confirm({
+      title: 'Hapus Kategori',
+      message: 'Apakah Anda yakin ingin menghapus kategori ini?',
+      confirmLabel: 'Ya, Hapus',
+      tone: 'danger',
+    });
+
+    if (!approved) return;
+
+    try {
+      await axios.delete(`${API_URL}/${id}`, getAuthHeader());
+      showMessage('success', 'Kategori berhasil dihapus.');
+      fetchCategories();
+    } catch (error) {
+      showMessage('error', 'Gagal menghapus kategori.');
     }
   };
 
@@ -259,6 +268,7 @@ const KategoriPanel = () => {
           </div>
         </div>
       )}
+      <ConfirmDialog />
       
     </div>
   );

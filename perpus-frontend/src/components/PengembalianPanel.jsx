@@ -409,7 +409,8 @@ const PengembalianBulkPanel = () => {
           </div>
           
           {/* Form Pencarian */}
-          <form onSubmit={handleSearchRiwayat} className="flex gap-2 w-full md:w-[400px]">
+          <div className="flex flex-col md:flex-row gap-2 w-full md:w-auto">
+            <form onSubmit={handleSearchRiwayat} className="flex gap-2 w-full md:w-[400px]">
             <input 
               type="text" 
               value={searchQuery} 
@@ -424,7 +425,7 @@ const PengembalianBulkPanel = () => {
             >
               {loadingRiwayat ? '...' : 'Cari'}
             </button>
-            <button 
+            <button
               type="button"
               onClick={() => {
                 setSearchQuery('');
@@ -438,6 +439,31 @@ const PengembalianBulkPanel = () => {
               Reset
             </button>
           </form>
+          <button
+            type="button"
+            onClick={async () => {
+              try {
+                const res = await axios.get('http://localhost:8000/api/pengembalian/export', {
+                  params: { search: searchQuery },
+                  responseType: 'blob'
+                });
+                const url = window.URL.createObjectURL(new Blob([res.data]));
+                const link = document.createElement('a');
+                link.href = url;
+                link.setAttribute('download', 'pengembalian.xlsx');
+                document.body.appendChild(link);
+                link.click();
+                link.remove();
+                window.URL.revokeObjectURL(url);
+              } catch (err) {
+                showToast('error', 'GAGAL EXPORT DATA');
+              }
+            }}
+            className="bg-green-700 text-white px-6 py-2 font-bold uppercase hover:bg-green-800 transition-colors"
+          >
+            Export
+          </button>
+        </div>
         </div>
 
         {/* Tabel Data */}

@@ -8,6 +8,46 @@ use Illuminate\Support\Facades\DB;
 
 class LogController extends Controller
 {
+    public function roles(Request $request)
+    {
+        $type = $request->query('type', 'access');
+
+        if ($type === 'activity') {
+            $activityRoles = DB::table('activity_log')
+                ->whereNotNull('ACTOR_ROLE')
+                ->where('ACTOR_ROLE', '!=', '')
+                ->pluck('ACTOR_ROLE');
+
+            $sessionRoles = DB::table('activity_log')
+                ->leftJoin('access_log', 'activity_log.ID_ACCESS_LOG', '=', 'access_log.ID_ACCESS_LOG')
+                ->whereNotNull('access_log.ROLE')
+                ->where('access_log.ROLE', '!=', '')
+                ->pluck('access_log.ROLE');
+
+            return response()->json([
+                'data' => $activityRoles
+                    ->merge($sessionRoles)
+                    ->map(fn ($role) => trim((string) $role))
+                    ->filter()
+                    ->unique()
+                    ->sort(fn ($a, $b) => strcasecmp($a, $b))
+                    ->values(),
+            ]);
+        }
+
+        $roles = DB::table('access_log')
+            ->whereNotNull('ROLE')
+            ->where('ROLE', '!=', '')
+            ->pluck('ROLE')
+            ->map(fn ($role) => trim((string) $role))
+            ->filter()
+            ->unique()
+            ->sort(fn ($a, $b) => strcasecmp($a, $b))
+            ->values();
+
+        return response()->json(['data' => $roles]);
+    }
+
     public function access(Request $request)
     {
         $perPage = min((int) $request->query('per_page', 15), 50);

@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
+import useConfirmDialog from './useConfirmDialog';
 
 const LaporanPKLPanel = () => {
+    const { confirm, ConfirmDialog } = useConfirmDialog();
     const [dataLaporan, setDataLaporan] = useState([]);
     const [laporanPage, setLaporanPage] = useState(1);
     const [laporanPagination, setLaporanPagination] = useState({});
@@ -78,7 +80,12 @@ const LaporanPKLPanel = () => {
 
     // HAPUS DATA
     const handleHapus = async (id, judul) => {
-        const yakin = window.confirm(`Yakin ingin menghapus laporan "${judul}"?`);
+        const yakin = await confirm({
+            title: 'Hapus Laporan',
+            message: `Yakin ingin menghapus laporan "${judul}"?`,
+            confirmLabel: 'Ya, Hapus',
+            tone: 'danger',
+        });
         if (!yakin) return;
         try {
             await axios.delete(`http://localhost:8000/api/laporan/hapus/${id}`);
@@ -289,6 +296,7 @@ const LaporanPKLPanel = () => {
                     </div>
                 </div>
             )}
+            <ConfirmDialog />
         </div>
     );
 };
