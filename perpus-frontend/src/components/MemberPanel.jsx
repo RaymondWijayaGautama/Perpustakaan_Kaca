@@ -2,6 +2,7 @@ import { useDeferredValue, useEffect, useState } from 'react';
 import axios from 'axios';
 
 const API_BASE_URL = 'http://localhost:8000/api';
+const MEMBER_ACTIVE_TAB_KEY = 'member_active_tab';
 
 const fetchBooksRequest = async ({ judul, penulis, sortBy, sortOrder, kategori, page, activeTab }) => {
   const endpoint = activeTab === 'laporan' ? '/buku/laporan' : '/buku';
@@ -20,7 +21,7 @@ const fetchBooksRequest = async ({ judul, penulis, sortBy, sortOrder, kategori, 
 };
 
 const MemberPanel = ({ user, onLogout }) => {
-  const [activeTab, setActiveTab] = useState('buku');
+  const [activeTab, setActiveTab] = useState(() => localStorage.getItem(MEMBER_ACTIVE_TAB_KEY) || 'buku');
   const [books, setBooks] = useState([]);
   const [kategoriBuku, setKategoriBuku] = useState([]);
   
@@ -81,6 +82,7 @@ const MemberPanel = ({ user, onLogout }) => {
 
   const handleTabChange = (tab) => {
       setActiveTab(tab);
+      localStorage.setItem(MEMBER_ACTIVE_TAB_KEY, tab);
       setPage(1);
       setSearchJudul('');
       setFilterPenulis('');

@@ -208,7 +208,7 @@ const ManajemenKoleksiPanel = ({ user }) => {
             <div className="mb-8 flex flex-wrap gap-3 justify-end">
                 <input
                     type="text"
-                    placeholder="Cari ID, kode, atau deskripsi..."
+                    placeholder="Cari ID, kode, atau kategori..."
                     className="p-3 border rounded-xl text-sm outline-none min-w-[260px] focus:ring-2 focus:ring-[#265F9C] transition-all shadow-sm"
                     value={search}
                     onChange={(event) => {

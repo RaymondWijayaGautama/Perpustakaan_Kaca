@@ -18,14 +18,24 @@ class DashboardController extends Controller
         }
 
         return DB::table('mst_karyawan')
-            ->where('nip_karyawan', $nipKaryawan)
-            ->where('is_delete', 0)
+            ->where('NIP_KARYAWAN', $nipKaryawan)
+            ->where('IS_DELETE', 0)
+            ->select(
+                'NIP_KARYAWAN as nip_karyawan',
+                'NAMA_KARYAWAN as nama_karyawan',
+                'JABATAN_FUNGSIONAL as jabatan_fungsional'
+            )
             ->first();
     }
 
     private function isPustakawan(?object $petugas): bool
     {
         return $petugas && strtolower((string) $petugas->jabatan_fungsional) === 'pustakawan';
+    }
+
+    private function normalizeIsbnInput(?string $isbn): string
+    {
+        return strtoupper(preg_replace('/[^0-9X]/i', '', (string) $isbn));
     }
 
     private function getKategoriPemusnahan(object $buku, string $alasan): ?string
@@ -400,53 +410,81 @@ class DashboardController extends Controller
         try {
             DB::beginTransaction();
 
+            $isbn = $this->normalizeIsbnInput($request->isbn);
             $petugas = $this->getPetugasPemusnahan($request->nip_karyawan);
 
             if (!$this->isPustakawan($petugas)) {
+                DB::rollBack();
                 return response()->json(['message' => 'Hanya pustakawan yang dapat mencatat pemusnahan buku.'], 403);
             }
 
             $buku = DB::table('mst_koleksi_buku')
-                ->where('ISBN', $request->isbn)
-                ->where('is_delete', 0)
+                ->where('ISBN', $isbn)
+                ->where('IS_DELETE', 0)
+                ->select(
+                    'ISBN',
+                    'JUDUL_KOLEKSI as judul_koleksi',
+                    'KETERANGAN_BUKU as keterangan_buku'
+                )
                 ->first();
 
             if (!$buku) {
+                DB::rollBack();
                 return response()->json(['message' => 'ISBN tidak ditemukan atau sudah dihapus.'], 404);
             }
 
             $kategoriPemusnahan = $this->getKategoriPemusnahan($buku, $request->alasan);
 
             if (!$kategoriPemusnahan) {
+                DB::rollBack();
                 return response()->json([
                     'message' => 'Buku hanya dapat dimusnahkan bila statusnya rusak atau non-aktif. Perbarui keterangan buku terlebih dahulu.'
                 ], 422);
             }
 
-            $existing = DB::table('tr_pemusnahan')
-                ->where('isbn', $request->isbn)
-                ->whereIn('status', ['menunggu_konfirmasi', 'disetujui'])
-                ->exists();
+            $copy = DB::table('cp_koleksi')
+                ->where('ISBN', $isbn)
+                ->where(function ($copyQuery) {
+                    $copyQuery->whereNull('STATUS_BUKU')
+                        ->orWhere('STATUS_BUKU', '!=', 'Dimusnahkan');
+                })
+                ->whereNotExists(function ($query) {
+                    $query->select(DB::raw(1))
+                        ->from('tr_peminjaman')
+                        ->whereColumn('tr_peminjaman.ID_CP_KOLEKSI', 'cp_koleksi.ID_CP_KOLEKSI')
+                        ->whereNull('tr_peminjaman.TGL_KEMBALI')
+                        ->whereIn('tr_peminjaman.STATUS_PEMINJAMAN', ['Dipinjam', 'Terlambat']);
+                })
+                ->whereNotExists(function ($query) {
+                    $query->select(DB::raw(1))
+                        ->from('tr_pemusnahan_buku')
+                        ->whereColumn('tr_pemusnahan_buku.ID_CP_KOLEKSI', 'cp_koleksi.ID_CP_KOLEKSI')
+                        ->where(function ($activeQuery) {
+                            $activeQuery->whereNull('tr_pemusnahan_buku.IS_DELETE')
+                                ->orWhere('tr_pemusnahan_buku.IS_DELETE', 0);
+                        });
+                })
+                ->orderByDesc('ID_CP_KOLEKSI')
+                ->first();
 
-            if ($existing) {
-                return response()->json(['message' => 'Buku ini sudah memiliki proses pemusnahan aktif.'], 409);
+            if (!$copy) {
+                DB::rollBack();
+                return response()->json(['message' => 'Tidak ada copy buku yang tersedia untuk proses pemusnahan.'], 409);
             }
 
-            DB::table('tr_pemusnahan')->insert([
-                'isbn' => $request->isbn,
-                'alasan' => '[' . $kategoriPemusnahan . '] ' . trim($request->alasan),
-                'nip_karyawan' => $request->nip_karyawan,
-                'tanggal_pemusnahan' => Carbon::now(),
-                'status' => 'menunggu_konfirmasi',
-                'created_at' => Carbon::now(),
-                'updated_at' => Carbon::now(),
+            DB::table('tr_pemusnahan_buku')->insert([
+                'ID_CP_KOLEKSI' => $copy->ID_CP_KOLEKSI,
+                'KET_PEMUSNAHAN_BUKU' => '[' . $kategoriPemusnahan . '] ' . trim($request->alasan),
+                'TGL_PEMUSNAHAN_BUKU' => Carbon::now(),
+                'IS_DELETE' => 0,
             ]);
 
             Log::info('Pemusnahan buku diajukan.', [
-                'isbn' => $request->isbn,
+                'isbn' => $isbn,
                 'judul' => $buku->judul_koleksi,
                 'kategori_pemusnahan' => $kategoriPemusnahan,
                 'petugas_pengaju' => $petugas->nip_karyawan,
+                'copy_diajukan' => $copy->ID_CP_KOLEKSI,
             ]);
 
             DB::commit();
@@ -462,40 +500,56 @@ class DashboardController extends Controller
         $search = $request->get('search');
         $status = $request->get('status');
 
-        $query = DB::table('tr_pemusnahan')
-            ->join('mst_koleksi_buku', 'tr_pemusnahan.isbn', '=', 'mst_koleksi_buku.ISBN')
-            ->leftJoin('mst_karyawan as petugas', 'tr_pemusnahan.nip_karyawan', '=', 'petugas.nip_karyawan')
+        $query = DB::table('tr_pemusnahan_buku as pemusnahan')
+            ->join('cp_koleksi', 'pemusnahan.ID_CP_KOLEKSI', '=', 'cp_koleksi.ID_CP_KOLEKSI')
+            ->join('mst_koleksi_buku', 'cp_koleksi.ISBN', '=', 'mst_koleksi_buku.ISBN')
             ->select(
-                'tr_pemusnahan.*',
-                'mst_koleksi_buku.judul_koleksi as judul',
-                'mst_koleksi_buku.keterangan_buku',
-                'mst_koleksi_buku.no_rak_buku',
-                'petugas.nama_karyawan as nama_petugas'
+                'pemusnahan.ID_PEMUSNAHAN_BUKU as id',
+                'cp_koleksi.ISBN as isbn',
+                'pemusnahan.KET_PEMUSNAHAN_BUKU as alasan',
+                'pemusnahan.TGL_PEMUSNAHAN_BUKU as tanggal_pemusnahan',
+                'pemusnahan.TGL_PEMUSNAHAN_BUKU as updated_at',
+                'mst_koleksi_buku.JUDUL_KOLEKSI as judul',
+                'mst_koleksi_buku.KETERANGAN_BUKU as keterangan_buku',
+                'mst_koleksi_buku.NO_RAK_BUKU as no_rak_buku',
+                DB::raw("'Pustakawan' as nama_petugas"),
+                DB::raw("NULL as nip_karyawan"),
+                DB::raw("CASE WHEN cp_koleksi.STATUS_BUKU = 'Dimusnahkan' THEN 'disetujui' ELSE 'menunggu_konfirmasi' END as status")
             )
-            ->where('tr_pemusnahan.status', '!=', 'soft_deleted');
+            ->where(function ($activeQuery) {
+                $activeQuery->whereNull('pemusnahan.IS_DELETE')
+                    ->orWhere('pemusnahan.IS_DELETE', 0);
+            });
 
         if ($search) {
             $query->where(function($q) use ($search) {
-                $q->where('tr_pemusnahan.isbn', 'like', "%$search%")
-                  ->orWhere('mst_koleksi_buku.judul_koleksi', 'like', "%$search%")
-                  ->orWhere('tr_pemusnahan.alasan', 'like', "%$search%");
+                $q->where('cp_koleksi.ISBN', 'like', "%$search%")
+                  ->orWhere('mst_koleksi_buku.JUDUL_KOLEKSI', 'like', "%$search%")
+                  ->orWhere('pemusnahan.KET_PEMUSNAHAN_BUKU', 'like', "%$search%");
             });
         }
 
         if ($status && $status !== 'semua') {
-            $query->where('tr_pemusnahan.status', $status);
+            if ($status === 'menunggu_konfirmasi') {
+                $query->where(function ($statusQuery) {
+                    $statusQuery->whereNull('cp_koleksi.STATUS_BUKU')
+                        ->orWhere('cp_koleksi.STATUS_BUKU', '!=', 'Dimusnahkan');
+                });
+            } elseif ($status === 'disetujui') {
+                $query->where('cp_koleksi.STATUS_BUKU', 'Dimusnahkan');
+            }
         }
 
-        return response()->json($query->orderBy('tr_pemusnahan.created_at', 'desc')->get());
+        return response()->json($query->orderByDesc('pemusnahan.ID_PEMUSNAHAN_BUKU')->get());
     }
 
     public function getBukuRusak()
     {
         return response()->json(
             DB::table('mst_koleksi_buku')
-                ->where('is_delete', 0)
-                ->where('keterangan_buku', 'like', '%Rusak%')
-                ->select('ISBN as isbn', 'judul_koleksi as judul', 'keterangan_buku as kondisi')
+                ->where('IS_DELETE', 0)
+                ->where('KETERANGAN_BUKU', 'like', '%Rusak%')
+                ->select('ISBN as isbn', 'JUDUL_KOLEKSI as judul', 'KETERANGAN_BUKU as kondisi')
                 ->get()
         );
     }
@@ -504,15 +558,16 @@ class DashboardController extends Controller
     {
         return response()->json(
             DB::table('tr_peminjaman')
-                ->join('cp_koleksi', 'tr_peminjaman.id_cp_koleksi', '=', 'cp_koleksi.id_cp_koleksi')
+                ->join('cp_koleksi', 'tr_peminjaman.ID_CP_KOLEKSI', '=', 'cp_koleksi.ID_CP_KOLEKSI')
                 ->join('mst_koleksi_buku', 'cp_koleksi.ISBN', '=', 'mst_koleksi_buku.ISBN')
-                ->whereNull('tr_peminjaman.tgl_kembali')
-                ->where('tr_peminjaman.tgl_harus_kembali', '<', Carbon::now()->subDays(30))
+                ->whereNull('tr_peminjaman.TGL_KEMBALI')
+                ->where('tr_peminjaman.TGL_HARUS_KEMBALI', '<', Carbon::now()->subDays(30))
                 ->select(
                     'mst_koleksi_buku.ISBN as isbn', 
-                    'mst_koleksi_buku.judul_koleksi as judul',
-                    DB::raw('DATEDIFF(NOW(), tr_peminjaman.tgl_harus_kembali) as hari_terlambat')
+                    'mst_koleksi_buku.JUDUL_KOLEKSI as judul',
+                    DB::raw('DATEDIFF(NOW(), tr_peminjaman.TGL_HARUS_KEMBALI) as hari_terlambat')
                 )
+                ->distinct()
                 ->get()
         );
     }
@@ -521,10 +576,11 @@ class DashboardController extends Controller
     {
         $statusBaru = $request->get('status', 'soft_deleted');
 
-        DB::table('tr_pemusnahan')->where('id', $id)->update([
-            'status' => $statusBaru,
-            'updated_at' => Carbon::now()
-        ]);
+        if ($statusBaru === 'soft_deleted') {
+            DB::table('tr_pemusnahan_buku')->where('ID_PEMUSNAHAN_BUKU', $id)->update([
+                'IS_DELETE' => 1,
+            ]);
+        }
 
         Log::info('Status pemusnahan diperbarui.', [
             'id_pemusnahan' => $id,
@@ -571,56 +627,57 @@ class DashboardController extends Controller
                 $petugas = $this->getPetugasPemusnahan($request->nip_karyawan);
     
                 if (!$this->isPustakawan($petugas)) {
+                    DB::rollBack();
                     return response()->json(['message' => 'Konfirmasi pemusnahan hanya dapat dilakukan pustakawan.'], 403);
                 }
     
-                $pemusnahan = DB::table('tr_pemusnahan')->where('id', $id)->first();
+                $pemusnahan = DB::table('tr_pemusnahan_buku as pemusnahan')
+                    ->join('cp_koleksi', 'pemusnahan.ID_CP_KOLEKSI', '=', 'cp_koleksi.ID_CP_KOLEKSI')
+                    ->where('pemusnahan.ID_PEMUSNAHAN_BUKU', $id)
+                    ->select(
+                        'pemusnahan.*',
+                        'cp_koleksi.ISBN as isbn',
+                        'cp_koleksi.STATUS_BUKU as status_buku'
+                    )
+                    ->first();
     
-                if (!$pemusnahan || $pemusnahan->status === 'soft_deleted') {
+                if (!$pemusnahan || (int) $pemusnahan->IS_DELETE === 1) {
+                    DB::rollBack();
                     return response()->json(['message' => 'Data pemusnahan tidak ditemukan.'], 404);
                 }
     
-                if ($pemusnahan->status === 'disetujui') {
+                if ($pemusnahan->status_buku === 'Dimusnahkan') {
+                    DB::rollBack();
                     return response()->json(['message' => 'Pemusnahan ini sudah dikonfirmasi sebelumnya.'], 409);
                 }
     
                 $buku = DB::table('mst_koleksi_buku')
                     ->where('ISBN', $pemusnahan->isbn)
-                    ->where('is_delete', 0)
+                    ->where('IS_DELETE', 0)
+                    ->select(
+                        'ISBN',
+                        'JUDUL_KOLEKSI as judul_koleksi',
+                        'JUMLAH_EKSEMPLAR as jumlah_eksemplar'
+                    )
                     ->first();
     
                 if (!$buku || (int) $buku->jumlah_eksemplar < 1) {
+                    DB::rollBack();
                     return response()->json(['message' => 'Stok buku tidak cukup untuk diproses sebagai pemusnahan.'], 422);
                 }
     
                 DB::table('mst_koleksi_buku')
                     ->where('ISBN', $pemusnahan->isbn)
-                    ->decrement('jumlah_eksemplar', 1);
+                    ->decrement('JUMLAH_EKSEMPLAR', 1);
+
+                DB::table('cp_koleksi')
+                    ->where('ID_CP_KOLEKSI', $pemusnahan->ID_CP_KOLEKSI)
+                    ->update(['STATUS_BUKU' => 'Dimusnahkan']);
     
-                $copy = DB::table('cp_koleksi')
-                    ->where('ISBN', $pemusnahan->isbn)
-                    ->where('status_buku', '!=', 'Dimusnahkan')
-                    ->whereNotExists(function ($query) {
-                        $query->select(DB::raw(1))
-                            ->from('tr_peminjaman')
-                            ->whereColumn('tr_peminjaman.id_cp_koleksi', 'cp_koleksi.id_cp_koleksi')
-                            ->whereNull('tr_peminjaman.tgl_kembali')
-                            ->whereIn('tr_peminjaman.status_peminjaman', ['Dipinjam', 'Terlambat']);
-                    })
-                    ->orderByDesc('id_cp_koleksi')
-                    ->first();
-    
-                if ($copy) {
-                    DB::table('cp_koleksi')
-                        ->where('id_cp_koleksi', $copy->id_cp_koleksi)
-                        ->update(['status_buku' => 'Dimusnahkan']);
-                }
-    
-                DB::table('tr_pemusnahan')
-                    ->where('id', $id)
+                DB::table('tr_pemusnahan_buku')
+                    ->where('ID_PEMUSNAHAN_BUKU', $id)
                     ->update([
-                        'status' => 'disetujui',
-                        'updated_at' => Carbon::now(),
+                        'TGL_PEMUSNAHAN_BUKU' => Carbon::now(),
                     ]);
     
                 Log::info('Pemusnahan buku dikonfirmasi.', [
@@ -628,7 +685,7 @@ class DashboardController extends Controller
                     'isbn' => $pemusnahan->isbn,
                     'judul' => $buku->judul_koleksi,
                     'petugas_konfirmasi' => $petugas->nip_karyawan,
-                    'copy_dimusnahkan' => $copy?->id_cp_koleksi,
+                    'copy_dimusnahkan' => $pemusnahan->ID_CP_KOLEKSI,
                 ]);
     
                 DB::commit();
@@ -642,20 +699,29 @@ class DashboardController extends Controller
     
         public function printBeritaAcaraPemusnahan($id)
         {
-            $data = DB::table('tr_pemusnahan as pemusnahan')
-                ->join('mst_koleksi_buku as buku', 'pemusnahan.isbn', '=', 'buku.ISBN')
-                ->leftJoin('mst_karyawan as petugas', 'pemusnahan.nip_karyawan', '=', 'petugas.nip_karyawan')
+            $data = DB::table('tr_pemusnahan_buku as pemusnahan')
+                ->join('cp_koleksi as copy', 'pemusnahan.ID_CP_KOLEKSI', '=', 'copy.ID_CP_KOLEKSI')
+                ->join('mst_koleksi_buku as buku', 'copy.ISBN', '=', 'buku.ISBN')
                 ->select(
-                    'pemusnahan.*',
-                    'buku.judul_koleksi',
-                    'buku.pengarang',
-                    'buku.penerbit',
-                    'buku.no_rak_buku',
-                    'buku.keterangan_buku',
-                    'petugas.nama_karyawan as nama_petugas'
+                    'pemusnahan.ID_PEMUSNAHAN_BUKU as id',
+                    'copy.ISBN as isbn',
+                    'pemusnahan.KET_PEMUSNAHAN_BUKU as alasan',
+                    'pemusnahan.TGL_PEMUSNAHAN_BUKU as tanggal_pemusnahan',
+                    DB::raw("'disetujui' as status"),
+                    DB::raw("'Pustakawan' as nama_petugas"),
+                    DB::raw("NULL as nip_karyawan"),
+                    'buku.JUDUL_KOLEKSI as judul_koleksi',
+                    'buku.PENGARANG as pengarang',
+                    'buku.PENERBIT as penerbit',
+                    'buku.NO_RAK_BUKU as no_rak_buku',
+                    'buku.KETERANGAN_BUKU as keterangan_buku'
                 )
-                ->where('pemusnahan.id', $id)
-                ->where('pemusnahan.status', 'disetujui')
+                ->where('pemusnahan.ID_PEMUSNAHAN_BUKU', $id)
+                ->where('copy.STATUS_BUKU', 'Dimusnahkan')
+                ->where(function ($activeQuery) {
+                    $activeQuery->whereNull('pemusnahan.IS_DELETE')
+                        ->orWhere('pemusnahan.IS_DELETE', 0);
+                })
                 ->first();
     
             abort_unless($data, 404);

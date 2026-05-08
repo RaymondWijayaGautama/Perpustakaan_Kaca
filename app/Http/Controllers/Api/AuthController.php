@@ -57,7 +57,7 @@ class AuthController extends Controller
                 return $this->handleFail($throttleKey, $maxAttempts, 'Kata sandi salah.', 401);
             }
 
-            $token = $user->createToken('karyawan_token')->plainTextToken;
+            $token = $this->makeClientToken($identifier, 'karyawan');
 
         } else {
             // Cari berdasarkan NISN_SISWA
@@ -74,7 +74,7 @@ class AuthController extends Controller
                 return $this->handleFail($throttleKey, $maxAttempts, 'Kata sandi salah.', 401);
             }
 
-            $token = $user->createToken('siswa_token')->plainTextToken;
+            $token = $this->makeClientToken($identifier, 'siswa');
         }
 
         // Login Berhasil
@@ -84,7 +84,7 @@ class AuthController extends Controller
             'status' => 'success',
             'token' => $token,
             'role' => $role === 'karyawan' ? $user->JABATAN_FUNGSIONAL : 'Siswa',
-            'user' => $user
+            'user' => $this->withFrontendAliases($user)
         ]);
     }
 
@@ -98,5 +98,21 @@ class AuthController extends Controller
             'attempts_left' => $remaining,
             'info' => "Sisa percobaan: $remaining kali."
         ], $statusCode);
+    }
+
+    private function makeClientToken(string $identifier, string $role): string
+    {
+        return hash('sha256', $role . '|' . $identifier . '|' . Str::random(40) . '|' . now()->timestamp);
+    }
+
+    private function withFrontendAliases($user): array
+    {
+        $data = $user->toArray();
+
+        foreach ($data as $key => $value) {
+            $data[strtolower($key)] = $value;
+        }
+
+        return $data;
     }
 }
