@@ -35,12 +35,14 @@ Route::put('/laporan/ubah/{isbn}', [LaporanController::class, 'update']);
 Route::post('/laporan/tambah', [LaporanController::class, 'store']);
 Route::get('/laporan-pkl', [LaporanPklController::class, 'index']);
 Route::get('/buku/laporan', [LaporanPklController::class, 'index']);
-
-
+Route::get('/laporan/statistik-kunjungan-bulanan', [LaporanController::class, 'StatistikKunjunganBulanan']);
+Route::get('/laporan/export-pdf-statistik-kunjungan-bulanan', [\App\Http\Controllers\Api\LaporanController::class, 'exportPdfStatistikKunjunganBulanan']);
 Route::get('/laporan/siswa-terajin', [LaporanController::class, 'siswaTerajin']);
 Route::get('/laporan/kunjungan-bulanan', [LaporanController::class, 'kunjunganBulanan']);
 Route::get('/laporan/buku-terpopuler', [LaporanController::class, 'bukuTerpopuler']);
 Route::get('/laporan/kategori-populer', [LaporanController::class, 'kategoriPopuler']);
+Route::get('/laporan/statistik-peminjaman-kelas', [\App\Http\Controllers\Api\LaporanController::class, 'statistikPeminjamanKelas']);
+Route::get('/laporan/export-pdf-peminjaman-kelas', [\App\Http\Controllers\Api\LaporanController::class, 'exportPdfPeminjamanKelas']);
 // Group Dashboard & Data
 Route::get('/dashboard/stats', [DashboardController::class, 'getStats']);
 Route::get('/anggota', [DashboardController::class, 'getAnggota']);
