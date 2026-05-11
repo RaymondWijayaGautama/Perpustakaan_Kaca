@@ -7,120 +7,138 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Maatwebsite\Excel\Concerns\ToCollection;
-use Maatwebsite\Excel\Concerns\WithHeadingRow;
+use Maatwebsite\Excel\Concerns\WithStartRow;
 
-class BukuImport implements ToCollection, WithHeadingRow
+class BukuImport implements ToCollection, WithStartRow
 {
     public function __construct(private readonly string $nipKaryawan)
     {
+    }
+
+    public function startRow(): int
+    {
+        return 9;
     }
 
     public function collection(Collection $rows): void
     {
         if ($rows->isEmpty()) {
             throw ValidationException::withMessages([
-                'file_excel' => 'File Excel kosong.',
+                'file_excel' => 'File Excel tidak terbaca atau kosong.',
             ]);
         }
+
+        $kategoriMap = DB::table('ref_koleksi')
+            ->where('IS_DELETE', 0)
+            ->pluck('ID_REF_KOLEKSI', 'NO_KATEGORI_BUKU')
+            ->toArray();
 
         $seenIsbn = [];
         $preparedRows = [];
 
         foreach ($rows as $index => $row) {
-            $line = $index + 2;
-            $isbn = preg_replace('/\D/', '', trim((string) ($row['isbn'] ?? '')));
-            $judul = trim((string) ($row['judul'] ?? ''));
-            $pengarang = trim((string) ($row['pengarang'] ?? ''));
-            $tahun = trim((string) ($row['tahun'] ?? ''));
-            $kategori = (int) ($row['id_kategori'] ?? 0);
+            $line = $index + 9;
+
+            $judul = isset($row[6]) ? trim((string)$row[6]) : '';
+            $isbn = isset($row[14]) ? trim((string)$row[14]) : '';
+
+            if (empty($judul) && empty($isbn)) {
+                continue;
+            }
+
+            $pengarang = isset($row[5]) ? trim((string)$row[5]) : '';
+            $noKategoriExcel = isset($row[4]) ? trim((string)$row[4]) : ''; 
+            $idKategoriInteger = $kategoriMap[$noKategoriExcel] ?? null;
+
+            // --- PERBAIKAN PENERBIT ---
+            $penerbitMentah = isset($row[7]) ? trim((string)$row[7]) : '';
+            
+            // Ekstrak Tahun
+            preg_match('/\b((?:19|20)\d{2})\b/', $penerbitMentah, $matches);
+            $tahun = $matches[1] ?? date('Y');
+
+            // Pecah string berdasarkan koma, ambil bagian pertama saja (Nama Penerbit)
+            // Contoh: "Informatika, Bandung, 2023" -> Menjadi "Informatika"
+            $penerbitArray = explode(',', $penerbitMentah);
+            $penerbitFinal = trim($penerbitArray[0]);
+
+            // Potong menjadi maksimal 50 karakter untuk mencegah error Data Too Long (sesuaikan jika perlu)
+            if (strlen($penerbitFinal) > 50) {
+                $penerbitFinal = substr($penerbitFinal, 0, 50);
+            }
+            // --------------------------
+
+            $halamanMentah = isset($row[10]) ? (string)$row[10] : '0';
+            $halaman = (int) preg_replace('/\D/', '', $halamanMentah);
+
+            $eksemplar = isset($row[9]) ? (int)$row[9] : 1;
+            $ukuran = isset($row[11]) ? trim((string)$row[11]) : '-';
+            $keterangan = isset($row[15]) ? trim((string)$row[15]) : '';
 
             validator([
                 'isbn' => $isbn,
                 'judul' => $judul,
                 'pengarang' => $pengarang,
-                'tahun' => $tahun,
-                'id_kategori' => $kategori,
+                'id_kategori' => $idKategoriInteger,
             ], [
-                'isbn' => [
-                    'required',
-                    'max:25',
-                    Rule::unique('mst_koleksi_buku', 'ISBN'),
-                    function (string $attribute, mixed $value, \Closure $fail) {
-                        $normalized = preg_replace('/\D/', '', (string) $value);
-
-                        if (strlen($normalized) !== 13) {
-                            $fail('ISBN harus terdiri dari 13 digit angka. Contoh: 978-602-8519-93-9.');
-                            return;
-                        }
-
-                        if (!str_starts_with($normalized, '978') && !str_starts_with($normalized, '979')) {
-                            $fail('ISBN harus diawali 978 atau 979.');
-                        }
-                    },
-                ],
+                'isbn' => ['required', 'max:25', Rule::unique('mst_koleksi_buku', 'ISBN')],
                 'judul' => ['required', 'string', 'max:255'],
                 'pengarang' => ['required', 'string', 'max:100'],
-                'tahun' => ['required', 'digits:4'],
-                'id_kategori' => [
-                    'required',
-                    Rule::exists('ref_koleksi', 'ID_REF_KOLEKSI')->where('IS_DELETE', 0),
-                    Rule::notIn([4]),
-                ],
-            ], [], [
-                'isbn' => "ISBN baris {$line}",
-                'judul' => "Judul baris {$line}",
-                'pengarang' => "Pengarang baris {$line}",
-                'tahun' => "Tahun baris {$line}",
-                'id_kategori' => "Kategori baris {$line}",
+                'id_kategori' => ['required'], 
+            ], [
+                'judul.required' => "Judul pada baris {$line} (Kolom G) tidak terbaca. Pastikan kolom G terisi.",
+                'id_kategori.required' => "Kategori '{$noKategoriExcel}' baris {$line} tidak ada di tabel ref_koleksi.",
             ])->validate();
 
             if (in_array($isbn, $seenIsbn, true)) {
                 throw ValidationException::withMessages([
-                    'file_excel' => "ISBN {$isbn} duplikat pada file impor.",
+                    'file_excel' => "ISBN {$isbn} duplikat di dalam file pada baris {$line}.",
                 ]);
             }
 
             $seenIsbn[] = $isbn;
             $preparedRows[] = [
                 'ISBN' => $isbn,
-                'ID_REF_KOLEKSI' => $kategori,
+                'ID_REF_KOLEKSI' => $idKategoriInteger,
                 'JUDUL_KOLEKSI' => $judul,
                 'PENGARANG' => $pengarang,
-                'PENERBIT' => 'Belum diatur',
+                'PENERBIT' => $penerbitFinal, // Menggunakan penerbit yang sudah dipotong
                 'TAHUN' => $tahun,
-                'KETERANGAN_BUKU' => 'Buku baru dari import Excel',
-                'NO_RAK_BUKU' => 'Belum diatur',
+                'JUMLAH_EKSEMPLAR' => $eksemplar > 0 ? $eksemplar : 1,
+                'JUMLAH_HALAMAN' => $halaman,
+                'UKURAN_BUKU' => $ukuran,
+                'KETERANGAN_BUKU' => $keterangan ?: 'Import Excel',
             ];
         }
 
         DB::transaction(function () use ($preparedRows) {
-            $nextNb = ((int) DB::table('mst_koleksi_buku')->max('NB_KOLEKSI')) + 1;
+            $lastNb = DB::table('mst_koleksi_buku')->max('NB_KOLEKSI');
+            $nextNb = ($lastNb ? (int) $lastNb : 0) + 1;
 
             foreach ($preparedRows as $row) {
                 DB::table('mst_koleksi_buku')->insert([
+                    'NB_KOLEKSI' => $nextNb++,
                     'ISBN' => $row['ISBN'],
                     'ID_REF_KOLEKSI' => $row['ID_REF_KOLEKSI'],
                     'JUDUL_KOLEKSI' => $row['JUDUL_KOLEKSI'],
                     'PENGARANG' => $row['PENGARANG'],
                     'PENERBIT' => $row['PENERBIT'],
                     'TAHUN' => $row['TAHUN'],
-                    'NB_KOLEKSI' => $nextNb++,
                     'TGL_MASUK_KOLEKSI' => now(),
-                    'JUMLAH_EKSEMPLAR' => 1, 
-                    'JUMLAH_HALAMAN' => 0,
-                    'UKURAN_BUKU' => '-',
-                    'BIBLIOGRAFI' => '-',
-                    'INDEKS_AWAL_AKHIR' => 0,
+                    'JUMLAH_EKSEMPLAR' => $row['JUMLAH_EKSEMPLAR'],
+                    'JUMLAH_HALAMAN' => $row['JUMLAH_HALAMAN'],
+                    'UKURAN_BUKU' => $row['UKURAN_BUKU'],
                     'KETERANGAN_BUKU' => $row['KETERANGAN_BUKU'],
-                    'NO_RAK_BUKU' => $row['NO_RAK_BUKU'],
+                    'NO_RAK_BUKU' => 'Belum diatur',
                     'IS_DELETE' => 0,
                 ]);
 
-                DB::table('cp_koleksi')->insert([
-                    'ISBN' => $row['ISBN'],
-                    'ID_MST_LAPORAN' => null,
-                    'STATUS_BUKU' => 'Tersedia',
-                ]);
+                for ($i = 0; $i < $row['JUMLAH_EKSEMPLAR']; $i++) {
+                    DB::table('cp_koleksi')->insert([
+                        'ISBN' => $row['ISBN'],
+                        'STATUS_BUKU' => 'Tersedia',
+                    ]);
+                }
             }
         });
     }
