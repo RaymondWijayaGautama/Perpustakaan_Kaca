@@ -40,6 +40,7 @@ class PeminjamanController extends Controller
     private function parseBarcodeInput(?string $value): array
     {
         $raw = trim((string) $value);
+        $normalized = preg_replace('/\s+/', '', $raw) ?? '';
 
         if ($raw === '') {
             return [
@@ -49,39 +50,38 @@ class PeminjamanController extends Controller
             ];
         }
 
-        if (preg_match('/^(?<isbn>.+)\/(?<copy>\d+)$/', $raw, $matches)) {
-            $isbn = trim($matches['isbn']);
-            $isbnDigits = preg_replace('/\D/', '', $isbn);
+        $separatorPatterns = [
+            '/^(?<isbn>.+)[\/#_|](?<copy>\d+)$/',
+            '/^(?<isbn>.+)-(?<copy>\d+)$/',
+        ];
 
-            return [
-                'raw' => $raw,
-                'isbn' => strlen($isbnDigits) >= 10 ? $isbnDigits : $isbn,
-                'id_cp_koleksi' => (int) $matches['copy'],
-            ];
+        foreach ($separatorPatterns as $pattern) {
+            if (!preg_match($pattern, $normalized, $matches)) {
+                continue;
+            }
+
+            $isbnDigits = preg_replace('/\D/', '', $matches['isbn']);
+
+            if (preg_match('/^97[89]\d{10}$/', $isbnDigits)) {
+                return [
+                    'raw' => $raw,
+                    'isbn' => $isbnDigits,
+                    'id_cp_koleksi' => (int) $matches['copy'],
+                ];
+            }
         }
 
-        $numeric = preg_replace('/\D/', '', $raw);
+        $numeric = preg_replace('/\D/', '', $normalized);
+
+        if (preg_match('/^97[89]\d{10}\d+$/', $numeric)) {
+            return [
+                'raw' => $raw,
+                'isbn' => substr($numeric, 0, 13),
+                'id_cp_koleksi' => (int) substr($numeric, 13),
+            ];
+        }
 
         if (preg_match('/^97[89]\d{10}$/', $numeric)) {
-            return [
-                'raw' => $raw,
-                'isbn' => $numeric,
-                'id_cp_koleksi' => null,
-            ];
-        }
-
-        if (preg_match('/^(?<isbn>.+)-(?<copy>\d+)$/', $raw, $matches)) {
-            $isbn = trim($matches['isbn']);
-            $isbnDigits = preg_replace('/\D/', '', $isbn);
-
-            return [
-                'raw' => $raw,
-                'isbn' => strlen($isbnDigits) >= 10 ? $isbnDigits : $isbn,
-                'id_cp_koleksi' => (int) $matches['copy'],
-            ];
-        }
-
-        if ($numeric !== '' && strlen($numeric) >= 10) {
             return [
                 'raw' => $raw,
                 'isbn' => $numeric,
@@ -92,7 +92,7 @@ class PeminjamanController extends Controller
         return [
             'raw' => $raw,
             'isbn' => null,
-            'id_cp_koleksi' => ctype_digit($raw) ? (int) $raw : null,
+            'id_cp_koleksi' => ctype_digit($normalized) ? (int) $normalized : null,
         ];
     }
 
@@ -126,6 +126,57 @@ class PeminjamanController extends Controller
         return DB::table('tr_peminjaman')
             ->whereNull('TGL_KEMBALI')
             ->whereIn('STATUS_PEMINJAMAN', self::ACTIVE_LOAN_STATUSES);
+    }
+
+    private function resolvePeminjam(?string $identifier): ?object
+    {
+        $identifier = trim((string) $identifier);
+
+        if ($identifier === '') {
+            return null;
+        }
+
+        $siswa = DB::table('mst_siswa')
+            ->where('IS_DELETE', 0)
+            ->where(function ($query) use ($identifier) {
+                $query->where('NISN_SISWA', $identifier);
+
+                if (ctype_digit($identifier)) {
+                    $query->orWhere('ID_SISWA_TETAP', (int) $identifier);
+                }
+            })
+            ->select(
+                'ID_SISWA_TETAP as id_siswa_tetap',
+                'NISN_SISWA as identitas',
+                'NAMA_SISWA_TETAP as nama',
+                DB::raw("'siswa' as tipe")
+            )
+            ->first();
+
+        if ($siswa) {
+            return $siswa;
+        }
+
+        return DB::table('mst_karyawan')
+            ->where('NIP_KARYAWAN', $identifier)
+            ->where('IS_DELETE', 0)
+            ->select(
+                'NIP_KARYAWAN as nip_karyawan',
+                'NIP_KARYAWAN as identitas',
+                'NAMA_KARYAWAN as nama',
+                'JABATAN_FUNGSIONAL as jabatan',
+                DB::raw("'karyawan' as tipe")
+            )
+            ->first();
+    }
+
+    private function applyPeminjamFilter($query, object $peminjam)
+    {
+        if (($peminjam->tipe ?? '') === 'siswa') {
+            return $query->where('tr_peminjaman.ID_SISWA_TETAP', $peminjam->id_siswa_tetap);
+        }
+
+        return $query->where('tr_peminjaman.NIP_KARYAWAN', $peminjam->nip_karyawan);
     }
 
     private function prepareBorrowableCopy(object $copy): object|string
@@ -200,7 +251,8 @@ class PeminjamanController extends Controller
     {
         try {
             $query = DB::table('tr_peminjaman as peminjaman')
-                ->join('mst_siswa as siswa', 'peminjaman.ID_SISWA_TETAP', '=', 'siswa.ID_SISWA_TETAP')
+                ->leftJoin('mst_siswa as siswa', 'peminjaman.ID_SISWA_TETAP', '=', 'siswa.ID_SISWA_TETAP')
+                ->leftJoin('mst_karyawan as karyawan', 'peminjaman.NIP_KARYAWAN', '=', 'karyawan.NIP_KARYAWAN')
                 ->join('cp_koleksi as copy', 'peminjaman.ID_CP_KOLEKSI', '=', 'copy.ID_CP_KOLEKSI')
                 ->join('mst_koleksi_buku as buku', 'copy.ISBN', '=', 'buku.ISBN')
                 ->select(
@@ -215,8 +267,9 @@ class PeminjamanController extends Controller
                     'peminjaman.KONDISI_BUKU as kondisi_buku',
                     'peminjaman.KETERANGAN_PEMINJAMAN as keterangan_peminjaman',
                     'peminjaman.DENDA_PEMINJAMAN as denda_peminjaman',
-                    'siswa.NAMA_SISWA_TETAP as nama_peminjam',
-                    'siswa.NISN_SISWA as nisn_siswa',
+                    DB::raw("COALESCE(siswa.NAMA_SISWA_TETAP, karyawan.NAMA_KARYAWAN, '-') as nama_peminjam"),
+                    DB::raw("COALESCE(siswa.NISN_SISWA, karyawan.NIP_KARYAWAN, '-') as identitas_peminjam"),
+                    DB::raw("CASE WHEN peminjaman.ID_SISWA_TETAP IS NOT NULL THEN 'Siswa' WHEN peminjaman.NIP_KARYAWAN IS NOT NULL THEN 'Karyawan' ELSE '-' END as tipe_peminjam"),
                     'copy.ISBN',
                     'copy.STATUS_BUKU as status_buku',
                     'buku.JUDUL_KOLEKSI as judul_buku'
@@ -265,7 +318,7 @@ class PeminjamanController extends Controller
             ->join('cp_koleksi as copy', 'peminjaman.ID_CP_KOLEKSI', '=', 'copy.ID_CP_KOLEKSI')
             ->join('mst_koleksi_buku as buku', 'copy.ISBN', '=', 'buku.ISBN')
             ->leftJoin('mst_siswa as siswa', 'peminjaman.ID_SISWA_TETAP', '=', 'siswa.ID_SISWA_TETAP')
-            ->leftJoin('mst_karyawan as petugas', 'peminjaman.NIP_KARYAWAN', '=', 'petugas.NIP_KARYAWAN')
+            ->leftJoin('mst_karyawan as karyawan', 'peminjaman.NIP_KARYAWAN', '=', 'karyawan.NIP_KARYAWAN')
             ->whereNull('peminjaman.TGL_KEMBALI')
             ->whereIn('peminjaman.STATUS_PEMINJAMAN', self::ACTIVE_LOAN_STATUSES)
             ->whereRaw('DATEDIFF(?, peminjaman.TGL_HARUS_KEMBALI) >= ?', [$today, $minHariTerlambat])
@@ -280,9 +333,10 @@ class PeminjamanController extends Controller
                 'copy.ISBN',
                 'copy.STATUS_BUKU as status_buku',
                 'buku.JUDUL_KOLEKSI as judul_buku',
-                'siswa.NAMA_SISWA_TETAP as nama_peminjam',
-                'siswa.NISN_SISWA as nisn_siswa',
-                'petugas.NAMA_KARYAWAN as nama_petugas',
+                DB::raw("COALESCE(siswa.NAMA_SISWA_TETAP, karyawan.NAMA_KARYAWAN, '-') as nama_peminjam"),
+                DB::raw("COALESCE(siswa.NISN_SISWA, karyawan.NIP_KARYAWAN, '-') as identitas_peminjam"),
+                DB::raw("COALESCE(siswa.NISN_SISWA, karyawan.NIP_KARYAWAN, '-') as nisn_siswa"),
+                DB::raw("CASE WHEN peminjaman.ID_SISWA_TETAP IS NOT NULL THEN 'Siswa' WHEN peminjaman.NIP_KARYAWAN IS NOT NULL THEN 'Karyawan' ELSE '-' END as tipe_peminjam"),
                 DB::raw("DATEDIFF('{$today}', peminjaman.TGL_HARUS_KEMBALI) as hari_terlambat")
             );
 
@@ -293,7 +347,9 @@ class PeminjamanController extends Controller
                     ->orWhere('copy.ID_CP_KOLEKSI', 'like', "%{$search}%")
                     ->orWhere('peminjaman.ID_PEMINJAMAN', 'like', "%{$search}%")
                     ->orWhere('siswa.NAMA_SISWA_TETAP', 'like', "%{$search}%")
-                    ->orWhere('siswa.NISN_SISWA', 'like', "%{$search}%");
+                    ->orWhere('karyawan.NAMA_KARYAWAN', 'like', "%{$search}%")
+                    ->orWhere('siswa.NISN_SISWA', 'like', "%{$search}%")
+                    ->orWhere('karyawan.NIP_KARYAWAN', 'like', "%{$search}%");
             });
         }
 
@@ -334,14 +390,11 @@ class PeminjamanController extends Controller
             return response()->json(['message' => $bukuFisik['message']], 400);
         }
 
-        $siswa = DB::table('mst_siswa')
-            ->where('NISN_SISWA', $request->id_siswa_tetap)
-            ->where('IS_DELETE', 0)
-            ->select('ID_SISWA_TETAP as id_siswa_tetap')
-            ->first();
-            
-        if (!$siswa) {
-            return response()->json(['message' => 'Gagal Siswa dengan NISN tersebut tidak terdaftar!'], 404);
+        $peminjamInput = $request->input('id_peminjam', $request->input('id_siswa_tetap'));
+        $peminjam = $this->resolvePeminjam($peminjamInput);
+
+        if (!$peminjam) {
+            return response()->json(['message' => 'NISN/NIP peminjam tidak terdaftar.'], 404);
         }
 
         try {
@@ -349,8 +402,8 @@ class PeminjamanController extends Controller
 
             DB::table('tr_peminjaman')->insert([
                 'ID_CP_KOLEKSI' => $bukuFisik->id_cp_koleksi,
-                'ID_SISWA_TETAP' => $siswa->id_siswa_tetap,
-                'NIP_KARYAWAN' => $request->nip_karyawan,
+                'ID_SISWA_TETAP' => ($peminjam->tipe ?? '') === 'siswa' ? $peminjam->id_siswa_tetap : null,
+                'NIP_KARYAWAN' => ($peminjam->tipe ?? '') === 'karyawan' ? $peminjam->nip_karyawan : null,
                 'TGL_PINJAM' => now(),
                 'TGL_HARUS_KEMBALI' => now()->addDays(7),
                 'STATUS_PEMINJAMAN' => 'Dipinjam',
@@ -364,7 +417,7 @@ class PeminjamanController extends Controller
                 ->update(['STATUS_BUKU' => 'Dipinjam']);
 
             DB::commit();
-            return response()->json(['message' => 'Peminjaman berhasil dicatat!']);
+            return response()->json(['message' => "Peminjaman berhasil dicatat untuk {$peminjam->nama}."]);
 
         } catch (\Exception $e) {
             DB::rollBack();
@@ -451,12 +504,16 @@ class PeminjamanController extends Controller
         $idMember = $request->id_member; // ID internal siswa/karyawan
         $inputBuku = $request->id_pinjam; // Input dari frontend (ISBN atau ID Peminjaman)
         $barcode = $this->parseBarcodeInput($inputBuku);
+        $peminjam = $this->resolvePeminjam($idMember);
+
+        if (!$peminjam) {
+            return response()->json(['message' => 'NISN/NIP pemustaka tidak ditemukan.'], 404);
+        }
 
         // Melakukan JOIN untuk melacak ISBN melalui cp_koleksi
-        $peminjaman = DB::table('tr_peminjaman')
+        $query = DB::table('tr_peminjaman')
             ->join('cp_koleksi', 'tr_peminjaman.ID_CP_KOLEKSI', '=', 'cp_koleksi.ID_CP_KOLEKSI')
             ->join('mst_koleksi_buku', 'cp_koleksi.ISBN', '=', 'mst_koleksi_buku.ISBN')
-            ->where('tr_peminjaman.ID_SISWA_TETAP', $idMember)
             ->whereNull('tr_peminjaman.TGL_KEMBALI') // Memastikan buku belum dikembalikan
             ->whereIn('tr_peminjaman.STATUS_PEMINJAMAN', self::ACTIVE_LOAN_STATUSES)
             ->where(function ($query) use ($inputBuku, $barcode) {
@@ -472,7 +529,9 @@ class PeminjamanController extends Controller
                 if ($barcode['id_cp_koleksi']) {
                     $query->orWhere('cp_koleksi.ID_CP_KOLEKSI', $barcode['id_cp_koleksi']);
                 }
-            })
+            });
+
+        $peminjaman = $this->applyPeminjamFilter($query, $peminjam)
             ->select(
                 'tr_peminjaman.ID_PEMINJAMAN as id_peminjaman',
                 'tr_peminjaman.ID_CP_KOLEKSI as id_cp_koleksi',
@@ -558,7 +617,8 @@ class PeminjamanController extends Controller
         $peminjaman = DB::table('tr_peminjaman')
             ->join('cp_koleksi', 'tr_peminjaman.ID_CP_KOLEKSI', '=', 'cp_koleksi.ID_CP_KOLEKSI')
             ->join('mst_koleksi_buku', 'cp_koleksi.ISBN', '=', 'mst_koleksi_buku.ISBN')
-            ->join('mst_siswa', 'tr_peminjaman.ID_SISWA_TETAP', '=', 'mst_siswa.ID_SISWA_TETAP')
+            ->leftJoin('mst_siswa', 'tr_peminjaman.ID_SISWA_TETAP', '=', 'mst_siswa.ID_SISWA_TETAP')
+            ->leftJoin('mst_karyawan', 'tr_peminjaman.NIP_KARYAWAN', '=', 'mst_karyawan.NIP_KARYAWAN')
             ->whereNull('tr_peminjaman.TGL_KEMBALI')
             ->whereIn('tr_peminjaman.STATUS_PEMINJAMAN', self::ACTIVE_LOAN_STATUSES)
             ->where(function ($query) use ($inputBuku, $barcode) {
@@ -578,11 +638,15 @@ class PeminjamanController extends Controller
                 'tr_peminjaman.ID_PEMINJAMAN as id_peminjaman',
                 'tr_peminjaman.ID_CP_KOLEKSI as id_cp_koleksi',
                 'tr_peminjaman.ID_SISWA_TETAP as id_siswa_tetap',
+                'tr_peminjaman.NIP_KARYAWAN as nip_karyawan',
                 'tr_peminjaman.TGL_HARUS_KEMBALI as tgl_harus_kembali',
                 'mst_koleksi_buku.JUDUL_KOLEKSI as judul_koleksi',
                 'cp_koleksi.ISBN',
                 'mst_siswa.NISN_SISWA as nisn_siswa',
-                'mst_siswa.NAMA_SISWA_TETAP as nama_peminjam'
+                'mst_karyawan.NIP_KARYAWAN as nip_peminjam',
+                DB::raw("COALESCE(mst_siswa.NAMA_SISWA_TETAP, mst_karyawan.NAMA_KARYAWAN, '-') as nama_peminjam"),
+                DB::raw("COALESCE(mst_siswa.NISN_SISWA, mst_karyawan.NIP_KARYAWAN, '-') as identitas_peminjam"),
+                DB::raw("CASE WHEN tr_peminjaman.ID_SISWA_TETAP IS NOT NULL THEN 'Siswa' WHEN tr_peminjaman.NIP_KARYAWAN IS NOT NULL THEN 'Karyawan' ELSE '-' END as tipe_peminjam")
             )
             ->first();
 

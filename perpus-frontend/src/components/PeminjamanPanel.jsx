@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import axios from "axios";
 import BarcodeCameraScanner from "./BarcodeCameraScanner";
 
@@ -12,25 +12,70 @@ const getUserNip = (user) => (
 
 const PeminjamanPanel = ({ user }) => {
     const [idCpKoleksi, setIdCpKoleksi] = useState("");
-    const [idSiswa, setIdSiswa] = useState("");
+    const [idPeminjam, setIdPeminjam] = useState("");
     const [msg, setMsg] = useState({ status: "", text: "" });
+    const [scanningLookup, setScanningLookup] = useState(false);
 
-    const handlePinjam = async (e) => {
-        if(e) e.preventDefault();
+    const peminjamInputRef = useRef(null);
+    const idPeminjamRef = useRef(idPeminjam);
+    const scanningLookupRef = useRef(false);
+
+    useEffect(() => {
+        idPeminjamRef.current = idPeminjam;
+    }, [idPeminjam]);
+
+    useEffect(() => {
+        scanningLookupRef.current = scanningLookup;
+    }, [scanningLookup]);
+
+    const prosesPinjamByKode = async (kodeBuku) => {
+        const barcodeValue = String(kodeBuku || '').trim();
+        const peminjamValue = String(idPeminjamRef.current || '').trim();
+
+        if (!barcodeValue || scanningLookupRef.current) {
+            return;
+        }
+
+        setIdCpKoleksi(barcodeValue);
+
+        if (!peminjamValue) {
+            setMsg({ status: "error", text: `Barcode buku terbaca: ${barcodeValue}. Isi NISN/NIP peminjam dulu, lalu proses peminjaman.` });
+            setTimeout(() => peminjamInputRef.current?.focus(), 0);
+            return;
+        }
+
+        scanningLookupRef.current = true;
+        setScanningLookup(true);
         setMsg({ status: "loading", text: "Memproses peminjaman..." });
 
         try {
-            await axios.post("http://localhost:8000/api/peminjaman", {
-                isbn: idCpKoleksi,  
-                id_siswa_tetap: idSiswa,
-                nip_karyawan: getUserNip(user)
+            const response = await axios.post("http://localhost:8000/api/peminjaman", {
+                isbn: barcodeValue,
+                id_peminjam: peminjamValue,
+                editor_nip_karyawan: getUserNip(user)
             });
-            setMsg({ status: "success", text: "Berhasil! Buku resmi dipinjam." });
+
+            setMsg({ status: "success", text: response.data?.message || "Berhasil! Buku resmi dipinjam." });
             setIdCpKoleksi("");
-            setIdSiswa("");
+            setIdPeminjam("");
+            idPeminjamRef.current = "";
         } catch (error) {
-            setMsg({ status: "error", text: error.response?.data?.message || "Gagal memproses." });
+            setMsg({ status: "error", text: error.response?.data?.message || "Gagal memproses peminjaman." });
+        } finally {
+            scanningLookupRef.current = false;
+            setScanningLookup(false);
         }
+    };
+
+    const handlePinjam = async (e) => {
+        if(e) e.preventDefault();
+
+        if (!idCpKoleksi.trim() || !idPeminjam.trim()) {
+            setMsg({ status: "error", text: "Barcode buku dan NISN/NIP peminjam wajib diisi." });
+            return;
+        }
+
+        await prosesPinjamByKode(idCpKoleksi);
     };
 
     return (
@@ -50,7 +95,11 @@ const PeminjamanPanel = ({ user }) => {
                     <label className="block text-xs font-black uppercase text-gray-400 mb-2 tracking-widest">Langkah 1: Scan Barcode Buku</label>
                     <BarcodeCameraScanner
                         readerId="peminjaman-reader"
-                        onScan={(data) => setIdCpKoleksi(data)}
+                        active={!scanningLookup}
+                        onScan={(data) => {
+                            setIdCpKoleksi(data);
+                            prosesPinjamByKode(data);
+                        }}
                     />
                 </div>
 
@@ -65,10 +114,14 @@ const PeminjamanPanel = ({ user }) => {
                     </div>
 
                     <div>
-                        <label className="block text-sm font-bold mb-2">NISN Peminjam</label>
+                        <label className="block text-sm font-bold mb-2">NISN / NIP Peminjam</label>
                         <input 
-                            type="text" value={idSiswa} onChange={(e) => setIdSiswa(e.target.value)}
-                            placeholder="Masukkan NISN siswa"
+                            ref={peminjamInputRef}
+                            type="text" value={idPeminjam} onChange={(e) => {
+                                setIdPeminjam(e.target.value);
+                                idPeminjamRef.current = e.target.value;
+                            }}
+                            placeholder="Masukkan NISN siswa atau NIP karyawan"
                             className="w-full p-4 bg-gray-50 border rounded-xl focus:ring-2 focus:ring-[#265F9C] outline-none"
                             required
                         />
@@ -76,9 +129,10 @@ const PeminjamanPanel = ({ user }) => {
 
                     <button 
                         type="submit"
-                        className="w-full py-4 bg-[#265F9C] text-white rounded-xl font-bold shadow-lg hover:bg-blue-800 transition-all active:scale-95 flex justify-center items-center gap-2"
+                        disabled={scanningLookup}
+                        className="w-full py-4 bg-[#265F9C] text-white rounded-xl font-bold shadow-lg hover:bg-blue-800 transition-all active:scale-95 flex justify-center items-center gap-2 disabled:cursor-not-allowed disabled:opacity-60"
                     >
-                        Proses Peminjaman
+                        {scanningLookup ? 'Memproses...' : 'Proses Peminjaman'}
                     </button>
                 </form>
             </div>

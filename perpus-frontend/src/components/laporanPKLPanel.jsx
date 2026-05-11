@@ -20,6 +20,20 @@ const LaporanPKLPanel = () => {
         isbn: '', judul_koleksi: '', pengarang: '', tahun: '', file_laporan: null
     });
 
+    const getErrorMessage = (error) => {
+        const pesan = error.response?.data?.pesan;
+
+        if (typeof pesan === 'string') {
+            return pesan;
+        }
+
+        if (pesan && typeof pesan === 'object') {
+            return Object.values(pesan).flat().join(' ');
+        }
+
+        return error.message || 'Terjadi kesalahan.';
+    };
+
     // FETCH DATA
     const fetchLaporan = useCallback(async () => {
         setLoading(true);
@@ -142,7 +156,7 @@ const LaporanPKLPanel = () => {
             setIsModalOpen(false);
             fetchLaporan();
         } catch (error) {
-            alert("Gagal menyimpan: " + (error.response?.data?.pesan || error.message));
+            alert("Gagal menyimpan: " + getErrorMessage(error));
         }
     };
 

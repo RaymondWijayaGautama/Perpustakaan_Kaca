@@ -38,15 +38,39 @@
                         <input type="hidden" name="nip_karyawan" value="{{ $nipKaryawan }}">
 
                         <div class="mb-4">
-                            <label for="file_excel" class="form-label fw-bold">Pilih File Excel (.xlsx / .csv)</label>
+                            <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2">
+                                <label for="file_excel" class="form-label fw-bold mb-0">Pilih File Excel (.xlsx / .xls / .csv)</label>
+                                <a href="{{ route('pustakawan.buku.import_template') }}" class="btn btn-outline-primary btn-sm">
+                                    Download Template Impor
+                                </a>
+                            </div>
                             <input class="form-control form-control-lg" type="file" id="file_excel" name="file_excel" required accept=".xlsx, .xls, .csv">
                         </div>
 
                         <div class="alert alert-warning" role="alert">
                             <h6 class="alert-heading fw-bold">Panduan Kolom Excel:</h6>
-                            Pastikan baris pertama (judul kolom) di file Excel Anda sama persis dengan urutan berikut (huruf kecil semua):
+                            Gunakan template impor buku induk. Data buku diisi mulai baris ke-4 dengan susunan kolom:
                             <hr>
-                            <p class="mb-0"><code>isbn</code> | <code>judul</code> | <code>pengarang</code> | <code>tahun</code> | <code>id_kategori</code></p>
+                            <p class="mb-2">
+                                <code>No. Induk</code> |
+                                <code>No. Kode</code> |
+                                <code>Pengarang</code> |
+                                <code>Judul</code> |
+                                <code>Penerbit, Kota, Tahun, Cet.</code> |
+                                <code>Tanggal diterima</code> |
+                                <code>Jumlah Eksemplar</code> |
+                                <code>Jumlah Halaman</code> |
+                                <code>Ukuran Buku</code> |
+                                <code>Bibliografi</code> |
+                                <code>Indeks</code> |
+                                <code>ISBN</code> |
+                                <code>Keterangan</code>
+                            </p>
+                            <p class="mb-0 small">
+                                Kolom <strong>No. Kode</strong> dibaca sebagai nomor kategori buku.
+                                Tahun akan diambil dari kolom <strong>Penerbit, Kota, Tahun, Cet.</strong>.
+                                <strong>Jumlah Eksemplar</strong> akan membuat jumlah copy fisik sesuai angka yang diisi.
+                            </p>
                         </div>
 
                         <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">

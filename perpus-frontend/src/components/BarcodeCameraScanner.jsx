@@ -7,6 +7,10 @@ const SUPPORTED_BARCODE_FORMATS = [
   Html5QrcodeSupportedFormats.CODE_93,
   Html5QrcodeSupportedFormats.EAN_13,
   Html5QrcodeSupportedFormats.EAN_8,
+  Html5QrcodeSupportedFormats.UPC_A,
+  Html5QrcodeSupportedFormats.UPC_E,
+  Html5QrcodeSupportedFormats.ITF,
+  Html5QrcodeSupportedFormats.CODABAR,
   Html5QrcodeSupportedFormats.QR_CODE,
 ];
 
@@ -121,15 +125,23 @@ const BarcodeCameraScanner = ({
           selectedCameraId,
           {
             fps: 15,
-            qrbox: { width: 360, height: 140 },
-            aspectRatio: 1.7777778,
+            qrbox: (viewfinderWidth, viewfinderHeight) => {
+              const safeWidth = Math.max(1, Math.floor(viewfinderWidth));
+              const safeHeight = Math.max(1, Math.floor(viewfinderHeight));
+              const width = Math.max(1, Math.floor(Math.min(safeWidth * 0.86, safeHeight * 1.9, 520)));
+              const height = Math.max(1, Math.floor(Math.min(safeHeight * 0.72, width * 0.42)));
+
+              return { width, height };
+            },
             disableFlip: false,
           },
           (decodedText) => {
             if (scanLockRef.current) return;
 
             scanLockRef.current = true;
-            onScanRef.current?.(decodedText);
+            const scannedValue = String(decodedText || '').trim();
+            setStatusText(`Barcode terbaca: ${scannedValue}`);
+            onScanRef.current?.(scannedValue);
             setTimeout(() => {
               scanLockRef.current = false;
             }, scanDelay);
@@ -186,10 +198,14 @@ const BarcodeCameraScanner = ({
         </div>
       </div>
 
-      <div
-        id={readerId}
-        className="barcode-camera-reader overflow-hidden rounded-2xl border-2 border-dashed border-gray-200 bg-gray-50 min-h-[260px]"
-      />
+      <div className="relative rounded-2xl border border-slate-300 bg-slate-50 p-3 shadow-inner">
+        <div
+          id={readerId}
+          className="barcode-camera-reader overflow-hidden rounded-xl border-2 border-dashed border-[#265F9C]/50 bg-white min-h-[260px]"
+        />
+        <div className="pointer-events-none absolute inset-6 rounded-lg border border-[#265F9C]/30" />
+        <div className="pointer-events-none absolute left-1/2 top-1/2 h-[2px] w-[72%] -translate-x-1/2 -translate-y-1/2 bg-[#265F9C]/50 shadow-sm" />
+      </div>
 
       <p className={`mt-2 text-center text-sm font-bold ${errorText ? 'text-red-700' : 'text-gray-500'}`}>
         {errorText || statusText}

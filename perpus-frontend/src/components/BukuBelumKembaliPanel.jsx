@@ -158,7 +158,7 @@ const BukuBelumKembaliPanel = ({ user }) => {
                             <th className="p-4">Tanggal</th>
                             <th className="p-4 text-center">Terlambat</th>
                             <th className="p-4">Status</th>
-                            <th className="p-4">Petugas</th>
+                            <th className="p-4">Tipe</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -200,7 +200,7 @@ const BukuBelumKembaliPanel = ({ user }) => {
                                         </span>
                                         <p className="mt-2 text-xs text-[#7D7D7E]">Fisik: {item.status_buku || '-'}</p>
                                     </td>
-                                    <td className="p-4 text-[#585858]">{item.nama_petugas || item.nip_karyawan || '-'}</td>
+                                    <td className="p-4 text-[#585858]">{item.tipe_peminjam || '-'}</td>
                                 </tr>
                             ))
                         )}

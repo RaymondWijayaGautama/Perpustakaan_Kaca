@@ -105,6 +105,9 @@ const ManajemenBukuPanel = ({ user }) => {
     const [copyStatusOptions, setCopyStatusOptions] = useState(fallbackCopyStatusOptions);
     const [isLoadingCopies, setIsLoadingCopies] = useState(false);
     const [savingCopyId, setSavingCopyId] = useState(null);
+    const [isCreatingCopy, setIsCreatingCopy] = useState(false);
+    const [copyToDelete, setCopyToDelete] = useState(null);
+    const [isDeletingCopy, setIsDeletingCopy] = useState(false);
     const [conditionFeedback, setConditionFeedback] = useState({ type: '', message: '' });
 
     const deferredBookSearch = useDeferredValue(bookSearch);
@@ -322,17 +325,37 @@ const ManajemenBukuPanel = ({ user }) => {
         }
     };
 
-    const openConditionModal = async (book) => {
-        setConditionBook(book);
-        setShowConditionModal(true);
-        setBookCopies([]);
+    // Fungsi untuk men-generate barcode spesifik per copy fisik
+    const handleGenerateCopyBarcode = async (copy) => {
+        setShowBarcodeModal(true);
+        setIsGeneratingBarcode(true);
+        setBarcodeData('');
         setConditionFeedback({ type: '', message: '' });
+
+        try {
+            const response = await axios.post(`${API_BASE_URL}/generate-barcode`, {
+                isbn: conditionBook.ISBN,
+                id_cp_koleksi: copy.id_cp_koleksi, // ID Copy untuk barcode spesifik
+                editor_nip_karyawan: getUserNip(user),
+            });
+
+            setBarcodeData(response.data);
+        } catch (error) {
+            console.error(error);
+            setBarcodeData("<div class='text-red-500 p-4 text-center'>Gagal membuat barcode copy fisik.</div>");
+        } finally {
+            setIsGeneratingBarcode(false);
+        }
+    };
+
+    const loadBookCopies = async (isbn) => {
         setIsLoadingCopies(true);
 
         try {
-            const response = await axios.get(`${API_BASE_URL}/buku/${book.ISBN}/copies`);
+            const response = await axios.get(`${API_BASE_URL}/buku/${isbn}/copies`);
             setBookCopies(response.data.data?.copies || []);
             setCopyStatusOptions(response.data.data?.status_options || fallbackCopyStatusOptions);
+            return response.data.data;
         } catch (error) {
             console.error(error);
             setConditionFeedback({
@@ -344,12 +367,52 @@ const ManajemenBukuPanel = ({ user }) => {
         }
     };
 
+    const openConditionModal = async (book) => {
+        setConditionBook(book);
+        setShowConditionModal(true);
+        setBookCopies([]);
+        setCopyToDelete(null);
+        setConditionFeedback({ type: '', message: '' });
+        await loadBookCopies(book.ISBN);
+    };
+
     const closeConditionModal = () => {
         setShowConditionModal(false);
         setConditionBook(null);
         setBookCopies([]);
         setSavingCopyId(null);
+        setIsCreatingCopy(false);
+        setCopyToDelete(null);
+        setIsDeletingCopy(false);
         setConditionFeedback({ type: '', message: '' });
+    };
+
+    const handleAddCopy = async () => {
+        if (!conditionBook) {
+            return;
+        }
+
+        setIsCreatingCopy(true);
+        setConditionFeedback({ type: '', message: '' });
+
+        try {
+            const response = await axios.post(`${API_BASE_URL}/buku/${conditionBook.ISBN}/copies`, {
+                editor_nip_karyawan: getUserNip(user),
+                status_buku: 'Tersedia',
+            });
+
+            setBookCopies((current) => [...current, response.data.data]);
+            setConditionFeedback({ type: 'success', message: 'Copy fisik baru berhasil ditambahkan.' });
+            await loadBooks();
+        } catch (error) {
+            console.error(error);
+            setConditionFeedback({
+                type: 'error',
+                message: error.response?.data?.message || 'Copy fisik gagal ditambahkan.',
+            });
+        } finally {
+            setIsCreatingCopy(false);
+        }
     };
 
     const handleCopyStatusChange = async (copy, nextStatus) => {
@@ -361,7 +424,7 @@ const ManajemenBukuPanel = ({ user }) => {
         setConditionFeedback({ type: '', message: '' });
 
         try {
-            const response = await axios.patch(`${API_BASE_URL}/buku/copies/${copy.id_cp_koleksi}/status`, {
+            const response = await axios.put(`${API_BASE_URL}/buku/copies/${copy.id_cp_koleksi}`, {
                 editor_nip_karyawan: getUserNip(user),
                 status_buku: nextStatus,
             });
@@ -381,6 +444,44 @@ const ManajemenBukuPanel = ({ user }) => {
             });
         } finally {
             setSavingCopyId(null);
+        }
+    };
+
+    const openCopyDeleteModal = (copy) => {
+        setCopyToDelete(copy);
+        setConditionFeedback({ type: '', message: '' });
+    };
+
+    const closeCopyDeleteModal = () => {
+        setCopyToDelete(null);
+        setIsDeletingCopy(false);
+    };
+
+    const handleDeleteCopy = async () => {
+        if (!copyToDelete || !conditionBook) {
+            return;
+        }
+
+        setIsDeletingCopy(true);
+        setConditionFeedback({ type: '', message: '' });
+
+        try {
+            await axios.delete(`${API_BASE_URL}/buku/copies/${copyToDelete.id_cp_koleksi}`, {
+                data: { editor_nip_karyawan: getUserNip(user) },
+            });
+
+            setBookCopies((current) => current.filter((item) => item.id_cp_koleksi !== copyToDelete.id_cp_koleksi));
+            setConditionFeedback({ type: 'success', message: 'Copy fisik berhasil dihapus.' });
+            setCopyToDelete(null);
+            await loadBooks();
+        } catch (error) {
+            console.error(error);
+            setConditionFeedback({
+                type: 'error',
+                message: error.response?.data?.message || 'Copy fisik gagal dihapus.',
+            });
+        } finally {
+            setIsDeletingCopy(false);
         }
     };
 
@@ -700,14 +801,26 @@ const ManajemenBukuPanel = ({ user }) => {
 
             {showConditionModal && conditionBook && (
                 <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
-                    <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-3xl relative">
+                    <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-4xl relative">
                         <button type="button" onClick={closeConditionModal} className="absolute top-4 right-4 text-gray-400 hover:text-red-500 font-bold text-xl transition-colors">
                             &times;
                         </button>
-                        <h2 className="text-xl font-bold font-montserrat mb-1 text-[#265F9C]">Edit Kondisi Buku</h2>
-                        <p className="text-sm text-[#585858] mb-5">
-                            {conditionBook.judul_koleksi} <span className="font-mono text-xs">({formatIsbn(conditionBook.ISBN)})</span>
-                        </p>
+                        <div className="mb-5 flex flex-col gap-3 pr-8 sm:flex-row sm:items-start sm:justify-between">
+                            <div>
+                                <h2 className="text-xl font-bold font-montserrat mb-1 text-[#265F9C]">Kelola Copy Fisik Buku</h2>
+                                <p className="text-sm text-[#585858]">
+                                    {conditionBook.judul_koleksi} <span className="font-mono text-xs">({formatIsbn(conditionBook.ISBN)})</span>
+                                </p>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={handleAddCopy}
+                                disabled={isCreatingCopy || isLoadingCopies}
+                                className="rounded-xl bg-[#265F9C] px-4 py-2 text-xs font-bold text-white shadow hover:bg-blue-700 transition-colors disabled:opacity-50"
+                            >
+                                {isCreatingCopy ? 'Menambah...' : '+ Tambah Copy'}
+                            </button>
+                        </div>
 
                         {conditionFeedback.message && (
                             <div className={`mb-4 rounded-xl border px-4 py-3 text-sm font-medium ${conditionFeedback.type === 'success' ? 'border-green-200 bg-green-50 text-green-700' : 'border-red-200 bg-red-50 text-red-700'}`}>
@@ -726,16 +839,19 @@ const ManajemenBukuPanel = ({ user }) => {
                                             <th className="p-4">Status Saat Ini</th>
                                             <th className="p-4">Ubah Kondisi</th>
                                             <th className="p-4">Catatan</th>
+                                            <th className="p-4 text-right">Aksi</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         {bookCopies.length === 0 ? (
                                             <tr>
-                                                <td colSpan="4" className="p-8 text-center text-sm text-gray-500">Belum ada copy fisik untuk buku ini.</td>
+                                                <td colSpan="5" className="p-8 text-center text-sm text-gray-500">Belum ada copy fisik untuk buku ini.</td>
                                             </tr>
                                         ) : (
                                             bookCopies.map((copy) => {
-                                                const locked = copy.sedang_dipinjam || String(copy.status_buku || '').toLowerCase() === 'dimusnahkan';
+                                                const lowerStatus = String(copy.status_buku || '').toLowerCase();
+                                                const locked = copy.sedang_dipinjam || lowerStatus === 'dimusnahkan';
+                                                const canDelete = !locked && bookCopies.length > 1;
 
                                                 return (
                                                     <tr key={copy.id_cp_koleksi} className="border-b last:border-b-0 text-sm">
@@ -769,6 +885,26 @@ const ManajemenBukuPanel = ({ user }) => {
                                                                         ? 'Menyimpan...'
                                                                         : '-'}
                                                         </td>
+                                                        <td className="p-4 text-right">
+                                                            <div className="flex justify-end gap-2 flex-wrap">
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => handleGenerateCopyBarcode(copy)}
+                                                                    className="rounded-lg border border-[#265F9C] bg-blue-50 px-3 py-2 text-[11px] font-bold text-[#265F9C] hover:bg-blue-100 transition-colors"
+                                                                >
+                                                                    Barcode
+                                                                </button>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => openCopyDeleteModal(copy)}
+                                                                    disabled={!canDelete || isDeletingCopy}
+                                                                    title={!canDelete ? 'Copy sedang terkunci atau merupakan copy terakhir.' : 'Hapus copy fisik'}
+                                                                    className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-[11px] font-bold text-[#C62828] hover:bg-red-100 disabled:cursor-not-allowed disabled:border-gray-200 disabled:bg-gray-100 disabled:text-gray-400"
+                                                                >
+                                                                    Hapus
+                                                                </button>
+                                                            </div>
+                                                        </td>
                                                     </tr>
                                                 );
                                             })
@@ -787,8 +923,30 @@ const ManajemenBukuPanel = ({ user }) => {
                 </div>
             )}
 
+            {copyToDelete && conditionBook && (
+                <div className="fixed inset-0 bg-black/50 z-[60] flex items-center justify-center p-4 backdrop-blur-sm">
+                    <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl">
+                        <div className="mb-4">
+                            <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#7D7D7E]">Konfirmasi</p>
+                            <h3 className="mt-2 text-lg font-bold text-[#1A1A1A]">Hapus copy fisik?</h3>
+                        </div>
+                        <p className="text-sm leading-relaxed text-[#585858]">
+                            Copy <span className="font-mono font-bold text-[#265F9C]">#{copyToDelete.id_cp_koleksi}</span> dari buku <span className="font-bold text-[#1A1A1A]">{conditionBook.judul_koleksi}</span> akan dihapus dari data master. Sistem akan menolak bila copy sudah memiliki riwayat peminjaman.
+                        </p>
+                        <div className="mt-6 flex justify-end gap-3">
+                            <button type="button" onClick={closeCopyDeleteModal} disabled={isDeletingCopy} className="px-5 py-2 bg-gray-100 text-gray-700 rounded-xl text-sm font-bold hover:bg-gray-200 transition-colors disabled:opacity-50">
+                                Batal
+                            </button>
+                            <button type="button" onClick={handleDeleteCopy} disabled={isDeletingCopy} className="px-5 py-2 bg-[#C62828] text-white rounded-xl text-sm font-bold hover:bg-red-700 shadow-md transition-all disabled:opacity-50">
+                                {isDeletingCopy ? 'Menghapus...' : 'Ya, Hapus'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {showBarcodeModal && (
-                <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm transition-all">
+                <div className="fixed inset-0 bg-black/60 z-[70] flex items-center justify-center p-4 backdrop-blur-sm transition-all">
                     <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-2xl relative animate-fade-in-up">
                         <button type="button" onClick={() => setShowBarcodeModal(false)} className="absolute top-4 right-4 text-gray-400 hover:text-red-500 font-bold text-xl transition-colors">
                             &times;

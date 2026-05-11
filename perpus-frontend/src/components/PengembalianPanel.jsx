@@ -44,7 +44,13 @@ const PengembalianBulkPanel = () => {
     data?.id_member ||
     data?.id_peminjam ||
     data?.id_karyawan ||
-    data?.ID_KARYAWAN
+    data?.ID_KARYAWAN ||
+    data?.nip_karyawan ||
+    data?.NIP_KARYAWAN ||
+    data?.nip_peminjam ||
+    data?.identitas_peminjam ||
+    data?.nisn_siswa ||
+    data?.NISN_SISWA
   );
 
   const getMemberName = (data = memberDataRef.current) => (
@@ -77,7 +83,15 @@ const PengembalianBulkPanel = () => {
 
   const syncMemberFromScan = (dataPinjam) => {
     const activeMemberId = getMemberId(memberDataRef.current);
-    const scannedMemberId = dataPinjam.id_siswa_tetap || dataPinjam.ID_SISWA_TETAP;
+    const scannedMemberId = (
+      dataPinjam.id_siswa_tetap ||
+      dataPinjam.ID_SISWA_TETAP ||
+      dataPinjam.nip_karyawan ||
+      dataPinjam.NIP_KARYAWAN ||
+      dataPinjam.nip_peminjam ||
+      dataPinjam.identitas_peminjam ||
+      dataPinjam.nisn_siswa
+    );
 
     if (activeMemberId && scannedMemberId && String(activeMemberId) !== String(scannedMemberId)) {
       return false;
@@ -86,13 +100,17 @@ const PengembalianBulkPanel = () => {
     if (!activeMemberId && scannedMemberId) {
       const scannedMember = {
         id_siswa_tetap: scannedMemberId,
+        nip_karyawan: dataPinjam.nip_karyawan || dataPinjam.nip_peminjam,
         NISN_SISWA: dataPinjam.nisn_siswa,
+        NIP_KARYAWAN: dataPinjam.nip_karyawan || dataPinjam.nip_peminjam,
+        identitas_peminjam: dataPinjam.identitas_peminjam,
         nama_siswa_tetap: dataPinjam.nama_peminjam,
+        nama_karyawan: dataPinjam.nama_peminjam,
         nama_peminjam: dataPinjam.nama_peminjam,
       };
 
       setMemberData(scannedMember);
-      setMemberInput(dataPinjam.nisn_siswa || '');
+      setMemberInput(dataPinjam.identitas_peminjam || dataPinjam.nisn_siswa || dataPinjam.nip_karyawan || dataPinjam.nip_peminjam || '');
       memberDataRef.current = scannedMember;
     }
 
@@ -114,7 +132,8 @@ const PengembalianBulkPanel = () => {
       ...dataPinjam,
       kondisi: 'Baik',
       tgl_kembali_manual: tglKembaliManualRef.current,
-      estimasi_terlambat: terlambat
+      estimasi_terlambat: terlambat,
+      denda: 0 // Inisialisasi input denda ke 0
     }]);
 
     setBukuInput('');
@@ -343,6 +362,7 @@ const PengembalianBulkPanel = () => {
                 <th className="py-4 uppercase tracking-widest">Deadline</th>
                 <th className="py-4 uppercase tracking-widest">Status Kalkulasi</th>
                 <th className="py-4 uppercase tracking-widest">Kondisi</th>
+                <th className="py-4 uppercase tracking-widest text-right">Denda (Rp)</th>
                 <th className="py-4 uppercase tracking-widest text-right">Aksi</th>
               </tr>
             </thead>
@@ -372,6 +392,20 @@ const PengembalianBulkPanel = () => {
                       <option value="Rusak">RUSAK</option>
                       <option value="Hilang">HILANG</option>
                     </select>
+                  </td>
+                  <td className="py-4 text-right">
+                    <input
+                      type="number"
+                      min="0"
+                      className="p-1 border border-slate-200 outline-none w-full max-w-[100px] bg-white font-bold text-right"
+                      value={item.denda}
+                      placeholder="0"
+                      onChange={(e) => {
+                        const newDaftar = [...daftarKembali];
+                        newDaftar[index].denda = e.target.value === '' ? '' : Number(e.target.value);
+                        setDaftarKembali(newDaftar);
+                      }}
+                    />
                   </td>
                   <td className="py-4 text-right">
                     <button onClick={() => setDaftarKembali(daftarKembali.filter((_, i) => i !== index))} className="text-red-600 font-bold hover:text-red-800 transition-colors uppercase">Cancel</button>

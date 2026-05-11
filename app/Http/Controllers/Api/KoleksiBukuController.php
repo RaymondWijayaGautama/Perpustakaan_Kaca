@@ -47,6 +47,7 @@ class KoleksiBukuController extends Controller
             'id_ref_koleksi' => 'Kategori',
             'isbn' => 'ISBN',
             'status_buku' => 'Kondisi buku',
+            'id_cp_koleksi' => 'Copy fisik buku',
         ];
     }
 
@@ -61,6 +62,13 @@ class KoleksiBukuController extends Controller
             ->where('ID_CP_KOLEKSI', $idCpKoleksi)
             ->whereNull('TGL_KEMBALI')
             ->whereIn('STATUS_PEMINJAMAN', ['Dipinjam', 'Terlambat'])
+            ->exists();
+    }
+
+    private function hasLoanHistory(int $idCpKoleksi): bool
+    {
+        return DB::table('tr_peminjaman')
+            ->where('ID_CP_KOLEKSI', $idCpKoleksi)
             ->exists();
     }
 
@@ -221,6 +229,34 @@ class KoleksiBukuController extends Controller
         }
 
         return true;
+    }
+
+    private function refreshBookCopyCount(string $isbn): int
+    {
+        $copyCount = (int) DB::table('cp_koleksi')
+            ->where('ISBN', $isbn)
+            ->count();
+
+        DB::table('mst_koleksi_buku')
+            ->where('ISBN', $isbn)
+            ->update(['JUMLAH_EKSEMPLAR' => $copyCount]);
+
+        return $copyCount;
+    }
+
+    private function findEditableCopy(int $idCpKoleksi): ?object
+    {
+        return DB::table('cp_koleksi as copy')
+            ->join('mst_koleksi_buku as buku', 'copy.ISBN', '=', 'buku.ISBN')
+            ->where('copy.ID_CP_KOLEKSI', $idCpKoleksi)
+            ->where('buku.IS_DELETE', 0)
+            ->select([
+                'copy.ID_CP_KOLEKSI as id_cp_koleksi',
+                'copy.ISBN',
+                'copy.STATUS_BUKU as status_buku',
+                'buku.JUDUL_KOLEKSI as judul_koleksi',
+            ])
+            ->first();
     }
 
     private function fetchBook(string $isbn): ?object
@@ -554,7 +590,66 @@ class KoleksiBukuController extends Controller
         ]);
     }
 
+    public function storeCopy(Request $request, string $isbn): JsonResponse
+    {
+        $validator = validator($request->all(), [
+            'editor_nip_karyawan' => ['required', 'string', 'max:20'],
+            'status_buku' => ['nullable', 'string', Rule::in($this->editableCopyStatuses())],
+        ], $this->validationMessages(), $this->validationAttributes());
+
+        if ($validator->fails()) {
+            return response()->json([
+                'message' => 'Validasi data gagal.',
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
+        if ($authError = $this->ensurePustakawan($request->editor_nip_karyawan)) {
+            return $authError;
+        }
+
+        $isbn = $this->normalizeIsbn($isbn);
+        $book = DB::table('mst_koleksi_buku')
+            ->where('ISBN', $isbn)
+            ->where('IS_DELETE', 0)
+            ->first();
+
+        if (!$book) {
+            return response()->json([
+                'message' => 'Data buku tidak ditemukan.',
+            ], 404);
+        }
+
+        $copyId = null;
+        $status = $request->status_buku ?: 'Tersedia';
+
+        DB::transaction(function () use ($isbn, $status, &$copyId) {
+            $copyId = DB::table('cp_koleksi')->insertGetId([
+                'ISBN' => $isbn,
+                'ID_MST_LAPORAN' => null,
+                'STATUS_BUKU' => $status,
+            ]);
+
+            $this->refreshBookCopyCount($isbn);
+        });
+
+        return response()->json([
+            'message' => 'Copy fisik buku berhasil ditambahkan.',
+            'data' => [
+                'id_cp_koleksi' => $copyId,
+                'ISBN' => $isbn,
+                'status_buku' => $status,
+                'sedang_dipinjam' => false,
+            ],
+        ], 201);
+    }
+
     public function updateCopyStatus(Request $request, int $idCpKoleksi): JsonResponse
+    {
+        return $this->updateCopy($request, $idCpKoleksi);
+    }
+
+    public function updateCopy(Request $request, int $idCpKoleksi): JsonResponse
     {
         $validator = validator($request->all(), [
             'editor_nip_karyawan' => ['required', 'string', 'max:20'],
@@ -572,17 +667,7 @@ class KoleksiBukuController extends Controller
             return $authError;
         }
 
-        $copy = DB::table('cp_koleksi as copy')
-            ->join('mst_koleksi_buku as buku', 'copy.ISBN', '=', 'buku.ISBN')
-            ->where('copy.ID_CP_KOLEKSI', $idCpKoleksi)
-            ->where('buku.IS_DELETE', 0)
-            ->select([
-                'copy.ID_CP_KOLEKSI as id_cp_koleksi',
-                'copy.ISBN',
-                'copy.STATUS_BUKU as status_buku',
-                'buku.JUDUL_KOLEKSI as judul_koleksi',
-            ])
-            ->first();
+        $copy = $this->findEditableCopy($idCpKoleksi);
 
         if (!$copy) {
             return response()->json([
@@ -618,11 +703,77 @@ class KoleksiBukuController extends Controller
         ]);
     }
 
-    public function generateBarcode(Request $request): JsonResponse
+    public function destroyCopy(Request $request, int $idCpKoleksi): JsonResponse
     {
         $validator = validator($request->all(), [
             'editor_nip_karyawan' => ['required', 'string', 'max:20'],
+        ], $this->validationMessages(), $this->validationAttributes());
+
+        if ($validator->fails()) {
+            return response()->json([
+                'message' => 'Validasi data gagal.',
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
+        if ($authError = $this->ensurePustakawan($request->editor_nip_karyawan)) {
+            return $authError;
+        }
+
+        $copy = $this->findEditableCopy($idCpKoleksi);
+
+        if (!$copy) {
+            return response()->json([
+                'message' => 'Copy fisik buku tidak ditemukan.',
+            ], 404);
+        }
+
+        if ($this->hasActiveLoan($idCpKoleksi)) {
+            return response()->json([
+                'message' => 'Copy fisik tidak bisa dihapus karena sedang dipinjam.',
+            ], 409);
+        }
+
+        if ($this->hasLoanHistory($idCpKoleksi)) {
+            return response()->json([
+                'message' => 'Copy fisik tidak bisa dihapus karena sudah memiliki riwayat peminjaman. Ubah status menjadi Nonaktif bila tidak digunakan lagi.',
+            ], 409);
+        }
+
+        $copyCount = (int) DB::table('cp_koleksi')
+            ->where('ISBN', $copy->ISBN)
+            ->count();
+
+        if ($copyCount <= 1) {
+            return response()->json([
+                'message' => 'Copy terakhir tidak bisa dihapus. Minimal satu copy fisik harus tersimpan untuk data master buku ini.',
+            ], 409);
+        }
+
+        DB::transaction(function () use ($copy, $idCpKoleksi) {
+            DB::table('cp_koleksi')
+                ->where('ID_CP_KOLEKSI', $idCpKoleksi)
+                ->delete();
+
+            $this->refreshBookCopyCount($copy->ISBN);
+        });
+
+        return response()->json([
+            'message' => 'Copy fisik buku berhasil dihapus.',
+            'data' => [
+                'id_cp_koleksi' => $idCpKoleksi,
+                'ISBN' => $copy->ISBN,
+            ],
+        ]);
+    }
+
+    public function generateBarcode(Request $request): JsonResponse
+    {
+        // 1. Tambahkan id_cp_koleksi ke validator (nullable agar tombol utama tetap aman)
+        $validator = validator($request->all(), [
+            'editor_nip_karyawan' => ['required', 'string', 'max:20'],
             'isbn' => ['required', 'string', 'max:25'],
+            'id_cp_koleksi' => ['nullable', 'integer'],
         ], $this->validationMessages(), $this->validationAttributes());
 
         if ($validator->fails()) {
@@ -654,24 +805,45 @@ class KoleksiBukuController extends Controller
             ], 422);
         }
 
-        DB::transaction(function () use ($isbn, $buku) {
-            $copyCount = (int) DB::table('cp_koleksi')->where('ISBN', $isbn)->count();
+        // 2. Modifikasi Pencarian Copy Fisik
+        $copy = null;
+        $idCpKoleksi = $request->input('id_cp_koleksi');
 
-            if ($copyCount === 0) {
-                $this->syncCopyRows($isbn, 1);
-                return;
+        if ($idCpKoleksi) {
+            // Skenario A: Tombol ditekan dari tabel Modal "Kondisi Copy Fisik"
+            $copy = DB::table('cp_koleksi')
+                ->where('ISBN', $isbn)
+                ->where('ID_CP_KOLEKSI', $idCpKoleksi)
+                ->first();
+
+            if (!$copy) {
+                return response()->json([
+                    'message' => 'Data copy fisik tidak ditemukan.',
+                ], 404);
             }
+        } else {
+            // Skenario B: Tombol ditekan dari tabel "Manajemen Buku" utama
+            DB::transaction(function () use ($isbn, $buku) {
+                $copyCount = (int) DB::table('cp_koleksi')->where('ISBN', $isbn)->count();
 
-            if ($copyCount < (int) $buku->JUMLAH_EKSEMPLAR) {
-                $this->syncCopyRows($isbn, $copyCount + 1);
-            }
-        });
+                if ($copyCount === 0) {
+                    $this->syncCopyRows($isbn, 1);
+                    return;
+                }
 
-        $copy = DB::table('cp_koleksi')
-            ->where('ISBN', $isbn)
-            ->orderByDesc('ID_CP_KOLEKSI')
-            ->first();
+                if ($copyCount < (int) $buku->JUMLAH_EKSEMPLAR) {
+                    $this->syncCopyRows($isbn, $copyCount + 1);
+                }
+            });
 
+            // Ambil copy terakhir sesuai logika bawaan Anda
+            $copy = DB::table('cp_koleksi')
+                ->where('ISBN', $isbn)
+                ->orderByDesc('ID_CP_KOLEKSI')
+                ->first();
+        }
+
+        // 3. Proses generate tetap sama seperti kode Anda sebelumnya
         $barcodeValue = $isbn . '/' . $copy->ID_CP_KOLEKSI;
         try {
             $generator = new BarcodeGeneratorPNG();

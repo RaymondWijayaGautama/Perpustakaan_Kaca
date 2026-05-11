@@ -15,6 +15,40 @@ use Carbon\Carbon;
 
 class LaporanController extends Controller
 {
+    private function getKategoriLaporanPkl(): ?object
+    {
+        return DB::table('ref_koleksi')
+            ->where('NO_KATEGORI_BUKU', '4')
+            ->where(function ($query) {
+                $query->where('IS_DELETE', 0)
+                    ->orWhereNull('IS_DELETE');
+            })
+            ->first();
+    }
+
+    private function normalizeLaporanTitle(string $title): string
+    {
+        return mb_strtolower(preg_replace('/\s+/', ' ', trim($title)) ?? trim($title));
+    }
+
+    private function findDuplicateLaporanPklTitle(string $title, ?string $ignoreIsbn = null): ?object
+    {
+        $kategoriLaporan = $this->getKategoriLaporanPkl();
+
+        if (!$kategoriLaporan) {
+            return null;
+        }
+
+        $normalizedTitle = $this->normalizeLaporanTitle($title);
+
+        return DB::table('mst_koleksi_buku')
+            ->where('ID_REF_KOLEKSI', $kategoriLaporan->ID_REF_KOLEKSI)
+            ->where('IS_DELETE', 0)
+            ->when($ignoreIsbn, fn ($query) => $query->where('ISBN', '!=', $ignoreIsbn))
+            ->select('ISBN', 'JUDUL_KOLEKSI')
+            ->get()
+            ->first(fn ($row) => $this->normalizeLaporanTitle((string) $row->JUDUL_KOLEKSI) === $normalizedTitle);
+    }
 
     public function store(Request $request)
     {
@@ -30,6 +64,15 @@ class LaporanController extends Controller
         }
 
         try {
+            $duplicate = $this->findDuplicateLaporanPklTitle($request->judul_koleksi);
+
+            if ($duplicate) {
+                return response()->json([
+                    'status' => 'error',
+                    'pesan' => 'Judul laporan PKL sudah digunakan. Gunakan judul lain agar tidak duplikat.',
+                ], 422);
+            }
+
             DB::beginTransaction();
 
             $isbnPKL = "979" . time() . rand(10, 99); 
@@ -38,9 +81,7 @@ class LaporanController extends Controller
             $file->storeAs('laporan', $namaFile, 'public');
 
             // Ambil ID_REF_KOLEKSI berdasarkan NO_KATEGORI_BUKU = 4
-            $kategoriLaporan = DB::table('ref_koleksi')
-                                ->where('NO_KATEGORI_BUKU', '4')
-                                ->first();
+            $kategoriLaporan = $this->getKategoriLaporanPkl();
             
             $idRefKoleksi = $kategoriLaporan ? $kategoriLaporan->ID_REF_KOLEKSI : null;
 
@@ -90,6 +131,15 @@ class LaporanController extends Controller
         try {
             $buku = DB::table('mst_koleksi_buku')->where('ISBN', $isbn)->first();
             if (!$buku) return response()->json(['status' => 'error', 'pesan' => 'Data tidak ditemukan!'], 404);
+
+            $duplicate = $this->findDuplicateLaporanPklTitle($request->judul_koleksi, $isbn);
+
+            if ($duplicate) {
+                return response()->json([
+                    'status' => 'error',
+                    'pesan' => 'Judul laporan PKL sudah digunakan oleh laporan lain. Gunakan judul lain agar tidak duplikat.',
+                ], 422);
+            }
 
             $updateData = [
                 'judul_koleksi' => $request->judul_koleksi,
@@ -147,6 +197,7 @@ class LaporanController extends Controller
                 ->whereRaw('LOWER(guru.jabatan_fungsional) = ?', ['guru'])
                 ->where('buku.is_delete', 0)
                 ->where('peminjaman.STATUS_PEMINJAMAN', '!=', 'Dihapus')
+                ->whereNull('peminjaman.ID_SISWA_TETAP')
                 ->whereYear('peminjaman.TGL_PINJAM', $tahun);
 
             if ($bulan !== null) {
