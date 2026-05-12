@@ -104,6 +104,36 @@ class LogController extends Controller
         );
     }
 
+    public function visitor(Request $request)
+    {
+        $perPage = min((int) $request->query('per_page', 15), 50);
+
+        $query = DB::table('visitor_logs')
+            ->leftJoin('mst_karyawan', 'visitor_logs.username', '=', 'mst_karyawan.NIP_KARYAWAN')
+            ->leftJoin('mst_siswa', 'visitor_logs.username', '=', 'mst_siswa.NISN_SISWA')
+            ->select([
+                'visitor_logs.id',
+                'visitor_logs.visited_at as date',
+                'visitor_logs.username',
+                // PERBAIKAN: NAMA_SISWA_TETAP (Sesuai database lo)
+                DB::raw("COALESCE(mst_karyawan.NAMA_KARYAWAN, mst_siswa.NAMA_SISWA_TETAP, 'Unknown') as visitor_name"),
+                'visitor_logs.username as visitor_npm',
+                'visitor_logs.purpose as purpose',
+            ]);
+
+        $this->applyCommonFilters(
+            $query, 
+            $request, 
+            'visitor_logs.visited_at', 
+            ['visitor_logs.username', 'mst_karyawan.NAMA_KARYAWAN', 'mst_siswa.NAMA_SISWA_TETAP', 'visitor_logs.purpose'], 
+            [] 
+        );
+
+        return response()->json(
+            $query->orderByDesc('visitor_logs.visited_at')->paginate($perPage)
+        );
+    }
+
     private function applyCommonFilters($query, Request $request, string $dateColumn, array $searchColumns, array $roleColumns): void
     {
         if ($request->filled('search')) {

@@ -13,7 +13,6 @@ use App\Http\Controllers\Api\LaporanPklController;
 use App\Http\Controllers\Api\LogController;
 use App\Http\Controllers\Pustakawan\BukuController;
 use App\Http\Controllers\Pustakawan\PengembalianController;
-
 // 1. Tampil Data
 Route::get('/laporan', [LaporanController::class, 'getLaporan']);
 Route::post('/laporan/tambah', [LaporanController::class, 'store']);
@@ -31,6 +30,7 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
 Route::get('/logs/access', [LogController::class, 'access']);
 Route::get('/logs/activity', [LogController::class, 'activity']);
 Route::get('/logs/roles', [LogController::class, 'roles']);
+Route::get('/log/visitors', [LogController::class, 'visitor']);
 
 // --- TRANSAKSI PEMINJAMAN & PENGEMBALIAN ---
 Route::get('/peminjaman/cek-aktif', [PeminjamanController::class, 'cekAktif']);
@@ -89,7 +89,10 @@ Route::post('/laporan/tambah', [LaporanController::class, 'store']);
 Route::put('/laporan/ubah/{isbn}', [LaporanController::class, 'update']);
 Route::delete('/laporan/hapus/{isbn}', [LaporanController::class, 'destroy']);
 Route::get('/laporan/download/{isbn}', [LaporanController::class, 'downloadLaporan']);
-
+Route::get('/laporan/statistik-kunjungan-bulanan', [LaporanController::class, 'StatistikKunjunganBulanan']);
+Route::get('/laporan/export-pdf-statistik-kunjungan-bulanan', [\App\Http\Controllers\Api\LaporanController::class, 'exportPdfStatistikKunjunganBulanan']);
+Route::get('/laporan/export-pdf-peminjaman-kelas', [LaporanController::class, 'exportPdfPeminjamanKelas']);
+Route::get('/laporan/statistik-peminjaman-kelas', [LaporanController::class, 'statistikPeminjamanKelas']);
 // --- LAPORAN PKL ---
 Route::get('/laporan-pkl', [LaporanPklController::class, 'index']);
 Route::get('/buku/laporan', [LaporanPklController::class, 'index']);
