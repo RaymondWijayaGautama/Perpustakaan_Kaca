@@ -176,6 +176,19 @@ const PengembalianBulkPanel = () => {
 
   // 3. Eksekusi ke Backend
   const prosesPengembalian = async () => {
+    // Validasi denda
+    const adaErrorDenda = daftarKembali.some(item => {
+        const deskripsi = (item.kondisi || '').trim().toLowerCase();
+        const denda = item.denda || 0;
+        // Jika deskripsi bukan 'baik' dan tidak kosong, denda harus diisi.
+        return deskripsi !== 'baik' && deskripsi !== '' && denda <= 0;
+    });
+
+    if (adaErrorDenda) {
+      showToast('error', 'NOMINAL DENDA WAJIB DIISI JIKA ADA DESKRIPSI KERUSAKAN');
+      return;
+    }
+
     setLoading(true);
     try {
       await axios.post('http://localhost:8000/api/pengembalian/batch', {
@@ -361,8 +374,8 @@ const PengembalianBulkPanel = () => {
                 <th className="py-4 uppercase tracking-widest">Judul Koleksi</th>
                 <th className="py-4 uppercase tracking-widest">Deadline</th>
                 <th className="py-4 uppercase tracking-widest">Status Kalkulasi</th>
-                <th className="py-4 uppercase tracking-widest">Kondisi</th>
-                <th className="py-4 uppercase tracking-widest text-right">Denda (Rp)</th>
+                <th className="py-4 uppercase tracking-widest">Deskripsi (Opsional)</th>
+                <th className="py-4 uppercase tracking-widest text-right">Nominal Denda (Rp)</th>
                 <th className="py-4 uppercase tracking-widest text-right">Aksi</th>
               </tr>
             </thead>
@@ -379,19 +392,17 @@ const PengembalianBulkPanel = () => {
                     )}
                   </td>
                   <td className="py-4">
-                    <select 
-                      className="p-1 border border-slate-200 outline-none bg-white font-bold uppercase"
-                      value={item.kondisi}
+                    <input 
+                      type="text"
+                      className="p-1 border border-slate-200 outline-none w-full bg-white font-bold uppercase placeholder:normal-case placeholder:font-normal placeholder:text-xs"
+                      value={item.kondisi === 'Baik' ? '' : item.kondisi}
+                      placeholder="Baik / Keterangan Rusak"
                       onChange={(e) => {
                         const newDaftar = [...daftarKembali];
-                        newDaftar[index].kondisi = e.target.value;
+                        newDaftar[index].kondisi = e.target.value === '' ? 'Baik' : e.target.value;
                         setDaftarKembali(newDaftar);
                       }}
-                    >
-                      <option value="Baik">BAIK</option>
-                      <option value="Rusak">RUSAK</option>
-                      <option value="Hilang">HILANG</option>
-                    </select>
+                    />
                   </td>
                   <td className="py-4 text-right">
                     <input

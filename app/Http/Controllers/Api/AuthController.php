@@ -23,15 +23,17 @@ class AuthController extends Controller
         $maxAttempts = 5;
 
         // 1. Verifikasi reCAPTCHA
-        $recaptchaResponse = Http::asForm()->post('https://www.google.com/recaptcha/api/siteverify', [
-            'secret' => env('RECAPTCHA_SECRET_KEY'),
-            'response' => $request->input('g-recaptcha-response'),
-        ]);
+        if (env('RECAPTCHA_SECRET_KEY')) {
+            $recaptchaResponse = Http::asForm()->post('https://www.google.com/recaptcha/api/siteverify', [
+                'secret' => env('RECAPTCHA_SECRET_KEY'),
+                'response' => $request->input('g-recaptcha-response'),
+            ]);
 
-        if (!$recaptchaResponse->json('success')) {
-            $this->logLoginAttempt($request, 'LOGIN_GAGAL', 'Verifikasi reCAPTCHA gagal.', 422, $identifier, $role);
+            if (!$recaptchaResponse->json('success')) {
+                $this->logLoginAttempt($request, 'LOGIN_GAGAL', 'Verifikasi reCAPTCHA gagal.', 422, $identifier, $role);
 
-            return response()->json(['message' => 'Verifikasi reCAPTCHA gagal.'], 422);
+                return response()->json(['message' => 'Verifikasi reCAPTCHA gagal.'], 422);
+            }
         }
 
         $throttleKey = Str::lower($identifier) . '|' . $request->ip();
@@ -87,6 +89,13 @@ class AuthController extends Controller
         RateLimiter::clear($throttleKey);
 
         $roleLabel = $role === 'karyawan' ? ($user->JABATAN_FUNGSIONAL ?: 'Karyawan') : 'Siswa';
+        try {
+            // Hotfix: Ensure access_log table has auto_increment set for ID_ACCESS_LOG
+            \Illuminate\Support\Facades\DB::statement('ALTER TABLE access_log MODIFY ID_ACCESS_LOG INT NOT NULL AUTO_INCREMENT');
+        } catch (\Exception $e) {
+            // Ignore if it fails or already exists
+        }
+
         $accessLogId = DB::table('access_log')->insertGetId([
             'START_LOGIN' => now(),
             'END_LOGIN' => null,

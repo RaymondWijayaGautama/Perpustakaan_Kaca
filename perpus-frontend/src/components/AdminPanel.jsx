@@ -20,6 +20,7 @@ import KategoriPopulerPanel from './KategoriPopulerPanel';
 import KategoriPanel from './KategoriPanel';
 import LogPanel from './LogPanel';
 import ProfilePanel from './ProfilePanel';
+import DendaKerusakanPanel from './DendaKerusakanPanel';
 
 const getAdminDisplayName = (user) => (
     user?.NAMA_KARYAWAN ||
@@ -122,6 +123,7 @@ const AdminPanel = ({ user, onLogout }) => {
                         <div onClick={() => setActiveTab('pengembalian')} className={`p-3 rounded-lg cursor-pointer transition-all ${activeTab === 'pengembalian' ? 'bg-white text-[#265F9C] font-bold shadow-md' : 'hover:bg-white/10'}`}>Pengembalian</div>
                         <div onClick={() => setActiveTab('peminjaman')} className={`p-3 rounded-lg cursor-pointer transition-all ${activeTab === 'peminjaman' ? 'bg-white text-[#265F9C] font-bold shadow-md' : 'hover:bg-white/10'}`}>Peminjaman Buku</div>
                         <div onClick={() => setActiveTab('buku_belum_kembali')} className={`p-3 rounded-lg cursor-pointer transition-all ${activeTab === 'buku_belum_kembali' ? 'bg-white text-[#265F9C] font-bold shadow-md' : 'hover:bg-white/10'}`}>Buku Belum Kembali</div>
+                        <div onClick={() => setActiveTab('denda_kerusakan')} className={`p-3 rounded-lg cursor-pointer transition-all ${activeTab === 'denda_kerusakan' ? 'bg-white text-[#265F9C] font-bold shadow-md' : 'hover:bg-white/10'}`}>Denda Kerusakan</div>
                         <div onClick={() => setActiveTab('pemusnahan')} className={`p-3 rounded-lg cursor-pointer transition-all ${activeTab === 'pemusnahan' ? 'bg-white text-[#265F9C] font-bold shadow-md' : 'hover:bg-white/10'}`}>Pemusnahan Buku</div>
                         <div onClick={() => setActiveTab('riwayat_pinjam')} className={`p-3 rounded-lg cursor-pointer transition-all ${activeTab === 'riwayat_pinjam' ? 'bg-white text-[#265F9C] font-bold shadow-md' : 'hover:bg-white/10'}`}>Riwayat Peminjaman</div>
                         <div onClick={() => setActiveTab('logs')} className={`p-3 rounded-lg cursor-pointer transition-all ${activeTab === 'logs' ? 'bg-white text-[#265F9C] font-bold shadow-md' : 'hover:bg-white/10'}`}>Log Sistem</div>
@@ -246,6 +248,7 @@ const AdminPanel = ({ user, onLogout }) => {
                 {activeTab === 'kategori' && <KategoriPanel user={user} />}
                 {activeTab === 'peminjaman' && <PeminjamanPanel user={user} />}
                 {activeTab === 'buku_belum_kembali' && <BukuBelumKembaliPanel user={user} />}
+                {activeTab === 'denda_kerusakan' && <DendaKerusakanPanel />}
                 {activeTab === 'pemusnahan' && <PemusnahanPanelV2 user={user} />}
                 {activeTab === 'riwayat_pinjam' && <RiwayatPinjamPanel user={user} />}
                 {activeTab === 'logs' && <LogPanel />}

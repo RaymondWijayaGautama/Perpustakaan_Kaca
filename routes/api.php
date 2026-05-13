@@ -23,8 +23,15 @@ Route::delete('/laporan/hapus/{isbn}', [LaporanController::class, 'destroy']);
 // --- AUTH & USER ---
 Route::post('/login', [AuthController::class, 'login']);
 Route::post('/logout', [AuthController::class, 'logout']);
-Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
-    return $request->user();
+Route::middleware('auth:sanctum')->group(function () {
+    Route::get('/user', function (Request $request) {
+        return $request->user();
+    });
+
+    // --- KUNJUNGAN PERPUS ---
+    Route::post('/kunjungan/checkin', [\App\Http\Controllers\Api\KunjunganController::class, 'checkIn']);
+    Route::post('/kunjungan/checkout', [\App\Http\Controllers\Api\KunjunganController::class, 'checkOut']);
+    Route::get('/kunjungan/history', [\App\Http\Controllers\Api\KunjunganController::class, 'history']);
 });
 
 // --- LOG SISTEM ---
@@ -47,6 +54,10 @@ Route::post('/pengembalian/batch', [PeminjamanController::class, 'batchReturn'])
 Route::post('/pengembalian/scan', [PeminjamanController::class, 'scanPengembalian']);
 Route::post('/pengembalian/proses/{id}', [PeminjamanController::class, 'prosesPengembalian']);
 
+// --- DENDA KERUSAKAN ---
+Route::get('/denda-kerusakan/cari', [PeminjamanController::class, 'cariPeminjamanDenda']);
+Route::post('/denda-kerusakan/simpan', [PeminjamanController::class, 'simpanDendaKerusakan']);
+
 // --- DASHBOARD & ANGGOTA ---
 Route::get('/dashboard/stats', [DashboardController::class, 'getStats']);
 Route::get('/anggota', [DashboardController::class, 'getAnggota']);
@@ -64,9 +75,6 @@ Route::delete('/buku/copies/{idCpKoleksi}', [KoleksiBukuController::class, 'dest
 Route::put('/buku/{isbn}', [KoleksiBukuController::class, 'update']);
 Route::delete('/buku/{isbn}', [KoleksiBukuController::class, 'destroy']);
 Route::post('/generate-barcode', [KoleksiBukuController::class, 'generateBarcode']);
-Route::post('/buku/denda-kerusakan', [BukuController::class, 'simpanDendaKerusakan']);
-
-
 // --- KATEGORI BUKU (KoleksiController) ---
 // PERBAIKAN KUNCI: Mengubah /koleksi menjadi /kategori agar tidak bentrok
 Route::get('/kategori', [KoleksiController::class, 'index']);
