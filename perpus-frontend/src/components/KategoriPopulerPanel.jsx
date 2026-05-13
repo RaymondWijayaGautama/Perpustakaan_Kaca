@@ -61,7 +61,8 @@ const KategoriPopulerPanel = () => {
                                         {index + 1}
                                     </td>
                                     <td className="p-4">
-                                        <p className="text-sm font-bold text-[#1A1A1A] uppercase">{item.deskripsi}</p>
+                                        {/* PERBAIKAN DI BARIS INI: Mengubah item.deskripsi menjadi item.DESKRIPSI_KATEGORI */}
+                                        <p className="text-sm font-bold text-[#1A1A1A] uppercase">{item.DESKRIPSI_KATEGORI}</p>
                                     </td>
                                     <td className="p-4 text-center">
                                         <span className="bg-purple-50 text-purple-700 px-3 py-1 rounded-lg text-xs font-bold border border-purple-100">

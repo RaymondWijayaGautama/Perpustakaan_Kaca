@@ -40,17 +40,24 @@ const LaporanSiswaTerajinPanel = () => {
                         <tr>
                             <th className="p-4 text-center">Rank</th>
                             <th className="p-4">Nama Lengkap</th>
-                            <th className="p-4 text-center">Total Kunjungan</th>
+                            {/* Tambahan Kolom NIS dan Kelas */}
+                            <th className="p-4">NIS</th>
+                            <th className="p-4">Kelas</th>
+                            <th className="p-4 text-center">Total Peminjaman</th>
                         </tr>
                     </thead>
                     <tbody>
                         {loading ? (
-                            <tr><td colSpan="3" className="p-10 text-center">Loading...</td></tr>
+                            <tr><td colSpan="5" className="p-10 text-center">Loading...</td></tr>
                         ) : data.length > 0 ? (
                             data.map((item, index) => (
                                 <tr key={index} className="border-t border-gray-100">
                                     <td className="p-4 text-center font-bold text-gray-400">#{index + 1}</td>
                                     <td className="p-4 font-bold text-gray-800">{item.nama_siswa_tetap}</td>
+                                    
+                                    <td className="p-4 text-gray-600">{item.nisn_siswa || '-'}</td>
+                                    <td className="p-4 text-gray-600">{item.nama_kelas || '-'}</td>
+                                    
                                     <td className="p-4 text-center">
                                         <span className="bg-blue-50 text-blue-700 px-3 py-1 rounded-md text-xs font-bold">
                                             {item.peminjaman_count} Peminjaman
@@ -59,7 +66,7 @@ const LaporanSiswaTerajinPanel = () => {
                                 </tr>
                             ))
                         ) : (
-                            <tr><td colSpan="3" className="p-10 text-center text-gray-400">Data masih kosong di API.</td></tr>
+                            <tr><td colSpan="5" className="p-10 text-center text-gray-400">Data masih kosong di API.</td></tr>
                         )}
                     </tbody>
                 </table>
