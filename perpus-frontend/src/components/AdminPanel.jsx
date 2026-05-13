@@ -6,6 +6,7 @@ import PengembalianPanel from './PengembalianPanel';
 import PeminjamanPanel from './PeminjamanPanel';
 import RiwayatPinjamPanel from './RiwayatPinjamPanel';
 import PemusnahanPanelV2 from './PemusnahanPanelV2';
+import BukuBelumKembaliPanel from './BukuBelumKembaliPanel';
 import LaporanPeminjamanBulananPanel from './LaporanPeminjamanBulananPanel';
 import LaporanPeminjamanGuruPanel from './LaporanPeminjamanGuruPanel';
 import LaporanDistribusiKunjunganKelasPanel from './LaporanDistribusiKunjunganKelasPanel';
@@ -20,6 +21,9 @@ import KategoriPanel from './KategoriPanel';
 import LogPanel from './LogPanel';
 import ProfilePanel from './ProfilePanel';
 import DendaKerusakanPanel from './DendaKerusakanPanel';
+import StatistikKunjunganBulananPanel from './StatistikKunjunganBulananPanel';
+import LaporanPeminjamanKelasPanel from './LaporanPeminjamanKelasPanel';
+import VisitorLog from './VisitorLog';
 
 const getAdminDisplayName = (user) => (
     user?.NAMA_KARYAWAN ||
@@ -31,12 +35,8 @@ const getAdminDisplayName = (user) => (
 
 const getInitials = (name) => {
     const parts = String(name || 'A').trim().split(/\s+/).filter(Boolean);
-
     return parts.slice(0, 2).map((part) => part.charAt(0)).join('').toUpperCase() || 'A';
 };
-import StatistikKunjunganBulananPanel from './StatistikKunjunganBulananPanel';
-import LaporanPeminjamanKelasPanel from './LaporanPeminjamanKelasPanel';
-import VisitorLog from './VisitorLog';
 
 const AdminPanel = ({ user, onLogout }) => {
     const [activeTab, setActiveTab] = useState('dashboard');
@@ -114,10 +114,23 @@ const AdminPanel = ({ user, onLogout }) => {
             
             {/* SIDEBAR */}
             <aside className="w-64 h-screen sticky top-0 bg-[#265F9C] text-white flex flex-col shadow-xl print:hidden">
-                <div className="p-6 pb-2 shrink-0">
-                    <h2 className="font-montserrat font-bold text-xl tracking-tight text-center uppercase">Kaca Admin</h2>
+                {/* BLOK LOGO & PROFIL (VERSI ASLI DARI KAMU) */}
+                <div className="p-5 pb-3 shrink-0">
+                    <div className="flex items-center justify-between gap-3">
+                        <h2 className="font-montserrat font-bold text-lg tracking-tight uppercase">Kaca Admin</h2>
+                        <button
+                            type="button"
+                            onClick={() => setActiveTab('profile')}
+                            title="Profil Saya"
+                            aria-label="Profil Saya"
+                            className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full border text-xs font-black shadow-sm transition-all ${activeTab === 'profile' ? 'border-white bg-white text-[#265F9C]' : 'border-white/30 bg-white/10 text-white hover:bg-white hover:text-[#265F9C]'}`}
+                        >
+                            {getInitials(getAdminDisplayName(user))}
+                        </button>
+                    </div>
                 </div>
 
+                {/* BLOK MENU BISA DI-SCROLL */}
                 <div className="flex-1 overflow-y-auto px-4 py-4 scrollbar-thin scrollbar-thumb-white/20 scrollbar-track-transparent">
                     <nav className="flex flex-col space-y-2">
                         <div onClick={() => setActiveTab('dashboard')} className={`p-3 rounded-lg cursor-pointer transition-all ${activeTab === 'dashboard' ? 'bg-white text-[#265F9C] font-bold shadow-md' : 'hover:bg-white/10'}`}>Dashboard</div>
@@ -126,6 +139,7 @@ const AdminPanel = ({ user, onLogout }) => {
                         <div onClick={() => setActiveTab('data_pengunjung')} className={`p-3 rounded-lg cursor-pointer transition-all ${activeTab === 'data_pengunjung' ? 'bg-white text-[#265F9C] font-bold shadow-md' : 'hover:bg-white/10'}`}>Data Pengunjung</div>
                         
                         <div onClick={() => setActiveTab('koleksi')} className={`p-3 rounded-lg cursor-pointer transition-all ${activeTab === 'koleksi' ? 'bg-white text-[#265F9C] font-bold shadow-md' : 'hover:bg-white/10'}`}>Master Koleksi</div>
+                        {/* <div onClick={() => setActiveTab('kategori')} className={`p-3 rounded-lg cursor-pointer transition-all ${activeTab === 'kategori' ? 'bg-white text-[#265F9C] font-bold shadow-md' : 'hover:bg-white/10'}`}>Kategori</div> */}
                         <div onClick={() => setActiveTab('buku')} className={`p-3 rounded-lg cursor-pointer transition-all ${activeTab === 'buku' ? 'bg-white text-[#265F9C] font-bold shadow-md' : 'hover:bg-white/10'}`}>Manajemen Buku</div>
                         <div onClick={() => { setActiveTab('anggota'); setAnggotaPage(1); }} className={`p-3 rounded-lg cursor-pointer transition-all ${activeTab === 'anggota' ? 'bg-white text-[#265F9C] font-bold shadow-md' : 'hover:bg-white/10'}`}>Data Anggota</div>
                         <div onClick={() => setActiveTab('laporan')} className={`p-3 rounded-lg cursor-pointer transition-all ${activeTab === 'laporan' ? 'bg-white text-[#265F9C] font-bold shadow-md' : 'hover:bg-white/10'}`}>Laporan PKL</div>
@@ -135,6 +149,7 @@ const AdminPanel = ({ user, onLogout }) => {
                         <div onClick={() => setActiveTab('denda_kerusakan')} className={`p-3 rounded-lg cursor-pointer transition-all ${activeTab === 'denda_kerusakan' ? 'bg-white text-[#265F9C] font-bold shadow-md' : 'hover:bg-white/10'}`}>Denda Kerusakan</div>
                         <div onClick={() => setActiveTab('pemusnahan')} className={`p-3 rounded-lg cursor-pointer transition-all ${activeTab === 'pemusnahan' ? 'bg-white text-[#265F9C] font-bold shadow-md' : 'hover:bg-white/10'}`}>Pemusnahan Buku</div>
                         <div onClick={() => setActiveTab('riwayat_pinjam')} className={`p-3 rounded-lg cursor-pointer transition-all ${activeTab === 'riwayat_pinjam' ? 'bg-white text-[#265F9C] font-bold shadow-md' : 'hover:bg-white/10'}`}>Riwayat Peminjaman</div>
+                        <div onClick={() => setActiveTab('logs')} className={`p-3 rounded-lg cursor-pointer transition-all ${activeTab === 'logs' ? 'bg-white text-[#265F9C] font-bold shadow-md' : 'hover:bg-white/10'}`}>Log Sistem</div>
                         <div onClick={() => setActiveTab('laporan_peminjaman_bulanan')} className={`p-3 rounded-lg cursor-pointer transition-all ${activeTab === 'laporan_peminjaman_bulanan' ? 'bg-white text-[#265F9C] font-bold shadow-md' : 'hover:bg-white/10'}`}>Statistik Peminjaman</div>
                         <div onClick={() => setActiveTab('laporan_peminjaman_guru')} className={`p-3 rounded-lg cursor-pointer transition-all ${activeTab === 'laporan_peminjaman_guru' ? 'bg-white text-[#265F9C] font-bold shadow-md' : 'hover:bg-white/10'}`}>Peminjaman Guru</div>
                         <div onClick={() => setActiveTab('laporan_inventarisasi_buku_baru')} className={`p-3 rounded-lg cursor-pointer transition-all ${activeTab === 'laporan_inventarisasi_buku_baru' ? 'bg-white text-[#265F9C] font-bold shadow-md' : 'hover:bg-white/10'}`}>Inventarisasi Buku Baru</div>
@@ -225,7 +240,8 @@ const AdminPanel = ({ user, onLogout }) => {
                     </>
                 )}
                 
-                {/* RENDER COMPONENT PENGUNJUNG (BARU) */}
+                {/* PANEL COMPONENTS */}
+                {activeTab === 'profile' && <ProfilePanel user={user} onLogout={onLogout} context="admin" />}
                 {activeTab === 'data_pengunjung' && <VisitorLog />}
 
                 {activeTab === 'koleksi' && <ManajemenKoleksiPanel user={user} />}
@@ -276,11 +292,13 @@ const AdminPanel = ({ user, onLogout }) => {
 
                 {activeTab === 'laporan' && <LaporanPKLPanel />} 
                 {activeTab === 'pengembalian' && <PengembalianPanel user={user} />}
+                {activeTab === 'kategori' && <KategoriPanel user={user} />}
                 {activeTab === 'peminjaman' && <PeminjamanPanel user={user} />}
                 {activeTab === 'buku_belum_kembali' && <BukuBelumKembaliPanel user={user} />}
                 {activeTab === 'denda_kerusakan' && <DendaKerusakanPanel />}
                 {activeTab === 'pemusnahan' && <PemusnahanPanelV2 user={user} />}
                 {activeTab === 'riwayat_pinjam' && <RiwayatPinjamPanel user={user} />}
+                {activeTab === 'logs' && <LogPanel />}
                 {activeTab === 'laporan_peminjaman_bulanan' && <LaporanPeminjamanBulananPanel />}
                 {activeTab === 'laporan_peminjaman_guru' && <LaporanPeminjamanGuruPanel />}
                 {activeTab === 'laporan_inventarisasi_buku_baru' && <LaporanInventarisasiBukuBaruPanel />}
