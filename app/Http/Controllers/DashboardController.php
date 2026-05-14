@@ -564,7 +564,7 @@ class DashboardController extends Controller
 
     public function getHistoryPemusnahan(Request $request)
     {
-        $search = $request->get('search');
+        $search = trim((string) $request->get('search', ''));
         $status = $request->get('status');
 
         $query = DB::table('tr_pemusnahan')
@@ -579,11 +579,18 @@ class DashboardController extends Controller
             )
             ->where('tr_pemusnahan.status', '!=', 'soft_deleted');
 
-        if ($search) {
+        if ($search !== '') {
             $query->where(function($q) use ($search) {
                 $q->where('tr_pemusnahan.isbn', 'like', "%$search%")
+                  ->orWhere('tr_pemusnahan.id', 'like', "%$search%")
+                  ->orWhere('tr_pemusnahan.id_cp_koleksi', 'like', "%$search%")
+                  ->orWhere(DB::raw("CONCAT(tr_pemusnahan.isbn, '/', COALESCE(tr_pemusnahan.id_cp_koleksi, ''))"), 'like', "%$search%")
                   ->orWhere('mst_koleksi_buku.judul_koleksi', 'like', "%$search%")
-                  ->orWhere('tr_pemusnahan.alasan', 'like', "%$search%");
+                  ->orWhere('mst_koleksi_buku.no_rak_buku', 'like', "%$search%")
+                  ->orWhere('tr_pemusnahan.alasan', 'like', "%$search%")
+                  ->orWhere('tr_pemusnahan.status', 'like', "%$search%")
+                  ->orWhere('tr_pemusnahan.nip_karyawan', 'like', "%$search%")
+                  ->orWhere('petugas.nama_karyawan', 'like', "%$search%");
             });
         }
 
@@ -643,6 +650,7 @@ class DashboardController extends Controller
             'isbn' => 'required|string',
             'alasan' => 'required|string',
             'nip_karyawan' => 'required|string',
+            'tanggal_pemusnahan' => 'nullable|date',
         ]);
 
         $petugas = $this->getPetugasPemusnahan($request->nip_karyawan);
@@ -745,6 +753,9 @@ class DashboardController extends Controller
             'id_cp_koleksi' => $identifier['id_cp_koleksi'],
             'alasan' => '[' . $kategoriPemusnahan . '] ' . trim($request->alasan),
             'nip_karyawan' => $request->nip_karyawan,
+            'tanggal_pemusnahan' => $request->filled('tanggal_pemusnahan')
+                ? Carbon::parse($request->tanggal_pemusnahan)
+                : $pemusnahan->tanggal_pemusnahan,
             'updated_at' => Carbon::now(),
         ]);
 
@@ -757,7 +768,23 @@ class DashboardController extends Controller
             'petugas_editor' => $petugas->nip_karyawan,
         ]);
 
-        return response()->json(['message' => 'Data pemusnahan berhasil diperbarui.']);
+        $updated = DB::table('tr_pemusnahan')
+            ->join('mst_koleksi_buku', 'tr_pemusnahan.isbn', '=', 'mst_koleksi_buku.ISBN')
+            ->leftJoin('mst_karyawan as petugas', 'tr_pemusnahan.nip_karyawan', '=', 'petugas.nip_karyawan')
+            ->where('tr_pemusnahan.id', $id)
+            ->select(
+                'tr_pemusnahan.*',
+                'mst_koleksi_buku.judul_koleksi as judul',
+                'mst_koleksi_buku.keterangan_buku',
+                'mst_koleksi_buku.no_rak_buku',
+                'petugas.nama_karyawan as nama_petugas'
+            )
+            ->first();
+
+        return response()->json([
+            'message' => 'Data pemusnahan berhasil diperbarui.',
+            'data' => $updated,
+        ]);
     }
 
     public function updateStatusPemusnahan(Request $request, $id)

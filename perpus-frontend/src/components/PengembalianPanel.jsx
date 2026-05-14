@@ -20,6 +20,8 @@ const PengembalianBulkPanel = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [riwayatData, setRiwayatData] = useState([]);
   const [loadingRiwayat, setLoadingRiwayat] = useState(false);
+  const [editingReturn, setEditingReturn] = useState(null);
+  const [savingEdit, setSavingEdit] = useState(false);
 
   const inputBukuRef = useRef(null);
   const memberDataRef = useRef(null);
@@ -231,6 +233,61 @@ const PengembalianBulkPanel = () => {
   const handleSearchRiwayat = (e) => {
     e.preventDefault();
     fetchRiwayatPengembalian();
+  };
+
+  const toDateInputValue = (value) => String(value || '').split('T')[0].split(' ')[0];
+
+  const openEditPengembalian = (item) => {
+    setEditingReturn({
+      id_peminjaman: item.id_peminjaman,
+      judul_koleksi: item.judul_koleksi || '-',
+      nama_peminjam: item.nama_peminjam || '-',
+      nisn_nip: item.nisn_nip || '-',
+      tgl_kembali: toDateInputValue(item.tgl_kembali),
+      kondisi_buku_kembali: item.kondisi_buku_kembali || 'Baik',
+      denda: item.denda ?? 0,
+      keterangan_peminjaman: item.keterangan_peminjaman || '',
+    });
+  };
+
+  const updateEditField = (field, value) => {
+    setEditingReturn(current => ({
+      ...current,
+      [field]: value,
+    }));
+  };
+
+  const simpanEditPengembalian = async (e) => {
+    e.preventDefault();
+
+    if (!editingReturn?.id_peminjaman) return;
+
+    setSavingEdit(true);
+    try {
+      const res = await axios.put(`http://localhost:8000/api/pengembalian/${editingReturn.id_peminjaman}`, {
+        tgl_kembali: editingReturn.tgl_kembali,
+        kondisi_buku_kembali: editingReturn.kondisi_buku_kembali,
+        denda: editingReturn.denda === '' ? 0 : Number(editingReturn.denda),
+        keterangan_peminjaman: editingReturn.keterangan_peminjaman,
+      });
+
+      const updated = res.data?.data;
+
+      if (updated) {
+        setRiwayatData(current => current.map(item => (
+          item.id_peminjaman === updated.id_peminjaman ? updated : item
+        )));
+      } else {
+        fetchRiwayatPengembalian();
+      }
+
+      setEditingReturn(null);
+      showToast('success', res.data?.message || 'DATA PENGEMBALIAN BERHASIL DIPERBARUI');
+    } catch (err) {
+      showToast('error', err.response?.data?.message || 'GAGAL UPDATE DATA PENGEMBALIAN');
+    } finally {
+      setSavingEdit(false);
+    }
   };
 
   return (
@@ -506,16 +563,18 @@ const PengembalianBulkPanel = () => {
             <thead>
               <tr className="border-b border-slate-300 text-slate-900 bg-slate-50">
                 <th className="py-3 px-4 uppercase tracking-widest font-bold border-r border-slate-200">No. Pinjam</th>
+                <th className="py-3 px-4 uppercase tracking-widest font-bold border-r border-slate-200">Koleksi</th>
                 <th className="py-3 px-4 uppercase tracking-widest font-bold border-r border-slate-200">Tgl Kembali</th>
                 <th className="py-3 px-4 uppercase tracking-widest font-bold border-r border-slate-200">Pemustaka</th>
                 <th className="py-3 px-4 uppercase tracking-widest font-bold border-r border-slate-200">Kondisi</th>
-                <th className="py-3 px-4 uppercase tracking-widest font-bold">Denda</th>
+                <th className="py-3 px-4 uppercase tracking-widest font-bold border-r border-slate-200">Denda</th>
+                <th className="py-3 px-4 uppercase tracking-widest font-bold text-right">Aksi</th>
               </tr>
             </thead>
             <tbody>
               {loadingRiwayat ? (
                 <tr>
-                  <td colSpan="5" className="py-8 text-center text-slate-400 font-bold uppercase tracking-widest border-b border-slate-200">
+                  <td colSpan="7" className="py-8 text-center text-slate-400 font-bold uppercase tracking-widest border-b border-slate-200">
                     Memuat Data...
                   </td>
                 </tr>
@@ -523,6 +582,11 @@ const PengembalianBulkPanel = () => {
                 riwayatData.map((item, index) => (
                   <tr key={index} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
                     <td className="py-3 px-4 font-bold border-r border-slate-100">{item.id_peminjaman || '-'}</td>
+                    <td className="py-3 px-4 border-r border-slate-100">
+                      <span className="font-bold uppercase">{item.judul_koleksi || '-'}</span>
+                      <br/>
+                      <span className="text-[10px] text-slate-400">{item.ISBN || '-'}</span>
+                    </td>
                     <td className="py-3 px-4 text-slate-600 border-r border-slate-100">{item.tgl_kembali || '-'}</td>
                     <td className="py-3 px-4 border-r border-slate-100">
                       <span className="font-bold uppercase">{item.nama_peminjam || '-'}</span>
@@ -532,16 +596,25 @@ const PengembalianBulkPanel = () => {
                     <td className="py-3 px-4 uppercase border-r border-slate-100">{item.kondisi_buku_kembali || '-'}</td>
                     <td className="py-3 px-4">
                       {item.denda && item.denda > 0 ? (
-                        <span className="text-red-700 font-bold bg-red-50 px-2 py-1 border border-red-200 text-[10px]">RP {item.denda}</span>
+                        <span className="text-red-700 font-bold bg-red-50 px-2 py-1 border border-red-200 text-[10px]">RP {Number(item.denda).toLocaleString('id-ID')}</span>
                       ) : (
                         <span className="text-slate-500 font-bold text-[10px]">-</span>
                       )}
+                    </td>
+                    <td className="py-3 px-4 text-right">
+                      <button
+                        type="button"
+                        onClick={() => openEditPengembalian(item)}
+                        className="bg-slate-900 text-white px-4 py-2 font-bold uppercase hover:bg-black transition-colors"
+                      >
+                        Edit
+                      </button>
                     </td>
                   </tr>
                 ))
               ) : (
                 <tr>
-                  <td colSpan="5" className="py-8 text-center text-slate-400 font-bold uppercase tracking-widest border-b border-slate-200">
+                  <td colSpan="7" className="py-8 text-center text-slate-400 font-bold uppercase tracking-widest border-b border-slate-200">
                     Tidak Ada Data Pengembalian
                   </td>
                 </tr>
@@ -550,6 +623,96 @@ const PengembalianBulkPanel = () => {
           </table>
         </div>
       </div>
+
+      {editingReturn && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4">
+          <form onSubmit={simpanEditPengembalian} className="w-full max-w-xl bg-white border border-slate-200 rounded shadow-2xl p-6">
+            <div className="mb-6 border-b border-slate-200 pb-4">
+              <h3 className="text-slate-900 font-bold uppercase tracking-tighter text-lg">
+                Edit Data Pengembalian
+              </h3>
+              <p className="mt-1 text-[10px] text-slate-400 uppercase tracking-widest">
+                No. Pinjam #{editingReturn.id_peminjaman}
+              </p>
+            </div>
+
+            <div className="mb-5 bg-slate-50 border-l-4 border-slate-900 p-4">
+              <p className="font-bold uppercase text-slate-900">{editingReturn.judul_koleksi}</p>
+              <p className="mt-1 text-[10px] uppercase tracking-widest text-slate-500">
+                {editingReturn.nama_peminjam} / {editingReturn.nisn_nip}
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="font-bold text-slate-400 uppercase tracking-widest block mb-2">Tanggal Kembali</label>
+                <input
+                  type="date"
+                  value={editingReturn.tgl_kembali}
+                  onChange={(e) => updateEditField('tgl_kembali', e.target.value)}
+                  className="w-full p-2 border border-slate-300 outline-none focus:border-slate-900 bg-slate-50 font-bold"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="font-bold text-slate-400 uppercase tracking-widest block mb-2">Kondisi</label>
+                <select
+                  value={editingReturn.kondisi_buku_kembali}
+                  onChange={(e) => updateEditField('kondisi_buku_kembali', e.target.value)}
+                  className="w-full p-2 border border-slate-300 outline-none focus:border-slate-900 bg-slate-50 font-bold uppercase"
+                  required
+                >
+                  <option value="Baik">BAIK</option>
+                  <option value="Rusak">RUSAK</option>
+                  <option value="Hilang">HILANG</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="font-bold text-slate-400 uppercase tracking-widest block mb-2">Denda (Rp)</label>
+                <input
+                  type="number"
+                  min="0"
+                  value={editingReturn.denda}
+                  onChange={(e) => updateEditField('denda', e.target.value === '' ? '' : Number(e.target.value))}
+                  className="w-full p-2 border border-slate-300 outline-none focus:border-slate-900 bg-slate-50 font-bold"
+                  placeholder="0"
+                />
+              </div>
+
+              <div>
+                <label className="font-bold text-slate-400 uppercase tracking-widest block mb-2">Keterangan</label>
+                <input
+                  type="text"
+                  value={editingReturn.keterangan_peminjaman}
+                  onChange={(e) => updateEditField('keterangan_peminjaman', e.target.value)}
+                  className="w-full p-2 border border-slate-300 outline-none focus:border-slate-900 bg-slate-50 font-bold"
+                  placeholder="Catatan pengembalian"
+                />
+              </div>
+            </div>
+
+            <div className="mt-8 flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setEditingReturn(null)}
+                disabled={savingEdit}
+                className="bg-slate-100 text-slate-500 border border-slate-300 px-5 py-2 font-bold uppercase hover:bg-slate-200 transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Batal
+              </button>
+              <button
+                type="submit"
+                disabled={savingEdit}
+                className="bg-slate-900 text-white px-6 py-2 font-bold uppercase hover:bg-black transition-colors disabled:bg-slate-400 disabled:cursor-not-allowed"
+              >
+                {savingEdit ? 'Menyimpan...' : 'Simpan Perubahan'}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
 
     </div>
   );

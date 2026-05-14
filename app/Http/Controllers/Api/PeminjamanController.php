@@ -128,6 +128,15 @@ class PeminjamanController extends Controller
             ->whereIn('STATUS_PEMINJAMAN', self::ACTIVE_LOAN_STATUSES);
     }
 
+    private function normalizeDenda(mixed $value): float
+    {
+        if ($value === null || $value === '') {
+            return 0;
+        }
+
+        return max(0, (float) $value);
+    }
+
     private function resolvePeminjam(?string $identifier): ?object
     {
         $identifier = trim((string) $identifier);
@@ -372,6 +381,86 @@ class PeminjamanController extends Controller
         ]);
     }
 
+    public function katalogKoleksi(Request $request)
+    {
+        $search = trim((string) $request->query('search', ''));
+        $status = strtolower(trim((string) $request->query('status', 'semua')));
+        $perPage = max(1, min((int) $request->query('per_page', 8), 50));
+
+        $query = DB::table('cp_koleksi as copy')
+            ->join('mst_koleksi_buku as buku', 'copy.ISBN', '=', 'buku.ISBN')
+            ->leftJoin('ref_koleksi as kategori', 'buku.ID_REF_KOLEKSI', '=', 'kategori.ID_REF_KOLEKSI')
+            ->leftJoin('tr_peminjaman as pinjam_aktif', function ($join) {
+                $join->on('pinjam_aktif.ID_CP_KOLEKSI', '=', 'copy.ID_CP_KOLEKSI')
+                    ->whereNull('pinjam_aktif.TGL_KEMBALI')
+                    ->whereIn('pinjam_aktif.STATUS_PEMINJAMAN', self::ACTIVE_LOAN_STATUSES);
+            })
+            ->leftJoin('mst_siswa as siswa', 'pinjam_aktif.ID_SISWA_TETAP', '=', 'siswa.ID_SISWA_TETAP')
+            ->leftJoin('mst_karyawan as karyawan', 'pinjam_aktif.NIP_KARYAWAN', '=', 'karyawan.NIP_KARYAWAN')
+            ->where('buku.IS_DELETE', 0)
+            ->select(
+                'copy.ID_CP_KOLEKSI as id_cp_koleksi',
+                'copy.ISBN',
+                'copy.STATUS_BUKU as status_buku',
+                'buku.JUDUL_KOLEKSI as judul_koleksi',
+                'buku.PENGARANG as pengarang',
+                'buku.PENERBIT as penerbit',
+                'buku.TAHUN as tahun',
+                'buku.NO_RAK_BUKU as no_rak_buku',
+                'kategori.DESKRIPSI_KATEGORI as kategori',
+                'kategori.NO_KATEGORI_BUKU as kode_kategori',
+                'pinjam_aktif.ID_PEMINJAMAN as id_peminjaman_aktif',
+                'pinjam_aktif.TGL_PINJAM as tgl_pinjam',
+                'pinjam_aktif.TGL_HARUS_KEMBALI as tgl_harus_kembali',
+                DB::raw("COALESCE(siswa.NAMA_SISWA_TETAP, karyawan.NAMA_KARYAWAN) as nama_peminjam"),
+                DB::raw("COALESCE(siswa.NISN_SISWA, karyawan.NIP_KARYAWAN) as identitas_peminjam")
+            );
+
+        if ($search !== '') {
+            $query->where(function ($subQuery) use ($search) {
+                $subQuery->where('buku.JUDUL_KOLEKSI', 'like', "%{$search}%")
+                    ->orWhere('buku.PENGARANG', 'like', "%{$search}%")
+                    ->orWhere('buku.PENERBIT', 'like', "%{$search}%")
+                    ->orWhere('buku.ISBN', 'like', "%{$search}%")
+                    ->orWhere('copy.ID_CP_KOLEKSI', 'like', "%{$search}%")
+                    ->orWhere('kategori.DESKRIPSI_KATEGORI', 'like', "%{$search}%");
+            });
+        }
+
+        if ($status === 'tersedia') {
+            $query->whereNull('pinjam_aktif.ID_PEMINJAMAN')
+                ->whereIn(DB::raw('LOWER(copy.STATUS_BUKU)'), ['tersedia', 'kembali', 'dipinjam']);
+        } elseif ($status === 'dipinjam') {
+            $query->whereNotNull('pinjam_aktif.ID_PEMINJAMAN');
+        } elseif ($status === 'tidak_tersedia') {
+            $query->whereNull('pinjam_aktif.ID_PEMINJAMAN')
+                ->whereNotIn(DB::raw('LOWER(copy.STATUS_BUKU)'), ['tersedia', 'kembali', 'dipinjam']);
+        }
+
+        $data = $query
+            ->orderBy('buku.JUDUL_KOLEKSI')
+            ->orderBy('copy.ID_CP_KOLEKSI')
+            ->paginate($perPage);
+
+        $data->getCollection()->transform(function ($item) {
+            $statusFisik = strtolower(trim((string) $item->status_buku));
+            $sedangDipinjam = $item->id_peminjaman_aktif !== null;
+            $bisaDipinjam = !$sedangDipinjam && in_array($statusFisik, ['tersedia', 'kembali', 'dipinjam'], true);
+
+            $item->barcode_pinjam = "{$item->ISBN}/{$item->id_cp_koleksi}";
+            $item->jenis_koleksi = ((string) $item->kode_kategori) === '4' ? 'Laporan PKL' : ($item->kategori ?: 'Buku');
+            $item->sedang_dipinjam = $sedangDipinjam;
+            $item->bisa_dipinjam = $bisaDipinjam;
+            $item->status_ketersediaan = $sedangDipinjam
+                ? 'Sudah Dipinjam'
+                : ($bisaDipinjam ? 'Belum Dipinjam' : 'Tidak Tersedia');
+
+            return $item;
+        });
+
+        return response()->json($data);
+    }
+
     public function store(Request $request)
     {
         $barcode = $this->parseBarcodeInput($request->input('isbn'));
@@ -575,6 +664,7 @@ class PeminjamanController extends Controller
 
                 // Eksekusi kalkulasi keterlambatan
                 $hasilKalkulasi = $kalkulator->hitung($peminjaman->TGL_HARUS_KEMBALI, $item['tgl_kembali_manual'] ?? null);
+                $denda = $this->normalizeDenda($item['denda'] ?? $item['denda_peminjaman'] ?? 0);
 
                 // Update status di tabel transaksi
                 $updated = DB::table('tr_peminjaman')
@@ -585,6 +675,7 @@ class PeminjamanController extends Controller
                         'STATUS_PEMINJAMAN' => 'Kembali',
                         'KONDISI_BUKU' => $item['kondisi'] ?? 'Baik',
                         'KETERANGAN_PEMINJAMAN' => $hasilKalkulasi['keterangan'],
+                        'DENDA_PEMINJAMAN' => $denda,
                     ]);
 
                 if ($updated === 0) {
@@ -678,6 +769,7 @@ class PeminjamanController extends Controller
                 $peminjaman->TGL_HARUS_KEMBALI,
                 $request->input('tgl_kembali_manual')
             );
+            $denda = $this->normalizeDenda($request->input('denda', $request->input('denda_peminjaman', 0)));
 
             DB::table('tr_peminjaman')
                 ->where('ID_PEMINJAMAN', $id)
@@ -686,6 +778,7 @@ class PeminjamanController extends Controller
                     'STATUS_PEMINJAMAN' => 'Kembali',
                     'KONDISI_BUKU' => $request->input('kondisi', 'Baik'),
                     'KETERANGAN_PEMINJAMAN' => $hasilKalkulasi['keterangan'],
+                    'DENDA_PEMINJAMAN' => $denda,
                 ]);
 
             DB::table('cp_koleksi')
@@ -697,6 +790,84 @@ class PeminjamanController extends Controller
         } catch (\Exception $e) {
             DB::rollBack();
             return response()->json(['message' => 'Gagal memproses pengembalian: ' . $e->getMessage()], 500);
+        }
+    }
+
+    public function updatePengembalian(Request $request, $id)
+    {
+        $validator = validator($request->all(), [
+            'tgl_kembali' => ['required', 'date'],
+            'kondisi_buku_kembali' => ['required', 'string', 'max:25'],
+            'denda' => ['nullable', 'numeric', 'min:0'],
+            'keterangan_peminjaman' => ['nullable', 'string', 'max:255'],
+        ], [
+            'tgl_kembali.required' => 'Tanggal kembali wajib diisi.',
+            'tgl_kembali.date' => 'Tanggal kembali tidak valid.',
+            'kondisi_buku_kembali.required' => 'Kondisi buku wajib diisi.',
+            'denda.numeric' => 'Denda harus berupa angka.',
+            'denda.min' => 'Denda tidak boleh kurang dari 0.',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'message' => 'Validasi data gagal.',
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
+        try {
+            $peminjaman = DB::table('tr_peminjaman')
+                ->where('ID_PEMINJAMAN', $id)
+                ->whereNotNull('TGL_KEMBALI')
+                ->first();
+
+            if (!$peminjaman) {
+                return response()->json([
+                    'message' => 'Data pengembalian tidak ditemukan atau belum diproses kembali.',
+                ], 404);
+            }
+
+            $tglKembali = Carbon::parse($request->input('tgl_kembali'))->toDateString();
+            $denda = $this->normalizeDenda($request->input('denda', 0));
+
+            DB::table('tr_peminjaman')
+                ->where('ID_PEMINJAMAN', $id)
+                ->update([
+                    'TGL_KEMBALI' => $tglKembali,
+                    'STATUS_PEMINJAMAN' => 'Kembali',
+                    'KONDISI_BUKU' => $request->input('kondisi_buku_kembali'),
+                    'KETERANGAN_PEMINJAMAN' => $request->input('keterangan_peminjaman', $peminjaman->KETERANGAN_PEMINJAMAN ?? '-'),
+                    'DENDA_PEMINJAMAN' => $denda,
+                ]);
+
+            $updated = DB::table('tr_peminjaman as peminjaman')
+                ->join('cp_koleksi as copy', 'peminjaman.ID_CP_KOLEKSI', '=', 'copy.ID_CP_KOLEKSI')
+                ->join('mst_koleksi_buku as buku', 'copy.ISBN', '=', 'buku.ISBN')
+                ->leftJoin('mst_siswa as siswa', 'peminjaman.ID_SISWA_TETAP', '=', 'siswa.ID_SISWA_TETAP')
+                ->leftJoin('mst_karyawan as karyawan', 'peminjaman.NIP_KARYAWAN', '=', 'karyawan.NIP_KARYAWAN')
+                ->where('peminjaman.ID_PEMINJAMAN', $id)
+                ->select(
+                    'peminjaman.ID_PEMINJAMAN as id_peminjaman',
+                    'peminjaman.ID_CP_KOLEKSI as id_cp_koleksi',
+                    'peminjaman.TGL_KEMBALI as tgl_kembali',
+                    'peminjaman.KONDISI_BUKU as kondisi_buku_kembali',
+                    'peminjaman.KETERANGAN_PEMINJAMAN as keterangan_peminjaman',
+                    'peminjaman.DENDA_PEMINJAMAN as denda',
+                    'buku.JUDUL_KOLEKSI as judul_koleksi',
+                    'copy.ISBN',
+                    DB::raw("COALESCE(siswa.NAMA_SISWA_TETAP, karyawan.NAMA_KARYAWAN, '-') as nama_peminjam"),
+                    DB::raw("COALESCE(siswa.NISN_SISWA, karyawan.NIP_KARYAWAN, '-') as nisn_nip")
+                )
+                ->first();
+
+            return response()->json([
+                'message' => 'Data pengembalian berhasil diperbarui.',
+                'data' => $updated,
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Gagal memperbarui data pengembalian: ' . $e->getMessage(),
+            ], 500);
         }
     }
 
@@ -715,6 +886,7 @@ class PeminjamanController extends Controller
                 'peminjaman.ID_CP_KOLEKSI as id_cp_koleksi',
                 'peminjaman.TGL_KEMBALI as tgl_kembali',
                 'peminjaman.KONDISI_BUKU as kondisi_buku_kembali',
+                'peminjaman.KETERANGAN_PEMINJAMAN as keterangan_peminjaman',
                 'peminjaman.DENDA_PEMINJAMAN as denda',
                 'buku.JUDUL_KOLEKSI as judul_koleksi',
                 'copy.ISBN',

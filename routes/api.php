@@ -35,6 +35,7 @@ Route::get('/logs/roles', [LogController::class, 'roles']);
 // --- TRANSAKSI PEMINJAMAN & PENGEMBALIAN ---
 Route::get('/peminjaman/cek-aktif', [PeminjamanController::class, 'cekAktif']);
 Route::get('/peminjaman/overdue', [PeminjamanController::class, 'overdue']);
+Route::get('/peminjaman/katalog-koleksi', [PeminjamanController::class, 'katalogKoleksi']);
 Route::get('/peminjaman', [PeminjamanController::class, 'index']);
 Route::post('/peminjaman', [PeminjamanController::class, 'store']);
 Route::put('/peminjaman/{id}', [PeminjamanController::class, 'update']);
@@ -43,6 +44,7 @@ Route::delete('/peminjaman/{id}', [PeminjamanController::class, 'destroy']);
 Route::get('/pengembalian/history', [PeminjamanController::class, 'historyPengembalian']);
 Route::get('/pengembalian', [DashboardController::class, 'getPengembalian']);
 Route::get('/pengembalian/export', [PengembalianController::class, 'exportExcel']);
+Route::put('/pengembalian/{id}', [PeminjamanController::class, 'updatePengembalian']);
 Route::post('/pengembalian/batch', [PeminjamanController::class, 'batchReturn']);
 Route::post('/pengembalian/scan', [PeminjamanController::class, 'scanPengembalian']);
 Route::post('/pengembalian/proses/{id}', [PeminjamanController::class, 'prosesPengembalian']);

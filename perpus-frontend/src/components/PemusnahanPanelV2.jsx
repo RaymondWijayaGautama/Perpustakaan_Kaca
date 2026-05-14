@@ -61,6 +61,19 @@ const getPetugasName = (row, user) => {
 
 const cleanAlasan = (value) => String(value || "").replace(/^\[[^\]]+\]\s*/, "");
 
+const toDateTimeLocalValue = (value) => {
+    if (!value) return "";
+
+    const date = new Date(String(value).replace(" ", "T"));
+
+    if (Number.isNaN(date.getTime())) {
+        return String(value).slice(0, 16);
+    }
+
+    const local = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+    return local.toISOString().slice(0, 16);
+};
+
 const PemusnahanPanelV2 = ({ user }) => {
     const { confirm, ConfirmDialog } = useConfirmDialog();
     const [tab, setTab] = useState("input");
@@ -69,20 +82,34 @@ const PemusnahanPanelV2 = ({ user }) => {
     const [search, setSearch] = useState("");
     const [status, setStatus] = useState("semua");
     const [form, setForm] = useState({ isbn: "", alasan: "" });
-    const [editForm, setEditForm] = useState({ id: null, isbn: "", alasan: "" });
+    const [editForm, setEditForm] = useState({ id: null, isbn: "", alasan: "", tanggal_pemusnahan: "" });
     const [showEditModal, setShowEditModal] = useState(false);
     const [isSavingEdit, setIsSavingEdit] = useState(false);
+    const [isLoadingRows, setIsLoadingRows] = useState(false);
     const [flash, setFlash] = useState({ type: "", text: "" });
+
+    const fetchRows = async (override = {}) => {
+        const nextSearch = override.search ?? search;
+        const nextStatus = override.status ?? status;
+
+        setIsLoadingRows(true);
+        try {
+            const response = await axios.get(`${API}/api/pemusnahan`, {
+                params: {
+                    search: nextSearch,
+                    status: tab === "berita" ? "disetujui" : nextStatus,
+                }
+            });
+            setRows(response.data);
+        } finally {
+            setIsLoadingRows(false);
+        }
+    };
 
     useEffect(() => {
         const run = async () => {
-            if (tab === "history") {
-                const response = await axios.get(`${API}/api/pemusnahan`, { params: { search, status } });
-                setRows(response.data);
-            }
-            if (tab === "berita") {
-                const response = await axios.get(`${API}/api/pemusnahan`, { params: { search, status: "disetujui" } });
-                setRows(response.data);
+            if (tab === "history" || tab === "berita") {
+                await fetchRows();
             }
             if (tab === "rusak") {
                 const response = await axios.get(`${API}/api/buku-rusak`);
@@ -104,8 +131,7 @@ const PemusnahanPanelV2 = ({ user }) => {
     const confirmRow = async (id) => {
         await axios.patch(`${API}/api/pemusnahan/${id}/konfirmasi`, { nip_karyawan: getUserNip(user) });
         setFlash({ type: "success", text: "Pemusnahan disetujui. Berita acara siap dicetak." });
-        const response = await axios.get(`${API}/api/pemusnahan`, { params: { search, status } });
-        setRows(response.data);
+        await fetchRows();
     };
 
     const openEditModal = (row) => {
@@ -113,6 +139,7 @@ const PemusnahanPanelV2 = ({ user }) => {
             id: row.id,
             isbn: row.id_cp_koleksi ? `${row.isbn}/${row.id_cp_koleksi}` : row.isbn,
             alasan: cleanAlasan(row.alasan),
+            tanggal_pemusnahan: toDateTimeLocalValue(row.tanggal_pemusnahan),
         });
         setShowEditModal(true);
         setFlash({ type: "", text: "" });
@@ -120,28 +147,31 @@ const PemusnahanPanelV2 = ({ user }) => {
 
     const closeEditModal = () => {
         setShowEditModal(false);
-        setEditForm({ id: null, isbn: "", alasan: "" });
+        setEditForm({ id: null, isbn: "", alasan: "", tanggal_pemusnahan: "" });
         setIsSavingEdit(false);
     };
 
     const updateRow = async () => {
         setIsSavingEdit(true);
-        await axios.put(`${API}/api/pemusnahan/${editForm.id}`, {
+        const response = await axios.put(`${API}/api/pemusnahan/${editForm.id}`, {
             isbn: editForm.isbn,
             alasan: editForm.alasan,
+            tanggal_pemusnahan: editForm.tanggal_pemusnahan,
             nip_karyawan: getUserNip(user),
         });
         setFlash({ type: "success", text: "Data pemusnahan berhasil diperbarui." });
         closeEditModal();
-        const response = await axios.get(`${API}/api/pemusnahan`, { params: { search, status } });
-        setRows(response.data);
+        if (response.data?.data) {
+            setRows((current) => current.map((row) => row.id === response.data.data.id ? response.data.data : row));
+        } else {
+            await fetchRows();
+        }
     };
 
     const archiveRow = async (id) => {
         await axios.patch(`${API}/api/pemusnahan/${id}`, { status: "soft_deleted" });
         setFlash({ type: "success", text: "Data pemusnahan berhasil diarsipkan." });
-        const response = await axios.get(`${API}/api/pemusnahan`, { params: { search, status } });
-        setRows(response.data);
+        await fetchRows();
     };
 
     const openPrint = (id) => window.open(`${API}/pustakawan/pemusnahan/${id}/berita-acara`, "_blank", "noopener,noreferrer");
@@ -220,16 +250,18 @@ const PemusnahanPanelV2 = ({ user }) => {
 
             {tab === "history" && <>
                 <div className="mt-6 flex flex-col gap-3 lg:flex-row">
-                    <input value={search} onChange={(e) => setSearch(e.target.value)} className="flex-1 rounded-xl border bg-gray-50 p-4 outline-none focus:ring-2 focus:ring-[#265F9C]" placeholder="Cari ISBN, judul, atau alasan..." />
+                    <input value={search} onChange={(e) => setSearch(e.target.value)} className="flex-1 rounded-xl border bg-gray-50 p-4 outline-none focus:ring-2 focus:ring-[#265F9C]" placeholder="Cari ID, ISBN/copy, judul, alasan, petugas, rak, atau status..." />
                     <select value={status} onChange={(e) => setStatus(e.target.value)} className="rounded-xl border bg-gray-50 p-4 outline-none focus:ring-2 focus:ring-[#265F9C]">
                         <option value="semua">Semua Status</option>
                         <option value="menunggu_konfirmasi">Menunggu Konfirmasi</option>
                         <option value="disetujui">Disetujui</option>
                     </select>
+                    <button onClick={() => fetchRows()} disabled={isLoadingRows} className="rounded-xl bg-[#265F9C] px-6 py-4 text-sm font-bold text-white hover:bg-blue-700 disabled:opacity-50">{isLoadingRows ? "Mencari..." : "Cari"}</button>
+                    <button onClick={() => { setSearch(""); setStatus("semua"); fetchRows({ search: "", status: "semua" }); }} className="rounded-xl bg-gray-100 px-6 py-4 text-sm font-bold text-gray-600 hover:bg-gray-200">Reset</button>
                 </div>
                 <div className="mt-6 overflow-x-auto">
                     <table className="w-full text-left"><thead className="bg-gray-50 text-[10px] font-bold uppercase text-gray-400"><tr><th className="p-4">Tanggal</th><th className="p-4">ISBN</th><th className="p-4">Judul</th><th className="p-4">Alasan</th><th className="p-4">Status</th><th className="p-4">Petugas</th><th className="p-4 text-right">Aksi</th></tr></thead><tbody>
-                        {rows.length > 0 ? rows.map((row) => <tr key={row.id} className="border-b text-sm"><td className="p-4">{formatWibDateTime(row.tanggal_pemusnahan)}</td><td className="p-4 font-mono font-bold text-[#265F9C]">{row.id_cp_koleksi ? `${row.isbn}/${row.id_cp_koleksi}` : row.isbn}</td><td className="p-4 font-semibold">{row.judul}</td><td className="p-4 max-w-sm">{row.alasan}</td><td className="p-4"><span className={`rounded-full border px-3 py-1 text-[10px] font-bold uppercase ${badgeClass(row.status)}`}>{row.status.replaceAll("_", " ")}</span></td><td className="p-4">{getPetugasName(row, user)}</td><td className="p-4"><div className="flex justify-end gap-2">{row.status === "menunggu_konfirmasi" && <button onClick={() => openEditModal(row)} className="rounded-lg bg-amber-500 px-3 py-2 text-xs font-bold text-white">Edit</button>}{row.status === "menunggu_konfirmasi" && <button onClick={() => safeConfirm(row.id)} className="rounded-lg bg-[#265F9C] px-3 py-2 text-xs font-bold text-white">Konfirmasi</button>}{row.status === "disetujui" && <button onClick={() => openPrint(row.id)} className="rounded-lg bg-green-600 px-3 py-2 text-xs font-bold text-white">Cetak BA</button>}<button onClick={() => safeArchive(row.id)} className="rounded-lg bg-red-50 px-3 py-2 text-xs font-bold text-red-600">Arsipkan</button></div></td></tr>) : <tr><td colSpan="7" className="p-10 text-center text-gray-400">Belum ada data pemusnahan.</td></tr>}
+                        {isLoadingRows ? <tr><td colSpan="7" className="p-10 text-center text-gray-400">Memuat data pemusnahan...</td></tr> : rows.length > 0 ? rows.map((row) => <tr key={row.id} className="border-b text-sm"><td className="p-4"><p>{formatWibDateTime(row.tanggal_pemusnahan)}</p><p className="mt-1 font-mono text-[10px] font-bold text-gray-400">ID #{row.id}</p></td><td className="p-4 font-mono font-bold text-[#265F9C]">{row.id_cp_koleksi ? `${row.isbn}/${row.id_cp_koleksi}` : row.isbn}</td><td className="p-4 font-semibold"><p>{row.judul}</p><p className="mt-1 text-xs font-normal text-gray-400">Rak: {row.no_rak_buku || "-"}</p></td><td className="p-4 max-w-sm">{row.alasan}</td><td className="p-4"><span className={`rounded-full border px-3 py-1 text-[10px] font-bold uppercase ${badgeClass(row.status)}`}>{row.status.replaceAll("_", " ")}</span></td><td className="p-4">{getPetugasName(row, user)}</td><td className="p-4"><div className="flex justify-end gap-2">{row.status === "menunggu_konfirmasi" && <button onClick={() => openEditModal(row)} className="rounded-lg bg-amber-500 px-3 py-2 text-xs font-bold text-white">Edit</button>}{row.status === "menunggu_konfirmasi" && <button onClick={() => safeConfirm(row.id)} className="rounded-lg bg-[#265F9C] px-3 py-2 text-xs font-bold text-white">Konfirmasi</button>}{row.status === "disetujui" && <button onClick={() => openPrint(row.id)} className="rounded-lg bg-green-600 px-3 py-2 text-xs font-bold text-white">Cetak BA</button>}<button onClick={() => safeArchive(row.id)} className="rounded-lg bg-red-50 px-3 py-2 text-xs font-bold text-red-600">Arsipkan</button></div></td></tr>) : <tr><td colSpan="7" className="p-10 text-center text-gray-400">Belum ada data pemusnahan.</td></tr>}
                     </tbody></table>
                 </div>
             </>}
@@ -245,6 +277,7 @@ const PemusnahanPanelV2 = ({ user }) => {
                     </div>
                     <div className="mt-6 space-y-4">
                         <input value={editForm.isbn} onChange={(e) => setEditForm({ ...editForm, isbn: e.target.value })} className="w-full rounded-xl border bg-gray-50 p-4 outline-none focus:ring-2 focus:ring-[#265F9C]" placeholder="ISBN atau barcode ISBN/ID copy" />
+                        <input type="datetime-local" value={editForm.tanggal_pemusnahan} onChange={(e) => setEditForm({ ...editForm, tanggal_pemusnahan: e.target.value })} className="w-full rounded-xl border bg-gray-50 p-4 outline-none focus:ring-2 focus:ring-[#265F9C]" />
                         <textarea value={editForm.alasan} onChange={(e) => setEditForm({ ...editForm, alasan: e.target.value })} className="h-32 w-full rounded-xl border bg-gray-50 p-4 outline-none focus:ring-2 focus:ring-[#265F9C]" placeholder="Alasan pemusnahan" />
                     </div>
                     <div className="mt-6 flex justify-end gap-3">
