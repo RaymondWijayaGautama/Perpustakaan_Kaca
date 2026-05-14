@@ -7,6 +7,17 @@ const RiwayatPinjamPanel = () => {
     const [data, setData] = useState([]);
     const [filterStatus, setFilterStatus] = useState('Semua');
     const [loading, setLoading] = useState(false);
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [editData, setEditData] = useState({
+        id_peminjaman: '',
+        nama_peminjam: '',
+        judul_buku: '',
+        tgl_pinjam: '',
+        tgl_kembali: '', 
+        status: '',
+        denda: 0,
+        keterangan: ''
+    });
 
     const fetchData = useCallback(async () => {
         setLoading(true);
@@ -26,30 +37,37 @@ const RiwayatPinjamPanel = () => {
         fetchData();
     }, [fetchData]);
 
-    const handleUpdate = async (id, statusLama) => {
-        const statusBaru = statusLama === 'Dipinjam' ? 'Kembali' : 'Dipinjam';
-        const confirmMsg = `Ubah status transaksi ID #${id} menjadi "${statusBaru}"?`;
-
-        const approved = await confirm({
-            title: 'Ubah Status',
-            message: confirmMsg,
-            confirmLabel: 'Ya, Ubah',
-            tone: 'primary',
+    const openEditModal = (item) => {
+        setEditData({
+            id_peminjaman: item.id_peminjaman,
+            nama_peminjam: item.nama_peminjam,
+            judul_buku: item.judul_buku,
+            tgl_pinjam: item.tgl_peminjaman ? item.tgl_peminjaman.substring(0, 10) : '',
+            tgl_kembali: item.tgl_pengembalian ? item.tgl_pengembalian.substring(0, 10) : '',
+            status: item.status_peminjaman || 'Dipinjam',
+            denda: item.denda || 0,
+            keterangan: item.keterangan || ''
         });
+        setIsModalOpen(true);
+    };
 
-        if (!approved) return;
-
+    const handleSaveEdit = async (e) => {
+        e.preventDefault();
         try {
             setLoading(true);
-            await axios.put(`http://localhost:8000/api/peminjaman/${id}`, {
-                status_peminjaman: statusBaru,
-                kondisi_buku: 'Baik' 
+            await axios.put(`http://localhost:8000/api/peminjaman/ubah/${editData.id_peminjaman}`, {
+                tgl_pinjam: editData.tgl_pinjam,
+                tgl_kembali: editData.tgl_kembali,
+                status: editData.status,
+                denda: editData.denda,
+                keterangan: editData.keterangan
             });
-            alert("Data berhasil diupdate!");
+            
+            alert("Mantap! Data riwayat berhasil diperbarui secara detail.");
+            setIsModalOpen(false);
             fetchData(); 
         } catch (error) {
-            alert("Gagal update data!");
-            console.error(error);
+            alert("Gagal menyimpan: " + (error.response?.data?.pesan || error.message));
         } finally {
             setLoading(false);
         }
@@ -67,7 +85,7 @@ const RiwayatPinjamPanel = () => {
 
         try {
             setLoading(true);
-            await axios.delete(`http://localhost:8000/api/peminjaman/${id}`);
+            await axios.delete(`http://localhost:8000/api/peminjaman/hapus/${id}`);
             alert("Data berhasil dihapus dari daftar aktif!");
             fetchData();
         } catch (error) {
@@ -79,7 +97,7 @@ const RiwayatPinjamPanel = () => {
     };
 
     return (
-        <div className="bg-white rounded-2xl shadow-sm p-8 border border-gray-100 text-[#1A1A1A] relative">
+        <div className="bg-white rounded-2xl shadow-sm p-8 border border-gray-100 text-[#1A1A1A] relative min-h-[500px]">
             {loading && (
                 <div className="absolute inset-0 bg-white/50 backdrop-blur-[1px] z-10 flex items-center justify-center rounded-2xl">
                     <div className="w-10 h-10 border-4 border-[#265F9C] border-t-transparent rounded-full animate-spin"></div>
@@ -105,7 +123,7 @@ const RiwayatPinjamPanel = () => {
 
             <div className="overflow-x-auto">
                 <table className="w-full text-left">
-                    <thead className="bg-gray-50 uppercase text-[10px] font-black text-[#585858] border-b">
+                    <thead className="bg-gray-50 uppercase text-[10px] font-black text-[#585858] border-b border-gray-200">
                         <tr>
                             <th className="p-4">Peminjam</th>
                             <th className="p-4">Judul Buku</th>
@@ -119,27 +137,29 @@ const RiwayatPinjamPanel = () => {
                             <tr key={i} className="text-sm hover:bg-blue-50/30 transition-colors">
                                 <td className="p-4 font-bold">{item.nama_peminjam}</td>
                                 <td className="p-4 text-[#265F9C] font-medium">{item.judul_buku}</td>
-                                <td className="p-4 font-mono text-xs">{item.tgl_peminjaman}</td>
+                                <td className="p-4 font-mono text-xs text-gray-600">{item.tgl_peminjaman}</td>
                                 <td className="p-4 text-center">
-                                    <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase ${
+                                    <span className={`px-3 py-1.5 rounded-md text-[10px] font-black uppercase ${
                                         item.status_peminjaman === 'Dipinjam' 
                                         ? 'bg-orange-50 text-orange-600 border border-orange-100' 
-                                        : 'bg-green-50 text-green-600 border border-green-100'
+                                        : item.status_peminjaman === 'Dikembalikan' || item.status_peminjaman === 'Kembali'
+                                        ? 'bg-green-50 text-green-600 border border-green-100'
+                                        : 'bg-red-50 text-red-600 border border-red-100'
                                     }`}>
                                         {item.status_peminjaman}
                                     </span>
                                 </td>
                                 <td className="p-4 text-center">
                                     <button 
-                                        onClick={() => handleUpdate(item.id_peminjaman, item.status_peminjaman)}
-                                        className="bg-white border border-gray-200 hover:border-[#265F9C] hover:text-[#265F9C] px-3 py-1 rounded-lg text-[10px] font-bold transition-all"
+                                        onClick={() => openEditModal(item)}
+                                        className="bg-white border border-gray-200 hover:border-[#265F9C] hover:text-[#265F9C] px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all shadow-sm"
                                     >
                                         EDIT
                                     </button>
 
                                     <button 
                                         onClick={() => handleDelete(item.id_peminjaman)}
-                                        className="ml-2 bg-red-50 text-red-600 border border-red-100 hover:bg-red-600 hover:text-white px-3 py-1 rounded-lg text-[10px] font-bold transition-all"
+                                        className="ml-2 bg-red-50 text-red-600 border border-red-100 hover:bg-red-600 hover:text-white px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all shadow-sm"
                                     >
                                         HAPUS
                                     </button>
@@ -149,9 +169,73 @@ const RiwayatPinjamPanel = () => {
                     </tbody>
                 </table>
                 {data.length === 0 && !loading && (
-                    <div className="text-center py-10 text-gray-400 italic text-sm">Belum ada data transaksi.</div>
+                    <div className="text-center py-10 text-gray-400 italic text-sm font-medium">Belum ada data transaksi.</div>
                 )}
             </div>
+
+            {isModalOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 print:hidden">
+                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden animate-fade-in-up">
+                        <div className="bg-[#265F9C] px-6 py-4 flex justify-between items-center text-white">
+                            <h3 className="text-lg font-bold font-montserrat tracking-wide">Edit Detail Peminjaman</h3>
+                            <button onClick={() => setIsModalOpen(false)} className="text-white/70 hover:text-white transition-colors">
+                                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                            </button>
+                        </div>
+                        
+                        <form onSubmit={handleSaveEdit} className="p-6">
+                            <div className="bg-blue-50/60 p-4 rounded-xl border border-blue-100 mb-6 grid grid-cols-2 gap-4">
+                                <div>
+                                    <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Peminjam</p>
+                                    <p className="font-bold text-[#265F9C] text-sm mt-1">{editData.nama_peminjam}</p>
+                                </div>
+                                <div>
+                                    <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Buku yang Dipinjam</p>
+                                    <p className="font-bold text-[#265F9C] text-sm mt-1">{editData.judul_buku}</p>
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-5 mb-5">
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-700 mb-1.5">Tgl Pinjam</label>
+                                    <input type="date" required className="w-full p-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#265F9C] outline-none" value={editData.tgl_pinjam} onChange={(e) => setEditData({...editData, tgl_pinjam: e.target.value})} />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-700 mb-1.5">Tgl Jatuh Tempo</label>
+                                    <input type="date" required className="w-full p-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#265F9C] outline-none" value={editData.tgl_kembali} onChange={(e) => setEditData({...editData, tgl_kembali: e.target.value})} />
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-5 mb-5">
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-700 mb-1.5">Status Peminjaman</label>
+                                    <select className="w-full p-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#265F9C] outline-none font-bold text-gray-700" value={editData.status} onChange={(e) => setEditData({...editData, status: e.target.value})}>
+                                        <option value="Dipinjam">Dipinjam</option>
+                                        <option value="Dikembalikan">Dikembalikan</option>
+                                        <option value="Terlambat">Terlambat</option>
+                                        <option value="Hilang">Hilang</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-700 mb-1.5">Denda (Rp)</label>
+                                    <input type="number" min="0" placeholder="0" className="w-full p-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#265F9C] outline-none" value={editData.denda} onChange={(e) => setEditData({...editData, denda: e.target.value})} />
+                                </div>
+                            </div>
+
+                            <div className="mb-6">
+                                <label className="block text-xs font-bold text-gray-700 mb-1.5">Catatan / Keterangan Tambahan</label>
+                                <textarea rows="2" placeholder="Contoh: Buku dikembalikan dalam kondisi lecek..." className="w-full p-3 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#265F9C] outline-none resize-none" value={editData.keterangan} onChange={(e) => setEditData({...editData, keterangan: e.target.value})}></textarea>
+                            </div>
+
+                            <div className="flex justify-end gap-3 pt-5 border-t border-gray-100">
+                                <button type="button" onClick={() => setIsModalOpen(false)} className="px-6 py-2.5 text-gray-600 font-bold hover:bg-gray-100 rounded-lg text-sm transition-colors">Batal</button>
+                                <button type="submit" className="px-6 py-2.5 bg-[#265F9C] hover:bg-[#1C4673] text-white font-bold rounded-lg text-sm transition-colors shadow-md">Simpan Perubahan</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+
             <ConfirmDialog />
         </div>
     );

@@ -78,6 +78,7 @@ class DummyDataSeeder extends Seeder
             DB::table('mst_siswa')->updateOrInsert(
                 ['NISN_SISWA' => $siswa['nisn']], // Gunakan NISN sebagai unik key untuk updateOrInsert
                 [
+                    'ID_SISWA_TETAP' => $index + 1,
                     'NAMA_SISWA_TETAP' => $siswa['nama'],
                     'KODE_CALON_SISWA' => 'REG-2026-' . str_pad($index + 1, 3, "0", STR_PAD_LEFT),
                     'TGL_LAHIR_SISWA' => '2008-0' . rand(1, 9) . '-' . rand(10, 28),

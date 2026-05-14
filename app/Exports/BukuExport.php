@@ -6,8 +6,14 @@ use App\Models\MstKoleksiBuku;
 use Maatwebsite\Excel\Concerns\FromQuery;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithMapping;
+use Maatwebsite\Excel\Concerns\WithColumnFormatting;
+use Maatwebsite\Excel\Concerns\WithCustomValueBinder;
+use PhpOffice\PhpSpreadsheet\Cell\Cell;
+use PhpOffice\PhpSpreadsheet\Cell\DataType;
+use PhpOffice\PhpSpreadsheet\Cell\DefaultValueBinder;
+use PhpOffice\PhpSpreadsheet\Style\NumberFormat;
 
-class BukuExport implements FromQuery, WithHeadings, WithMapping
+class BukuExport extends DefaultValueBinder implements FromQuery, WithHeadings, WithMapping, WithColumnFormatting, WithCustomValueBinder
 {
     protected $request;
 
@@ -18,14 +24,19 @@ class BukuExport implements FromQuery, WithHeadings, WithMapping
 
     public function query()
     {
-        $query = MstKoleksiBuku::query()->where('is_delete', 0);
+        $query = MstKoleksiBuku::query()
+            ->where('is_delete', 0);
 
-        if ($this->request->has('search')) {
-            $query->where('judul_koleksi', 'like', '%' . $this->request->search . '%')
-                  ->orWhere('ISBN', 'like', '%' . $this->request->search . '%');
+        if ($this->request->filled('search')) {
+            $search = $this->request->search;
+
+            $query->where(function ($q) use ($search) {
+                $q->where('judul_koleksi', 'like', '%' . $search . '%')
+                  ->orWhere('ISBN', 'like', '%' . $search . '%');
+            });
         }
 
-        if ($this->request->has('kategori') && $this->request->kategori != '') {
+        if ($this->request->filled('kategori')) {
             $query->where('id_ref_koleksi', $this->request->kategori);
         }
 
@@ -40,19 +51,54 @@ class BukuExport implements FromQuery, WithHeadings, WithMapping
             'Pengarang',
             'Penerbit',
             'Tahun',
-            'Kategori (ID)'
+            'Kategori (ID)',
         ];
     }
 
     public function map($buku): array
     {
         return [
-            $buku->ISBN,
-            $buku->judul_koleksi,
-            $buku->pengarang,
-            $buku->penerbit,
-            $buku->tahun,
-            $buku->id_ref_koleksi,
+            $this->formatText($buku->ISBN),
+            $this->formatDash($buku->judul_koleksi),
+            $this->formatDash($buku->pengarang),
+            $this->formatDash($buku->penerbit),
+            $this->formatDash($buku->tahun),
+            $this->formatDash($buku->id_ref_koleksi),
         ];
+    }
+
+    public function columnFormats(): array
+    {
+        return [
+            'A' => NumberFormat::FORMAT_TEXT,
+        ];
+    }
+
+    public function bindValue(Cell $cell, $value): bool
+    {
+        if ($cell->getColumn() === 'A') {
+            $cell->setValueExplicit((string) $value, DataType::TYPE_STRING);
+            return true;
+        }
+
+        return parent::bindValue($cell, $value);
+    }
+
+    private function formatDash($value): string
+    {
+        if ($value === null || $value === '') {
+            return '-';
+        }
+
+        return (string) $value;
+    }
+
+    private function formatText($value): string
+    {
+        if ($value === null || $value === '') {
+            return '-';
+        }
+
+        return (string) $value;
     }
 }

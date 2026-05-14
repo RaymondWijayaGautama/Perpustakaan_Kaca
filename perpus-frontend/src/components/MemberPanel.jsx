@@ -1,6 +1,7 @@
 import { useDeferredValue, useEffect, useState } from 'react';
 import axios from 'axios';
 import ProfilePanel from './ProfilePanel';
+import KunjunganPanel from './KunjunganPanel';
 
 const API_BASE_URL = 'http://localhost:8000/api';
 
@@ -198,10 +199,18 @@ const MemberPanel = ({ user, onLogout }) => {
             >
                 Laporan PKL
             </button>
+            <button 
+                onClick={() => handleTabChange('kunjungan')}
+                className={`px-8 py-3 font-montserrat font-bold text-sm rounded-t-2xl transition-all ${activeTab === 'kunjungan' ? 'bg-white text-[#265F9C] border-t-2 border-x border-[#265F9C] shadow-sm relative z-10' : 'bg-slate-200/50 text-slate-500 hover:bg-slate-200'}`}
+            >
+                Kunjungan
+            </button>
         </div>
 
         {activeTab === 'profile' ? (
           <ProfilePanel user={user} onLogout={onLogout} context="member" />
+        ) : activeTab === 'kunjungan' ? (
+          <KunjunganPanel user={user} />
         ) : (
           <>
         <section className="bg-white p-8 rounded-b-2xl rounded-tr-2xl shadow-sm border border-slate-100 mb-8">

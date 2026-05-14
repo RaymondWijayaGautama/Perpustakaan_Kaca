@@ -3,6 +3,7 @@ import axios from 'axios';
 import Login from './components/Login';
 import AdminPanel from './components/AdminPanel';
 import MemberPanel from './components/MemberPanel';
+import VisitorLog from './components/VisitorLog';
 
 const USER_STORAGE_KEY = 'logged_in_user';
 const TOKEN_STORAGE_KEY = 'token';
@@ -36,6 +37,8 @@ const getActorRole = (actor) => (
 
 function App() {
   const [user, setUserState] = useState(readStoredUser);
+  // State baru untuk kontrol tampilan log pengunjung
+  const [showVisitorLog, setShowVisitorLog] = useState(false);
 
   const setUser = (nextUser) => {
     setUserState(nextUser);
@@ -91,6 +94,7 @@ function App() {
       localStorage.removeItem(TOKEN_STORAGE_KEY);
       localStorage.removeItem(ROLE_STORAGE_KEY);
       setUser(null);
+      setShowVisitorLog(false); // Reset view saat logout
     }
   };
 
@@ -99,15 +103,26 @@ function App() {
     return <Login setLoggedInUser={setUser} />;
   }
 
-  // 2. Cek apakah user adalah Admin
-  // PERBAIKAN: Gunakan JABATAN_FUNGSIONAL (huruf kapital)
+  // 2. Cek apakah user adalah Pustakawan
   const isAdmin = user.JABATAN_FUNGSIONAL === 'Pustakawan';
 
   if (isAdmin) {
-    return <AdminPanel user={user} onLogout={handleLogout} />;
+    return (
+      <div className="admin-wrapper">
+        {/* Kondisi Render */}
+        {showVisitorLog ? (
+          <div className="p-4">
+             <button onClick={() => setShowVisitorLog(false)} style={{ marginBottom: '10px' }}>← Kembali</button>
+             <VisitorLog />
+          </div>
+        ) : (
+          <AdminPanel user={user} onLogout={handleLogout} />
+        )}
+      </div>
+    );
   }
 
-  // Jika bukan Pustakawan (Guru atau Siswa), masuk ke MemberPanel
+  // Jika bukan Pustakawan (Guru atau Siswa)
   return <MemberPanel user={user} onLogout={handleLogout} />;
 }
 

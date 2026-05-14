@@ -565,16 +565,18 @@ class LaporanController extends Controller
         }
     }
 
-    public function siswaTerajin()
+   public function siswaTerajin()
     {
         $siswaTerajin = DB::table('tr_peminjaman as tp')
             ->join('mst_siswa as ms', 'tp.ID_SISWA_TETAP', '=', 'ms.id_siswa_tetap')
+            ->leftJoin('hst_kelas as hk', 'ms.id_siswa_tetap', '=', 'hk.ID_SISWA_TETAP')
             ->select(
                 'ms.nama_siswa_tetap',
                 'ms.nisn_siswa',
+                'hk.KELAS as nama_kelas', 
                 DB::raw('COUNT(tp.ID_PEMINJAMAN) as peminjaman_count')
             )
-            ->groupBy('ms.id_siswa_tetap', 'ms.nama_siswa_tetap', 'ms.nisn_siswa')
+            ->groupBy('ms.id_siswa_tetap', 'ms.nama_siswa_tetap', 'ms.nisn_siswa', 'hk.KELAS')
             ->orderBy('peminjaman_count', 'desc')
             ->take(10)
             ->get();
@@ -586,12 +588,15 @@ class LaporanController extends Controller
     {
         $siswaTerajin = DB::table('tr_peminjaman as tp')
             ->join('mst_siswa as ms', 'tp.ID_SISWA_TETAP', '=', 'ms.id_siswa_tetap')
+            // Melakukan Left Join ke hst_kelas
+            ->leftJoin('hst_kelas as hk', 'ms.id_siswa_tetap', '=', 'hk.ID_SISWA_TETAP')
             ->select(
                 'ms.nama_siswa_tetap',
                 'ms.nisn_siswa',
+                'hk.KELAS as nama_kelas', // Mengambil kolom KELAS dari tabel hst_kelas
                 DB::raw('COUNT(tp.ID_PEMINJAMAN) as peminjaman_count')
             )
-            ->groupBy('ms.id_siswa_tetap', 'ms.nama_siswa_tetap', 'ms.nisn_siswa')
+            ->groupBy('ms.id_siswa_tetap', 'ms.nama_siswa_tetap', 'ms.nisn_siswa', 'hk.KELAS')
             ->orderBy('peminjaman_count', 'desc')
             ->take(10)
             ->get();
@@ -813,5 +818,164 @@ class LaporanController extends Controller
         }
     
 
+    }
+
+    public function StatistikKunjunganBulanan(Request $request)
+    {
+        try {
+            // Tangkap parameter tahun, jika kosong gunakan tahun saat ini
+            $tahun = (int) $request->get('tahun', date('Y'));
+
+            // Query untuk menghitung total kunjungan yang di-group per bulan
+            $kunjungan = DB::table('tr_kunjungan_perpus')
+                ->selectRaw('MONTH(start_kunjungan) as bulan, COUNT(*) as total')
+                ->whereYear('start_kunjungan', $tahun)
+                ->groupByRaw('MONTH(start_kunjungan)')
+                ->pluck('total', 'bulan'); // Formatnya jadi array [1 => 10, 2 => 15, ...]
+
+            // Daftar bulan statis untuk sumbu X di chart
+            $namaBulan = [
+                1 => 'Jan', 2 => 'Feb', 3 => 'Mar', 4 => 'Apr',
+                5 => 'Mei', 6 => 'Jun', 7 => 'Jul', 8 => 'Agt',
+                9 => 'Sep', 10 => 'Okt', 11 => 'Nov', 12 => 'Des'
+            ];
+
+            $dataChart = [];
+            // Looping wajib 1-12 supaya chart tetap menampilkan bulan penuh walau kunjungannya 0
+            for ($i = 1; $i <= 12; $i++) {
+                $dataChart[] = [
+                    'bulan' => $namaBulan[$i],
+                    'total' => $kunjungan->has($i) ? $kunjungan[$i] : 0
+                ];
+            }
+
+            return response()->json([
+                'status' => 'success',
+                'filter' => [
+                    'tahun' => $tahun
+                ],
+                'data' => $dataChart
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error', 
+                'pesan' => 'Gagal mengambil data statistik: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function exportPdfStatistikKunjunganBulanan(Request $request)
+    {
+        try {
+            $tahun = (int) $request->get('tahun', date('Y'));
+
+            // Ambil data kunjungan bulanan
+            $kunjungan = DB::table('tr_kunjungan_perpus')
+                ->selectRaw('MONTH(start_kunjungan) as nomor_bulan, COUNT(*) as total')
+                ->whereYear('start_kunjungan', $tahun)
+                ->groupByRaw('MONTH(start_kunjungan)')
+                ->pluck('total', 'nomor_bulan');
+
+            $namaBulan = [
+                1 => 'Januari', 2 => 'Februari', 3 => 'Maret', 4 => 'April',
+                5 => 'Mei', 6 => 'Juni', 7 => 'Juli', 8 => 'Agustus',
+                9 => 'September', 10 => 'Oktober', 11 => 'November', 12 => 'Desember'
+            ];
+
+            $dataLaporan = [];
+            $totalSetahun = 0;
+
+            for ($i = 1; $i <= 12; $i++) {
+                $jumlah = $kunjungan->has($i) ? $kunjungan[$i] : 0;
+                $dataLaporan[] = [
+                    'bulan' => $namaBulan[$i],
+                    'jumlah' => $jumlah
+                ];
+                $totalSetahun += $jumlah;
+            }
+
+            // Load view blade dan jadikan PDF
+            $pdf = Pdf::loadView('laporan.statistik_kunjungan_bulanan_pdf', compact('dataLaporan', 'tahun', 'totalSetahun'));
+            
+            // Set kertas A4 portrait
+            return $pdf->setPaper('a4', 'portrait')->download('Statistik_Kunjungan_'.$tahun.'.pdf');
+
+        } catch (\Exception $e) {
+            return response()->json(['message' => $e->getMessage()], 500);
+        }
+    }
+
+    // --- 1. METHOD UNTUK GRAFIK REACT ---
+    public function statistikPeminjamanKelas(Request $request)
+    {
+        try {
+            $tahun = (int) $request->get('tahun', date('Y'));
+            $bulan = $request->filled('bulan') ? (int) $request->get('bulan') : null;
+
+            $query = DB::table('tr_peminjaman as tp')
+                ->join('hst_kelas as hk', 'tp.ID_SISWA_TETAP', '=', 'hk.ID_SISWA_TETAP')
+                ->select('hk.KELAS as kelas', DB::raw('COUNT(DISTINCT tp.ID_PEMINJAMAN) as total'))
+                ->whereYear('tp.TGL_PINJAM', $tahun);
+
+            if ($bulan !== null) {
+                $query->whereMonth('tp.TGL_PINJAM', $bulan);
+            }
+
+            $dataChart = $query->whereNotNull('hk.KELAS')
+                ->where('hk.KELAS', '!=', '')
+                ->groupBy('hk.KELAS')
+                ->orderBy('hk.KELAS', 'asc')
+                ->get();
+
+            return response()->json([
+                'status' => 'success',
+                'filter' => [
+                    'tahun' => $tahun,
+                    'bulan' => $bulan
+                ],
+                'data' => $dataChart
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error', 
+                'pesan' => 'Gagal mengambil data statistik kelas: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function exportPdfPeminjamanKelas(Request $request)
+    {
+        try {
+            $tahun = (int) $request->get('tahun', date('Y'));
+            $bulan = $request->filled('bulan') ? (int) $request->get('bulan') : null;
+
+            $query = DB::table('tr_peminjaman as tp')
+                ->join('hst_kelas as hk', 'tp.ID_SISWA_TETAP', '=', 'hk.ID_SISWA_TETAP')
+                ->select('hk.KELAS as kelas', DB::raw('COUNT(DISTINCT tp.ID_PEMINJAMAN) as total'))
+                ->whereYear('tp.TGL_PINJAM', $tahun);
+
+            if ($bulan !== null) {
+                $query->whereMonth('tp.TGL_PINJAM', $bulan);
+            }
+
+            $dataLaporan = $query->whereNotNull('hk.KELAS')
+                ->where('hk.KELAS', '!=', '')
+                ->groupBy('hk.KELAS')
+                ->orderBy('hk.KELAS', 'asc')
+                ->get();
+
+            $totalSemua = $dataLaporan->sum('total');
+            
+            $periodeLabel = $bulan 
+                ? \Carbon\Carbon::create($tahun, $bulan, 1)->locale('id')->translatedFormat('F Y') 
+                : 'Tahun ' . $tahun;
+
+            $pdf = Pdf::loadView('laporan.peminjaman_kelas_pdf', compact('dataLaporan', 'periodeLabel', 'totalSemua'));
+            
+            return $pdf->setPaper('a4', 'portrait')->download('Laporan_Peminjaman_Kelas_'.$tahun.'.pdf');
+
+        } catch (\Exception $e) {
+            return response()->json(['message' => $e->getMessage()], 500);
+        }
     }
 }   

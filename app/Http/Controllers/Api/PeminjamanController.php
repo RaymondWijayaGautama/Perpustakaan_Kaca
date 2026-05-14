@@ -666,6 +666,13 @@ class PeminjamanController extends Controller
                 $hasilKalkulasi = $kalkulator->hitung($peminjaman->TGL_HARUS_KEMBALI, $item['tgl_kembali_manual'] ?? null);
                 $denda = $this->normalizeDenda($item['denda'] ?? $item['denda_peminjaman'] ?? 0);
 
+                $kondisiBuku = $item['kondisi'] ?? 'Baik';
+                $denda = isset($item['denda']) ? (float)$item['denda'] : 0;
+
+                if ($kondisiBuku !== 'Baik' && $denda <= 0) {
+                    throw new \RuntimeException("Nominal denda wajib diisi untuk buku dengan kondisi: {$kondisiBuku}.");
+                }
+
                 // Update status di tabel transaksi
                 $updated = DB::table('tr_peminjaman')
                     ->where('ID_PEMINJAMAN', $peminjaman->ID_PEMINJAMAN)
@@ -673,7 +680,7 @@ class PeminjamanController extends Controller
                     ->update([
                         'TGL_KEMBALI' => $hasilKalkulasi['tgl_kembali'],
                         'STATUS_PEMINJAMAN' => 'Kembali',
-                        'KONDISI_BUKU' => $item['kondisi'] ?? 'Baik',
+                        'KONDISI_BUKU' => $kondisiBuku,
                         'KETERANGAN_PEMINJAMAN' => $hasilKalkulasi['keterangan'],
                         'DENDA_PEMINJAMAN' => $denda,
                     ]);
@@ -771,12 +778,19 @@ class PeminjamanController extends Controller
             );
             $denda = $this->normalizeDenda($request->input('denda', $request->input('denda_peminjaman', 0)));
 
+            $kondisiBuku = $request->input('kondisi', 'Baik');
+            $denda = (float)$request->input('denda', 0);
+
+            if ($kondisiBuku !== 'Baik' && $denda <= 0) {
+                return response()->json(['message' => "Nominal denda wajib diisi untuk kondisi buku: {$kondisiBuku}."], 422);
+            }
+
             DB::table('tr_peminjaman')
                 ->where('ID_PEMINJAMAN', $id)
                 ->update([
                     'TGL_KEMBALI' => $hasilKalkulasi['tgl_kembali'],
                     'STATUS_PEMINJAMAN' => 'Kembali',
-                    'KONDISI_BUKU' => $request->input('kondisi', 'Baik'),
+                    'KONDISI_BUKU' => $kondisiBuku,
                     'KETERANGAN_PEMINJAMAN' => $hasilKalkulasi['keterangan'],
                     'DENDA_PEMINJAMAN' => $denda,
                 ]);
@@ -911,4 +925,85 @@ class PeminjamanController extends Controller
             'data' => $query->orderBy('peminjaman.TGL_KEMBALI', 'desc')->get(),
         ]);
     }
+
+    /**
+     * Mencari data peminjaman berdasarkan ID transaksi atau NISN/NIP pemustaka
+     * untuk keperluan kalkulasi denda kerusakan.
+     */
+    public function cariPeminjamanDenda(Request $request)
+    {
+        $search = trim($request->input('search', ''));
+
+        if ($search === '') {
+            return response()->json(['message' => 'Masukkan ID Transaksi atau NISN/NIP pemustaka.'], 422);
+        }
+
+        $query = DB::table('tr_peminjaman as p')
+            ->leftJoin('cp_koleksi as cp', 'p.ID_CP_KOLEKSI', '=', 'cp.ID_CP_KOLEKSI')
+            ->leftJoin('mst_koleksi_buku as buku', 'cp.ISBN', '=', 'buku.ISBN')
+            ->leftJoin('mst_siswa as siswa', 'p.ID_SISWA_TETAP', '=', 'siswa.ID_SISWA_TETAP')
+            ->leftJoin('mst_karyawan as karyawan', 'p.NIP_KARYAWAN', '=', 'karyawan.NIP_KARYAWAN')
+            ->select(
+                'p.ID_PEMINJAMAN as id_peminjaman',
+                'p.TGL_PINJAM as tgl_pinjam',
+                'p.TGL_HARUS_KEMBALI as tgl_harus_kembali',
+                'p.TGL_KEMBALI as tgl_kembali',
+                'p.STATUS_PEMINJAMAN as status_peminjaman',
+                'p.KONDISI_BUKU as kondisi_buku',
+                'p.DENDA_PEMINJAMAN as denda_peminjaman',
+                'buku.JUDUL_KOLEKSI as judul_koleksi',
+                'cp.ISBN as isbn',
+                'cp.ID_CP_KOLEKSI as id_cp_koleksi',
+                DB::raw("COALESCE(siswa.NAMA_SISWA_TETAP, karyawan.NAMA_KARYAWAN) as nama_peminjam"),
+                DB::raw("COALESCE(siswa.NISN_SISWA, karyawan.NIP_KARYAWAN) as identitas_peminjam")
+            )
+            ->where(function ($q) use ($search) {
+                $q->where('p.ID_PEMINJAMAN', 'like', "%{$search}%")
+                    ->orWhere('siswa.NISN_SISWA', 'like', "%{$search}%")
+                    ->orWhere('karyawan.NIP_KARYAWAN', 'like', "%{$search}%")
+                    ->orWhere('siswa.NAMA_SISWA_TETAP', 'like', "%{$search}%")
+                    ->orWhere('karyawan.NAMA_KARYAWAN', 'like', "%{$search}%");
+            })
+            ->orderBy('p.TGL_PINJAM', 'desc')
+            ->limit(20)
+            ->get();
+
+        return response()->json([
+            'success' => true,
+            'data' => $query,
+        ]);
+    }
+
+    /**
+     * Menyimpan denda kerusakan buku untuk transaksi tertentu.
+     */
+    public function simpanDendaKerusakan(Request $request)
+    {
+        $request->validate([
+            'id_peminjaman' => 'required',
+            'deskripsi_kerusakan' => 'required|string|max:255',
+            'nominal_denda' => 'required|numeric|min:1',
+        ]);
+
+        $peminjaman = DB::table('tr_peminjaman')
+            ->where('ID_PEMINJAMAN', $request->id_peminjaman)
+            ->first();
+
+        if (!$peminjaman) {
+            return response()->json(['message' => 'Transaksi peminjaman tidak ditemukan.'], 404);
+        }
+
+        DB::table('tr_peminjaman')
+            ->where('ID_PEMINJAMAN', $request->id_peminjaman)
+            ->update([
+                'KONDISI_BUKU' => $request->deskripsi_kerusakan,
+                'DENDA_PEMINJAMAN' => $request->nominal_denda,
+            ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Denda kerusakan berhasil dicatat.',
+        ]);
+    }
 }
+

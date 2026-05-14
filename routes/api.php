@@ -13,7 +13,6 @@ use App\Http\Controllers\Api\LaporanPklController;
 use App\Http\Controllers\Api\LogController;
 use App\Http\Controllers\Pustakawan\BukuController;
 use App\Http\Controllers\Pustakawan\PengembalianController;
-
 // 1. Tampil Data
 Route::get('/laporan', [LaporanController::class, 'getLaporan']);
 Route::post('/laporan/tambah', [LaporanController::class, 'store']);
@@ -23,14 +22,22 @@ Route::delete('/laporan/hapus/{isbn}', [LaporanController::class, 'destroy']);
 // --- AUTH & USER ---
 Route::post('/login', [AuthController::class, 'login']);
 Route::post('/logout', [AuthController::class, 'logout']);
-Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
-    return $request->user();
+Route::middleware('auth:sanctum')->group(function () {
+    Route::get('/user', function (Request $request) {
+        return $request->user();
+    });
+
+    // --- KUNJUNGAN PERPUS ---
+    Route::post('/kunjungan/checkin', [\App\Http\Controllers\Api\KunjunganController::class, 'checkIn']);
+    Route::post('/kunjungan/checkout', [\App\Http\Controllers\Api\KunjunganController::class, 'checkOut']);
+    Route::get('/kunjungan/history', [\App\Http\Controllers\Api\KunjunganController::class, 'history']);
 });
 
 // --- LOG SISTEM ---
 Route::get('/logs/access', [LogController::class, 'access']);
 Route::get('/logs/activity', [LogController::class, 'activity']);
 Route::get('/logs/roles', [LogController::class, 'roles']);
+Route::get('/log/visitors', [LogController::class, 'visitor']);
 
 // --- TRANSAKSI PEMINJAMAN & PENGEMBALIAN ---
 Route::get('/peminjaman/cek-aktif', [PeminjamanController::class, 'cekAktif']);
@@ -49,6 +56,10 @@ Route::post('/pengembalian/batch', [PeminjamanController::class, 'batchReturn'])
 Route::post('/pengembalian/scan', [PeminjamanController::class, 'scanPengembalian']);
 Route::post('/pengembalian/proses/{id}', [PeminjamanController::class, 'prosesPengembalian']);
 
+// --- DENDA KERUSAKAN ---
+Route::get('/denda-kerusakan/cari', [PeminjamanController::class, 'cariPeminjamanDenda']);
+Route::post('/denda-kerusakan/simpan', [PeminjamanController::class, 'simpanDendaKerusakan']);
+
 // --- DASHBOARD & ANGGOTA ---
 Route::get('/dashboard/stats', [DashboardController::class, 'getStats']);
 Route::get('/anggota', [DashboardController::class, 'getAnggota']);
@@ -66,9 +77,6 @@ Route::delete('/buku/copies/{idCpKoleksi}', [KoleksiBukuController::class, 'dest
 Route::put('/buku/{isbn}', [KoleksiBukuController::class, 'update']);
 Route::delete('/buku/{isbn}', [KoleksiBukuController::class, 'destroy']);
 Route::post('/generate-barcode', [KoleksiBukuController::class, 'generateBarcode']);
-Route::post('/buku/denda-kerusakan', [BukuController::class, 'simpanDendaKerusakan']);
-
-
 // --- KATEGORI BUKU (KoleksiController) ---
 // PERBAIKAN KUNCI: Mengubah /koleksi menjadi /kategori agar tidak bentrok
 Route::get('/kategori', [KoleksiController::class, 'index']);
@@ -91,7 +99,10 @@ Route::post('/laporan/tambah', [LaporanController::class, 'store']);
 Route::put('/laporan/ubah/{isbn}', [LaporanController::class, 'update']);
 Route::delete('/laporan/hapus/{isbn}', [LaporanController::class, 'destroy']);
 Route::get('/laporan/download/{isbn}', [LaporanController::class, 'downloadLaporan']);
-
+Route::get('/laporan/statistik-kunjungan-bulanan', [LaporanController::class, 'StatistikKunjunganBulanan']);
+Route::get('/laporan/export-pdf-statistik-kunjungan-bulanan', [\App\Http\Controllers\Api\LaporanController::class, 'exportPdfStatistikKunjunganBulanan']);
+Route::get('/laporan/export-pdf-peminjaman-kelas', [LaporanController::class, 'exportPdfPeminjamanKelas']);
+Route::get('/laporan/statistik-peminjaman-kelas', [LaporanController::class, 'statistikPeminjamanKelas']);
 // --- LAPORAN PKL ---
 Route::get('/laporan-pkl', [LaporanPklController::class, 'index']);
 Route::get('/buku/laporan', [LaporanPklController::class, 'index']);

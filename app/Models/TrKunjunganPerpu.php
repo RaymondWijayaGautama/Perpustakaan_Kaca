@@ -35,6 +35,7 @@ class TrKunjunganPerpu extends Model
 
 	protected $fillable = [
 		'ID_SISWA_TETAP',
+		'NIP_KARYAWAN',
 		'START_KUNJUNGAN',
 		'END_KUNJUNGAN'
 	];
@@ -42,5 +43,10 @@ class TrKunjunganPerpu extends Model
 	public function mst_siswa()
 	{
 		return $this->belongsTo(MstSiswa::class, 'ID_SISWA_TETAP');
+	}
+
+	public function mst_karyawan()
+	{
+		return $this->belongsTo(MstKaryawan::class, 'NIP_KARYAWAN');
 	}
 }

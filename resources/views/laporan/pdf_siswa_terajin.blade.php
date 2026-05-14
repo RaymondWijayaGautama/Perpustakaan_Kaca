@@ -74,6 +74,7 @@
                 <td>{{ $index + 1 }}</td>
                 <td style="text-align: left;">{{ $siswa->nama_siswa_tetap ?? 'Nama tidak ditemukan' }}</td>
                 <td>{{ $siswa->nisn_siswa ?? '-' }}</td>
+                <td>{{ $siswa->nama_kelas ?? '-' }}</td>
                 <td>{{ $siswa->peminjaman_count }} Buku</td>
             </tr>
             @empty
