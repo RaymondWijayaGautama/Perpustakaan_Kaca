@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useDeferredValue } from 'react';
 import axios from 'axios';
 import useConfirmDialog from './useConfirmDialog';
 
@@ -6,6 +6,10 @@ const RiwayatPinjamPanel = ({ user }) => {
     const { confirm, ConfirmDialog } = useConfirmDialog();
     const [data, setData] = useState([]);
     const [filterStatus, setFilterStatus] = useState('Semua');
+    const [searchQuery, setSearchQuery] = useState('');
+    const deferredSearchQuery = useDeferredValue(searchQuery);
+    const [sortField, setSortField] = useState('tgl_peminjaman');
+    const [sortOrder, setSortOrder] = useState('desc');
     const [loading, setLoading] = useState(false);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editData, setEditData] = useState({
@@ -31,7 +35,12 @@ const RiwayatPinjamPanel = ({ user }) => {
         setLoading(true);
         try {
             const res = await axios.get('http://localhost:8000/api/peminjaman', {
-                params: { status: filterStatus }
+                params: { 
+                    status: filterStatus,
+                    search: deferredSearchQuery,
+                    sort_by: sortField,
+                    sort_order: sortOrder
+                }
             });
             // Extend data with some frontend logic for perpanjangan eligibility
             const enhancedData = res.data.map(item => {
@@ -52,7 +61,7 @@ const RiwayatPinjamPanel = ({ user }) => {
         } finally {
             setLoading(false);
         }
-    }, [filterStatus]);
+    }, [filterStatus, deferredSearchQuery, sortField, sortOrder]);
 
     useEffect(() => {
         fetchData();
@@ -177,6 +186,20 @@ const RiwayatPinjamPanel = ({ user }) => {
         }
     };
 
+    const handleSort = (field) => {
+        if (sortField === field) {
+            setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+        } else {
+            setSortField(field);
+            setSortOrder('asc');
+        }
+    };
+
+    const SortIcon = ({ field }) => {
+        if (sortField !== field) return <span className="ml-1 text-gray-300">↕</span>;
+        return <span className="ml-1 text-[#265F9C]">{sortOrder === 'asc' ? '↑' : '↓'}</span>;
+    };
+
     return (
         <div className="bg-white rounded-2xl shadow-sm p-8 border border-gray-100 text-[#1A1A1A] relative min-h-[500px]">
             {loading && (
@@ -185,32 +208,60 @@ const RiwayatPinjamPanel = ({ user }) => {
                 </div>
             )}
 
-            <div className="flex justify-between items-center mb-8">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
                 <div>
                     <h1 className="text-2xl font-bold font-montserrat">Riwayat Peminjaman</h1>
-                    <p className="text-sm text-gray-500">Data keluar masuk buku </p>
+                    <p className="text-sm text-gray-500">Data keluar masuk koleksi buku </p>
                 </div>
                 
-                <select 
-                    className="p-3 border rounded-xl text-sm bg-gray-50 font-bold outline-none focus:ring-2 focus:ring-[#265F9C]"
-                    value={filterStatus}
-                    onChange={(e) => setFilterStatus(e.target.value)}
-                >
-                    <option value="Semua">Semua Status</option>
-                    <option value="Dipinjam">Sedang Dipinjam</option>
-                    <option value="Kembali">Sudah Kembali</option>
-                </select>
+                <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
+                    <form 
+                        onSubmit={(e) => { e.preventDefault(); fetchData(); }}
+                        className="relative flex-1 sm:min-w-[300px]"
+                    >
+                        <input 
+                            type="text"
+                            placeholder="Cari peminjam, judul, atau ID..."
+                            className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-[#265F9C] focus:border-transparent transition-all"
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                        />
+                        <div className="absolute left-3.5 top-3 text-gray-400">
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                        </div>
+                    </form>
+
+                    <select 
+                        className="p-2.5 border border-gray-200 rounded-xl text-sm bg-white font-bold outline-none focus:ring-2 focus:ring-[#265F9C] cursor-pointer"
+                        value={filterStatus}
+                        onChange={(e) => setFilterStatus(e.target.value)}
+                    >
+                        <option value="Semua">Semua Status</option>
+                        <option value="Dipinjam">Sedang Dipinjam</option>
+                        <option value="Kembali">Sudah Kembali</option>
+                    </select>
+                </div>
             </div>
 
             <div className="overflow-x-auto">
                 <table className="w-full text-left">
                     <thead className="bg-gray-50 uppercase text-[10px] font-black text-[#585858] border-b border-gray-200">
                         <tr>
-                            <th className="p-4">Peminjam</th>
-                            <th className="p-4">Judul Buku</th>
-                            <th className="p-4">Tgl Pinjam</th>
-                            <th className="p-4">Jatuh Tempo</th>
-                            <th className="p-4 text-center">Status</th>
+                            <th className="p-4 cursor-pointer hover:bg-gray-100 transition-colors" onClick={() => handleSort('nama_peminjam')}>
+                                Peminjam <SortIcon field="nama_peminjam" />
+                            </th>
+                            <th className="p-4 cursor-pointer hover:bg-gray-100 transition-colors" onClick={() => handleSort('judul_buku')}>
+                                Judul Buku <SortIcon field="judul_buku" />
+                            </th>
+                            <th className="p-4 cursor-pointer hover:bg-gray-100 transition-colors" onClick={() => handleSort('tgl_peminjaman')}>
+                                Tgl Pinjam <SortIcon field="tgl_peminjaman" />
+                            </th>
+                            <th className="p-4 cursor-pointer hover:bg-gray-100 transition-colors" onClick={() => handleSort('tgl_harus_kembali')}>
+                                Jatuh Tempo <SortIcon field="tgl_harus_kembali" />
+                            </th>
+                            <th className="p-4 text-center cursor-pointer hover:bg-gray-100 transition-colors" onClick={() => handleSort('status')}>
+                                Status <SortIcon field="status" />
+                            </th>
                             <th className="p-4 text-center">Aksi</th> 
                         </tr>
                     </thead>

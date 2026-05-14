@@ -541,16 +541,21 @@ const ManajemenBukuPanel = ({ user }) => {
             </div>
 
             <div className="mb-8 flex flex-wrap gap-3 justify-end">
-                <input
-                    type="text"
-                    placeholder="Cari judul, penulis, atau ISBN..."
-                    className="p-3 border rounded-xl text-sm outline-none min-w-[260px] focus:ring-2 focus:ring-[#265F9C] transition-all shadow-sm"
-                    value={bookSearch}
-                    onChange={(event) => {
-                        setBookSearch(event.target.value);
-                        setBookPage(1);
-                    }}
-                />
+                <form 
+                    onSubmit={(e) => e.preventDefault()}
+                    className="flex-1 min-w-[260px]"
+                >
+                    <input
+                        type="text"
+                        placeholder="Cari judul, penulis, atau ISBN..."
+                        className="w-full p-3 border rounded-xl text-sm outline-none focus:ring-2 focus:ring-[#265F9C] transition-all shadow-sm"
+                        value={bookSearch}
+                        onChange={(event) => {
+                            setBookSearch(event.target.value);
+                            setBookPage(1);
+                        }}
+                    />
+                </form>
                 <select
                     className="p-3 border rounded-xl text-sm bg-gray-50 font-medium"
                     value={bookKategori}
