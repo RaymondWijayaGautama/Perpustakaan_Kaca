@@ -112,6 +112,8 @@ const ManajemenBukuPanel = ({ user }) => {
     const [conditionFeedback, setConditionFeedback] = useState({ type: '', message: '' });
 
     const isYearSort = bookSortBy === 'tahun';
+
+    const loadBooks = async ({
         search = bookSearch,
         sortBy = bookSortBy,
         sortOrder = bookSortOrder,
