@@ -137,9 +137,9 @@ const PemusnahanPanelV2 = ({ user }) => {
         setRows(response.data);
     };
 
-    const archiveRow = async (id) => {
+    const deleteRow = async (id) => {
         await axios.patch(`${API}/api/pemusnahan/${id}`, { status: "soft_deleted" });
-        setFlash({ type: "success", text: "Data pemusnahan berhasil diarsipkan." });
+        setFlash({ type: "success", text: "Data pemusnahan berhasil dihapus (soft delete)." });
         const response = await axios.get(`${API}/api/pemusnahan`, { params: { search, status } });
         setRows(response.data);
     };
@@ -181,15 +181,15 @@ const PemusnahanPanelV2 = ({ user }) => {
         try { await confirmRow(id); } catch (error) { setFlash({ type: "error", text: error.response?.data?.message || "Gagal mengonfirmasi pemusnahan." }); }
     };
 
-    const safeArchive = async (id) => {
+    const safeDelete = async (id) => {
         const approved = await confirm({
-            title: "Arsipkan Data",
-            message: "Arsipkan data pemusnahan ini dari daftar aktif?",
-            confirmLabel: "Ya, Arsipkan",
+            title: "Hapus Data Pemusnahan",
+            message: "Apakah Anda yakin ingin menghapus data pemusnahan ini? Data akan disembunyikan namun tetap tersimpan di sistem.",
+            confirmLabel: "Ya, Hapus",
             tone: "danger",
         });
         if (!approved) return;
-        try { await archiveRow(id); } catch (error) { setFlash({ type: "error", text: error.response?.data?.message || "Gagal mengarsipkan data pemusnahan." }); }
+        try { await deleteRow(id); } catch (error) { setFlash({ type: "error", text: error.response?.data?.message || "Gagal menghapus data pemusnahan." }); }
     };
 
     const tabs = [["input", "Input ISBN"], ["rusak", "Buku Rusak"], ["history", "Riwayat Proses"], ["berita", "Berita Acara"]];
@@ -230,7 +230,7 @@ const PemusnahanPanelV2 = ({ user }) => {
                 </form>
                 <div className="mt-6 overflow-x-auto">
                     <table className="w-full text-left"><thead className="bg-gray-50 text-[10px] font-bold uppercase text-gray-400"><tr><th className="p-4">Tanggal</th><th className="p-4">ISBN</th><th className="p-4">Judul</th><th className="p-4">Alasan</th><th className="p-4">Status</th><th className="p-4">Petugas</th><th className="p-4 text-right">Aksi</th></tr></thead><tbody>
-                        {rows.length > 0 ? rows.map((row) => <tr key={row.id} className="border-b text-sm"><td className="p-4">{formatWibDateTime(row.tanggal_pemusnahan)}</td><td className="p-4 font-mono font-bold text-[#265F9C]">{row.id_cp_koleksi ? `${row.isbn}/${row.id_cp_koleksi}` : row.isbn}</td><td className="p-4 font-semibold">{row.judul}</td><td className="p-4 max-w-sm">{row.alasan}</td><td className="p-4"><span className={`rounded-full border px-3 py-1 text-[10px] font-bold uppercase ${badgeClass(row.status)}`}>{row.status.replaceAll("_", " ")}</span></td><td className="p-4">{getPetugasName(row, user)}</td><td className="p-4"><div className="flex justify-end gap-2">{row.status === "menunggu_konfirmasi" && <button onClick={() => openEditModal(row)} className="rounded-lg bg-amber-500 px-3 py-2 text-xs font-bold text-white">Edit</button>}{row.status === "menunggu_konfirmasi" && <button onClick={() => safeConfirm(row.id)} className="rounded-lg bg-[#265F9C] px-3 py-2 text-xs font-bold text-white">Konfirmasi</button>}{row.status === "disetujui" && <button onClick={() => openPrint(row.id)} className="rounded-lg bg-green-600 px-3 py-2 text-xs font-bold text-white">Cetak BA</button>}<button onClick={() => safeArchive(row.id)} className="rounded-lg bg-red-50 px-3 py-2 text-xs font-bold text-red-600">Arsipkan</button></div></td></tr>) : <tr><td colSpan="7" className="p-10 text-center text-gray-400">Belum ada data pemusnahan.</td></tr>}
+                        {rows.length > 0 ? rows.map((row) => <tr key={row.id} className="border-b text-sm"><td className="p-4">{formatWibDateTime(row.tanggal_pemusnahan)}</td><td className="p-4 font-mono font-bold text-[#265F9C]">{row.id_cp_koleksi ? `${row.isbn}/${row.id_cp_koleksi}` : row.isbn}</td><td className="p-4 font-semibold">{row.judul}</td><td className="p-4 max-w-sm">{row.alasan}</td><td className="p-4"><span className={`rounded-full border px-3 py-1 text-[10px] font-bold uppercase ${badgeClass(row.status)}`}>{row.status.replaceAll("_", " ")}</span></td><td className="p-4">{getPetugasName(row, user)}</td><td className="p-4"><div className="flex justify-end gap-2">{row.status === "menunggu_konfirmasi" && <button onClick={() => openEditModal(row)} className="rounded-lg bg-amber-500 px-3 py-2 text-xs font-bold text-white">Edit</button>}{row.status === "menunggu_konfirmasi" && <button onClick={() => safeConfirm(row.id)} className="rounded-lg bg-[#265F9C] px-3 py-2 text-xs font-bold text-white">Konfirmasi</button>}{row.status === "disetujui" && <button onClick={() => openPrint(row.id)} className="rounded-lg bg-green-600 px-3 py-2 text-xs font-bold text-white">Cetak BA</button>}<button onClick={() => safeDelete(row.id)} className="rounded-lg bg-red-50 px-3 py-2 text-xs font-bold text-red-600 hover:bg-red-600 hover:text-white transition-colors">Hapus</button></div></td></tr>) : <tr><td colSpan="7" className="p-10 text-center text-gray-400">Belum ada data pemusnahan.</td></tr>}
                     </tbody></table>
                 </div>
             </>}
