@@ -159,7 +159,7 @@ const AdminPanel = ({ user, onLogout }) => {
                                 onClick={() => setIsLaporanMenuOpen((current) => !current)}
                                 className={`p-3 cursor-pointer transition-all flex items-center justify-between rounded-lg ${isAnyLaporanActive ? 'bg-white text-[#265F9C] font-bold shadow-md' : 'hover:bg-white/10'}`}
                             >
-                                <span>Laporan Statistik</span>
+                                <span>Laporan</span>
                                 <span className={`text-xs transition-transform ${isLaporanMenuOpen ? 'rotate-180' : ''}`}>▼</span>
                             </div>
                             

@@ -21,14 +21,10 @@ class KunjunganController extends Controller
         }
 
         // Tentukan ID Siswa atau NIP Karyawan berdasarkan jenis user
-        $idSiswa = null;
-        $nipKaryawan = null;
+        $idSiswa = $user->ID_SISWA_TETAP ?? null;
+        $nipKaryawan = $user->NIP_KARYAWAN ?? null;
 
-        if (isset($user->ID_SISWA_TETAP)) {
-            $idSiswa = $user->ID_SISWA_TETAP;
-        } elseif (isset($user->NIP_KARYAWAN)) {
-            $nipKaryawan = $user->NIP_KARYAWAN;
-        } else {
+        if (!$idSiswa && !$nipKaryawan) {
             return response()->json(['message' => 'Tipe akun tidak valid untuk check-in.'], 400);
         }
 
@@ -39,7 +35,7 @@ class KunjunganController extends Controller
             ->where(function($query) use ($idSiswa, $nipKaryawan) {
                 if ($idSiswa) {
                     $query->where('ID_SISWA_TETAP', $idSiswa);
-                } else {
+                } elseif ($nipKaryawan) {
                     $query->where('NIP_KARYAWAN', $nipKaryawan);
                 }
             })->exists();
@@ -58,12 +54,19 @@ class KunjunganController extends Controller
             // ignore
         }
 
-        // Catat kunjungan
-        $kunjungan = TrKunjunganPerpu::create([
-            'ID_SISWA_TETAP' => $idSiswa,
-            'NIP_KARYAWAN' => $nipKaryawan,
+        // PERBAIKAN: Hanya daftarkan key yang ada nilainya ke dalam array insert
+        $dataInsert = [
             'START_KUNJUNGAN' => Carbon::now()
-        ]);
+        ];
+
+        if ($idSiswa) {
+            $dataInsert['ID_SISWA_TETAP'] = $idSiswa;
+        } elseif ($nipKaryawan) {
+            $dataInsert['NIP_KARYAWAN'] = $nipKaryawan;
+        }
+
+        // Catat kunjungan
+        $kunjungan = TrKunjunganPerpu::create($dataInsert);
 
         return response()->json([
             'success' => true,
@@ -91,7 +94,7 @@ class KunjunganController extends Controller
             ->where(function($query) use ($idSiswa, $nipKaryawan) {
                 if ($idSiswa) {
                     $query->where('ID_SISWA_TETAP', $idSiswa);
-                } else {
+                } elseif ($nipKaryawan) {
                     $query->where('NIP_KARYAWAN', $nipKaryawan);
                 }
             })->first();
