@@ -131,3 +131,5 @@ Route::get('/buku-overdue', [DashboardController::class, 'getBukuOverdue']);
 Route::put('/pemusnahan/{id}', [DashboardController::class, 'updatePemusnahan']);
 Route::patch('/pemusnahan/{id}', [DashboardController::class, 'updateStatusPemusnahan']);
 Route::patch('/pemusnahan/{id}/konfirmasi', [DashboardController::class, 'confirmPemusnahan']);
+
+
