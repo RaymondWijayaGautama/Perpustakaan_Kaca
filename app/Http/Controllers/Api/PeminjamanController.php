@@ -11,6 +11,8 @@ use Illuminate\Support\Facades\Log;
 class PeminjamanController extends Controller
 {
     private const ACTIVE_LOAN_STATUSES = ['Dipinjam', 'Terlambat'];
+    private const RETURN_CONDITION_OPTIONS = ['Tersedia', 'Kembali', 'Rusak', 'Hilang', 'Nonaktif', 'Baik'];
+    private const FINE_REQUIRED_CONDITIONS = ['Rusak', 'Hilang', 'Nonaktif'];
 
     private function getPustakawan(?string $nipKaryawan): ?object
     {
@@ -135,6 +137,18 @@ class PeminjamanController extends Controller
         }
 
         return max(0, (float) $value);
+    }
+
+    private function normalizeReturnCondition(?string $condition): string
+    {
+        $condition = trim((string) $condition);
+
+        return in_array($condition, self::RETURN_CONDITION_OPTIONS, true) ? $condition : 'Tersedia';
+    }
+
+    private function conditionRequiresFine(string $condition): bool
+    {
+        return in_array($condition, self::FINE_REQUIRED_CONDITIONS, true);
     }
 
     private function resolvePeminjam(?string $identifier): ?object
@@ -666,10 +680,10 @@ class PeminjamanController extends Controller
                 $hasilKalkulasi = $kalkulator->hitung($peminjaman->TGL_HARUS_KEMBALI, $item['tgl_kembali_manual'] ?? null);
                 $denda = $this->normalizeDenda($item['denda'] ?? $item['denda_peminjaman'] ?? 0);
 
-                $kondisiBuku = $item['kondisi'] ?? 'Baik';
+                $kondisiBuku = $this->normalizeReturnCondition($item['kondisi'] ?? 'Tersedia');
                 $denda = isset($item['denda']) ? (float)$item['denda'] : 0;
 
-                if ($kondisiBuku !== 'Baik' && $denda <= 0) {
+                if ($this->conditionRequiresFine($kondisiBuku) && $denda <= 0) {
                     throw new \RuntimeException("Nominal denda wajib diisi untuk buku dengan kondisi: {$kondisiBuku}.");
                 }
 
@@ -778,10 +792,10 @@ class PeminjamanController extends Controller
             );
             $denda = $this->normalizeDenda($request->input('denda', $request->input('denda_peminjaman', 0)));
 
-            $kondisiBuku = $request->input('kondisi', 'Baik');
+            $kondisiBuku = $this->normalizeReturnCondition($request->input('kondisi', 'Tersedia'));
             $denda = (float)$request->input('denda', 0);
 
-            if ($kondisiBuku !== 'Baik' && $denda <= 0) {
+            if ($this->conditionRequiresFine($kondisiBuku) && $denda <= 0) {
                 return response()->json(['message' => "Nominal denda wajib diisi untuk kondisi buku: {$kondisiBuku}."], 422);
             }
 
@@ -842,14 +856,21 @@ class PeminjamanController extends Controller
             }
 
             $tglKembali = Carbon::parse($request->input('tgl_kembali'))->toDateString();
+            $kondisiBuku = $this->normalizeReturnCondition($request->input('kondisi_buku_kembali'));
             $denda = $this->normalizeDenda($request->input('denda', 0));
+
+            if ($this->conditionRequiresFine($kondisiBuku) && $denda <= 0) {
+                return response()->json([
+                    'message' => "Nominal denda wajib diisi untuk kondisi buku: {$kondisiBuku}.",
+                ], 422);
+            }
 
             DB::table('tr_peminjaman')
                 ->where('ID_PEMINJAMAN', $id)
                 ->update([
                     'TGL_KEMBALI' => $tglKembali,
                     'STATUS_PEMINJAMAN' => 'Kembali',
-                    'KONDISI_BUKU' => $request->input('kondisi_buku_kembali'),
+                    'KONDISI_BUKU' => $kondisiBuku,
                     'KETERANGAN_PEMINJAMAN' => $request->input('keterangan_peminjaman', $peminjaman->KETERANGAN_PEMINJAMAN ?? '-'),
                     'DENDA_PEMINJAMAN' => $denda,
                 ]);
@@ -1006,4 +1027,3 @@ class PeminjamanController extends Controller
         ]);
     }
 }
-

@@ -2,6 +2,9 @@ import { useState, useRef, useEffect } from 'react';
 import axios from 'axios';
 import BarcodeCameraScanner from './BarcodeCameraScanner';
 
+const RETURN_CONDITION_OPTIONS = ['Tersedia', 'Kembali', 'Rusak', 'Hilang', 'Nonaktif'];
+const FINE_REQUIRED_CONDITIONS = ['Rusak', 'Hilang', 'Nonaktif'];
+
 const PengembalianBulkPanel = () => {
   const [memberInput, setMemberInput] = useState('');
   const [memberData, setMemberData] = useState(null);
@@ -27,6 +30,7 @@ const PengembalianBulkPanel = () => {
   const memberDataRef = useRef(null);
   const daftarKembaliRef = useRef([]);
   const tglKembaliManualRef = useRef(tglKembaliManual);
+  const riwayatRequestIdRef = useRef(0);
 
   useEffect(() => {
     memberDataRef.current = memberData;
@@ -62,6 +66,10 @@ const PengembalianBulkPanel = () => {
     data?.nama_karyawan ||
     data?.NAMA_KARYAWAN ||
     '-'
+  );
+
+  const normalizeReturnCondition = (value) => (
+    RETURN_CONDITION_OPTIONS.includes(value) ? value : 'Tersedia'
   );
 
   // Fungsi pembantu untuk memunculkan Pop-up
@@ -132,7 +140,7 @@ const PengembalianBulkPanel = () => {
 
     setDaftarKembali(current => [...current, {
       ...dataPinjam,
-      kondisi: 'Baik',
+      kondisi: 'Tersedia',
       tgl_kembali_manual: tglKembaliManualRef.current,
       estimasi_terlambat: terlambat,
       denda: 0 // Inisialisasi input denda ke 0
@@ -180,10 +188,9 @@ const PengembalianBulkPanel = () => {
   const prosesPengembalian = async () => {
     // Validasi denda
     const adaErrorDenda = daftarKembali.some(item => {
-        const deskripsi = (item.kondisi || '').trim().toLowerCase();
+        const deskripsi = (item.kondisi || '').trim();
         const denda = item.denda || 0;
-        // Jika deskripsi bukan 'baik' dan tidak kosong, denda harus diisi.
-        return deskripsi !== 'baik' && deskripsi !== '' && denda <= 0;
+        return FINE_REQUIRED_CONDITIONS.includes(deskripsi) && denda <= 0;
     });
 
     if (adaErrorDenda) {
@@ -217,35 +224,44 @@ const PengembalianBulkPanel = () => {
   // ==========================================
   // FUNGSI BARU: FETCH SEMUA DATA & PENCARIAN
   // ==========================================
-  const fetchRiwayatPengembalian = async () => {
+  const fetchRiwayatPengembalian = async (query = searchQuery) => {
+    const requestId = riwayatRequestIdRef.current + 1;
+    riwayatRequestIdRef.current = requestId;
     setLoadingRiwayat(true);
     try {
       const res = await axios.get(`http://localhost:8000/api/pengembalian/history`, {
-        params: { search: searchQuery }
+        params: { search: query }
       });
       
       // Karena kita udah ngerapihin di Controller pakai PHP (formattedData), 
       // strukturnya pasti rapi masuk ke res.data.data
+      if (requestId !== riwayatRequestIdRef.current) return;
       setRiwayatData(res.data.data || []);
     } catch (err) {
+      if (requestId !== riwayatRequestIdRef.current) return;
       // PERBAIKAN: Kalau ada error dari Controller, sekarang bakal langsung muncul di Pop-up biar lo tau salahnya apa!
       const errorMsg = err.response?.data?.message || err.message;
       showToast('error', `SERVER ERROR: ${errorMsg}`);
       setRiwayatData([]);
     } finally {
-      setLoadingRiwayat(false);
+      if (requestId === riwayatRequestIdRef.current) {
+        setLoadingRiwayat(false);
+      }
     }
   };
 
-  // Jalanin saat komponen pertama kali dirender
+  // Realtime search dengan jeda singkat supaya request tidak terlalu rapat saat mengetik.
   useEffect(() => {
-    fetchRiwayatPengembalian();
-  }, []);
+    const debounceTimer = setTimeout(() => {
+      fetchRiwayatPengembalian(searchQuery);
+    }, 350);
 
-  // Trigger pencarian saat tombol "Cari" diklik (atau pas form disubmit)
+    return () => clearTimeout(debounceTimer);
+  }, [searchQuery]);
+
+  // Enter di input tidak perlu reload halaman karena pencarian sudah realtime.
   const handleSearchRiwayat = (e) => {
     e.preventDefault();
-    fetchRiwayatPengembalian();
   };
 
   const toDateInputValue = (value) => String(value || '').split('T')[0].split(' ')[0];
@@ -257,7 +273,7 @@ const PengembalianBulkPanel = () => {
       nama_peminjam: item.nama_peminjam || '-',
       nisn_nip: item.nisn_nip || '-',
       tgl_kembali: toDateInputValue(item.tgl_kembali),
-      kondisi_buku_kembali: item.kondisi_buku_kembali || 'Baik',
+      kondisi_buku_kembali: normalizeReturnCondition(item.kondisi_buku_kembali),
       denda: item.denda ?? 0,
       keterangan_peminjaman: item.keterangan_peminjaman || '',
     });
@@ -443,23 +459,25 @@ const PengembalianBulkPanel = () => {
                   <td className="py-4 text-slate-500">{item.tgl_harus_kembali}</td>
                   <td className="py-4">
                     {item.estimasi_terlambat > 0 ? (
-                      <span className="text-red-700 font-bold bg-red-50 px-2 py-1 border border-red-200">TERLAMBAT {item.estimasi_terlambat} HARI (SP 1)</span>
+                      <span className="text-red-700 font-bold bg-red-50 px-2 py-1 border border-red-200">TERLAMBAT {item.estimasi_terlambat} HARI</span>
                     ) : (
                       <span className="text-slate-900 font-bold">TEPAT WAKTU</span>
                     )}
                   </td>
                   <td className="py-4">
-                    <input 
-                      type="text"
-                      className="p-1 border border-slate-200 outline-none w-full bg-white font-bold uppercase placeholder:normal-case placeholder:font-normal placeholder:text-xs"
-                      value={item.kondisi === 'Baik' ? '' : item.kondisi}
-                      placeholder="Baik / Keterangan Rusak"
+                    <select
+                      className="p-1 border border-slate-200 outline-none w-full bg-white font-bold uppercase"
+                      value={normalizeReturnCondition(item.kondisi)}
                       onChange={(e) => {
                         const newDaftar = [...daftarKembali];
-                        newDaftar[index].kondisi = e.target.value === '' ? 'Baik' : e.target.value;
+                        newDaftar[index].kondisi = e.target.value;
                         setDaftarKembali(newDaftar);
                       }}
-                    />
+                    >
+                      {RETURN_CONDITION_OPTIONS.map(option => (
+                        <option key={option} value={option}>{option.toUpperCase()}</option>
+                      ))}
+                    </select>
                   </td>
                   <td className="py-4 text-right">
                     <input
@@ -520,22 +538,14 @@ const PengembalianBulkPanel = () => {
               className="flex-1 p-2 border border-slate-300 outline-none focus:border-slate-900 bg-white"
               placeholder="Cari NIP/NISN atau Nama..."
             />
-            <button 
-              type="submit" 
-              disabled={loadingRiwayat} 
-              className="bg-slate-900 text-white px-6 py-2 font-bold uppercase hover:bg-black transition-colors disabled:bg-slate-400"
-            >
-              {loadingRiwayat ? '...' : 'Cari'}
-            </button>
+            {loadingRiwayat && (
+              <span className="bg-slate-100 text-slate-500 border border-slate-300 px-4 py-2 font-bold uppercase">
+                ...
+              </span>
+            )}
             <button
               type="button"
-              onClick={() => {
-                setSearchQuery('');
-                setTimeout(() => {
-                  setSearchQuery('');
-                  fetchRiwayatPengembalian();
-                }, 0);
-              }}
+              onClick={() => setSearchQuery('')}
               className="bg-slate-100 text-slate-500 border border-slate-300 px-4 py-2 font-bold uppercase hover:bg-slate-200 transition-colors"
             >
               Reset
@@ -674,9 +684,9 @@ const PengembalianBulkPanel = () => {
                   className="w-full p-2 border border-slate-300 outline-none focus:border-slate-900 bg-slate-50 font-bold uppercase"
                   required
                 >
-                  <option value="Baik">BAIK</option>
-                  <option value="Rusak">RUSAK</option>
-                  <option value="Hilang">HILANG</option>
+                  {RETURN_CONDITION_OPTIONS.map(option => (
+                    <option key={option} value={option}>{option.toUpperCase()}</option>
+                  ))}
                 </select>
               </div>
 
