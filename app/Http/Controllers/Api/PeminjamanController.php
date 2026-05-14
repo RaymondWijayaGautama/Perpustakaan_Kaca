@@ -444,12 +444,15 @@ class PeminjamanController extends Controller
             DB::table('tr_peminjaman')
                 ->where('ID_PEMINJAMAN', $id)
                 ->update(array_filter([
+                    'TGL_PINJAM' => $request->tgl_pinjam,
+                    'TGL_HARUS_KEMBALI' => $request->tgl_harus_kembali,
                     'STATUS_PEMINJAMAN' => $request->status_peminjaman,
                     'TGL_KEMBALI' => $request->status_peminjaman === 'Kembali'
                         ? ($peminjamanLama->TGL_KEMBALI ?: now()->toDateString())
                         : null,
                     'KONDISI_BUKU' => $request->kondisi_buku,
                     'KETERANGAN_PEMINJAMAN' => $request->keterangan ?? '-',
+                    'DENDA_PEMINJAMAN' => $request->denda_peminjaman,
                 ], fn ($value) => $value !== null || $request->status_peminjaman !== 'Kembali'));
 
             if ($request->status_peminjaman === 'Kembali') {

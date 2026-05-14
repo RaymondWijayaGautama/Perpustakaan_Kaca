@@ -64,10 +64,10 @@ const RiwayatPinjamPanel = ({ user }) => {
             nama_peminjam: item.nama_peminjam,
             judul_buku: item.judul_buku,
             tgl_pinjam: item.tgl_peminjaman ? item.tgl_peminjaman.substring(0, 10) : '',
-            tgl_kembali: item.tgl_pengembalian ? item.tgl_pengembalian.substring(0, 10) : '',
+            tgl_kembali: item.tgl_harus_kembali ? item.tgl_harus_kembali.substring(0, 10) : '',
             status: item.status_peminjaman || 'Dipinjam',
-            denda: item.denda || 0,
-            keterangan: item.keterangan || ''
+            denda: item.denda_peminjaman || 0,
+            keterangan: item.keterangan_peminjaman || ''
         });
         setIsModalOpen(true);
     };
@@ -76,19 +76,20 @@ const RiwayatPinjamPanel = ({ user }) => {
         e.preventDefault();
         try {
             setLoading(true);
-            await axios.put(`http://localhost:8000/api/peminjaman/ubah/${editData.id_peminjaman}`, {
+            await axios.put(`http://localhost:8000/api/peminjaman/${editData.id_peminjaman}`, {
                 tgl_pinjam: editData.tgl_pinjam,
-                tgl_kembali: editData.tgl_kembali,
-                status: editData.status,
-                denda: editData.denda,
-                keterangan: editData.keterangan
+                tgl_harus_kembali: editData.tgl_kembali,
+                status_peminjaman: editData.status,
+                denda_peminjaman: editData.denda,
+                keterangan: editData.keterangan,
+                kondisi_buku: 'Baik' // Required by backend validation
             });
             
             alert("Mantap! Data riwayat berhasil diperbarui secara detail.");
             setIsModalOpen(false);
             fetchData(); 
         } catch (error) {
-            alert("Gagal menyimpan: " + (error.response?.data?.pesan || error.message));
+            alert("Gagal menyimpan: " + (error.response?.data?.message || error.message));
         } finally {
             setLoading(false);
         }
@@ -165,7 +166,7 @@ const RiwayatPinjamPanel = ({ user }) => {
 
         try {
             setLoading(true);
-            await axios.delete(`http://localhost:8000/api/peminjaman/hapus/${id}`);
+            await axios.delete(`http://localhost:8000/api/peminjaman/${id}`);
             alert("Data berhasil dihapus dari daftar aktif!");
             fetchData();
         } catch (error) {
