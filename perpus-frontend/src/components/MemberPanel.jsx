@@ -214,7 +214,7 @@ const MemberPanel = ({ user, onLogout }) => {
         ) : (
           <>
         <section className="bg-white p-8 rounded-b-2xl rounded-tr-2xl shadow-sm border border-slate-100 mb-8">
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:flex gap-4">
+            <form onSubmit={(e) => e.preventDefault()} className="grid grid-cols-1 md:grid-cols-2 xl:flex gap-4">
                 <div className="relative flex-1">
                     <input type="text" placeholder="Cari Judul..." value={searchJudul} onChange={(e) => { setSearchJudul(e.target.value); setPage(1); }} className="w-full p-3 pl-10 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-[#265F9C] transition-all" />
                     <span className="absolute left-3 top-3.5 text-slate-400">🔍</span>
@@ -223,6 +223,12 @@ const MemberPanel = ({ user, onLogout }) => {
                 <div className="relative flex-1">
                     <input type="text" placeholder={activeTab === 'laporan' ? "Nama Siswa..." : "Penulis..."} value={filterPenulis} onChange={(e) => { setFilterPenulis(e.target.value); setPage(1); }} className="w-full p-3 pl-10 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-[#2E7D32] bg-slate-50 focus:bg-white transition-all" />
                     <span className="absolute left-3 top-3.5 text-slate-400">👤</span>
+                </div>
+
+                <div className="flex gap-2">
+                    <button type="submit" className="bg-[#265F9C] text-white px-5 py-2 rounded-xl text-xs font-bold hover:bg-blue-800 transition-all">
+                        Cari
+                    </button>
                 </div>
 
                 {activeTab === 'buku' && (
@@ -244,7 +250,7 @@ const MemberPanel = ({ user, onLogout }) => {
                     <option value="asc">A-Z / Terlama</option>
                     <option value="desc">Z-A / Terbaru</option>
                 </select>
-            </div>
+            </form>
         </section>
 
         {error && <div className="mb-6 bg-red-50 border border-red-200 text-red-700 p-4 rounded-xl text-sm font-bold">{error}</div>}

@@ -77,6 +77,7 @@ const ManajemenBukuPanel = ({ user }) => {
     const [books, setBooks] = useState([]);
     const [kategoriBuku, setKategoriBuku] = useState([]);
     const [bookSearch, setBookSearch] = useState('');
+    const [tempSearch, setTempSearch] = useState('');
     const [bookSortBy, setBookSortBy] = useState('judul_koleksi');
     const [bookSortOrder, setBookSortOrder] = useState('asc');
     const [bookKategori, setBookKategori] = useState('');
@@ -110,11 +111,8 @@ const ManajemenBukuPanel = ({ user }) => {
     const [isDeletingCopy, setIsDeletingCopy] = useState(false);
     const [conditionFeedback, setConditionFeedback] = useState({ type: '', message: '' });
 
-    const deferredBookSearch = useDeferredValue(bookSearch);
     const isYearSort = bookSortBy === 'tahun';
-
-    const loadBooks = async ({
-        search = deferredBookSearch,
+        search = bookSearch,
         sortBy = bookSortBy,
         sortOrder = bookSortOrder,
         kategori = bookKategori,
@@ -136,7 +134,13 @@ const ManajemenBukuPanel = ({ user }) => {
 
     useEffect(() => {
         loadBooks();
-    }, [bookPage, deferredBookSearch, bookSortBy, bookSortOrder, bookKategori]);
+    }, [bookPage, bookSearch, bookSortBy, bookSortOrder, bookKategori]);
+
+    const handleSearch = (e) => {
+        if (e) e.preventDefault();
+        setBookSearch(tempSearch);
+        setBookPage(1);
+    };
 
     useEffect(() => {
         const fetchKategori = async () => {
@@ -540,21 +544,18 @@ const ManajemenBukuPanel = ({ user }) => {
                 </div>
             </div>
 
-            <div className="mb-8 flex flex-wrap gap-3 justify-end">
-                <form 
-                    onSubmit={(e) => e.preventDefault()}
-                    className="flex-1 min-w-[260px]"
-                >
+            <div className="mb-8 flex flex-wrap gap-3 justify-end items-center">
+                <form onSubmit={handleSearch} className="flex gap-2">
                     <input
                         type="text"
                         placeholder="Cari judul, penulis, atau ISBN..."
-                        className="w-full p-3 border rounded-xl text-sm outline-none focus:ring-2 focus:ring-[#265F9C] transition-all shadow-sm"
-                        value={bookSearch}
-                        onChange={(event) => {
-                            setBookSearch(event.target.value);
-                            setBookPage(1);
-                        }}
+                        className="p-3 border rounded-xl text-sm outline-none min-w-[260px] focus:ring-2 focus:ring-[#265F9C] transition-all shadow-sm"
+                        value={tempSearch}
+                        onChange={(event) => setTempSearch(event.target.value)}
                     />
+                    <button type="submit" className="bg-[#265F9C] text-white px-4 py-2 rounded-xl text-xs font-bold hover:bg-blue-800 transition-all">
+                        Cari
+                    </button>
                 </form>
                 <select
                     className="p-3 border rounded-xl text-sm bg-gray-50 font-medium"
