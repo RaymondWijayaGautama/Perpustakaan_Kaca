@@ -44,6 +44,7 @@ Route::get('/peminjaman/cek-aktif', [PeminjamanController::class, 'cekAktif']);
 Route::get('/peminjaman/overdue', [PeminjamanController::class, 'overdue']);
 Route::get('/peminjaman', [PeminjamanController::class, 'index']);
 Route::post('/peminjaman', [PeminjamanController::class, 'store']);
+Route::post('/peminjaman/perpanjang/{id}', [PeminjamanController::class, 'perpanjang']);
 Route::put('/peminjaman/{id}', [PeminjamanController::class, 'update']);
 Route::delete('/peminjaman/{id}', [PeminjamanController::class, 'destroy']);
 
@@ -134,3 +135,5 @@ Route::get('/buku-overdue', [DashboardController::class, 'getBukuOverdue']);
 Route::put('/pemusnahan/{id}', [DashboardController::class, 'updatePemusnahan']);
 Route::patch('/pemusnahan/{id}', [DashboardController::class, 'updateStatusPemusnahan']);
 Route::patch('/pemusnahan/{id}/konfirmasi', [DashboardController::class, 'confirmPemusnahan']);
+
+
