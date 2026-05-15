@@ -30,7 +30,8 @@ class BukuImport implements ToCollection, WithStartRow
 
         $kategoriMap = DB::table('ref_koleksi')
             ->where('IS_DELETE', 0)
-            ->pluck('ID_REF_KOLEKSI', 'NO_KATEGORI_BUKU')
+            ->get(['ID_REF_KOLEKSI', 'NO_KATEGORI_BUKU'])
+            ->mapWithKeys(fn($item) => [strtoupper(trim((string)$item->NO_KATEGORI_BUKU)) => $item->ID_REF_KOLEKSI])
             ->toArray();
 
         $seenIsbn = [];
@@ -47,7 +48,7 @@ class BukuImport implements ToCollection, WithStartRow
             }
 
             $pengarang = isset($row[5]) ? trim((string)$row[5]) : '';
-            $noKategoriExcel = isset($row[4]) ? trim((string)$row[4]) : ''; 
+            $noKategoriExcel = isset($row[4]) ? strtoupper(trim((string)$row[4])) : ''; 
             $idKategoriInteger = $kategoriMap[$noKategoriExcel] ?? null;
 
             $penerbitMentah = isset($row[7]) ? trim((string)$row[7]) : '';
