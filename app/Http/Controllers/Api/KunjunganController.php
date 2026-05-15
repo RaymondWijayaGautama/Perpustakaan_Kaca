@@ -12,6 +12,7 @@ class KunjunganController extends Controller
 {
     /**
      * Catat kedatangan pengunjung hari ini.
+     * Dibatasi hanya bisa sekali dalam sehari sesuai zona waktu Asia/Jakarta.
      */
     public function checkIn(Request $request)
     {
@@ -28,10 +29,12 @@ class KunjunganController extends Controller
             return response()->json(['message' => 'Tipe akun tidak valid untuk check-in.'], 400);
         }
 
-        $today = Carbon::today();
+        // Pastikan pengecekan hari ini menggunakan zona waktu yang sama (WIB)
+        $tz = 'Asia/Jakarta';
+        $today = Carbon::now($tz)->startOfDay();
 
-        // Cek apakah sudah pernah check-in hari ini
-        $alreadyCheckedIn = TrKunjunganPerpu::whereDate('START_KUNJUNGAN', $today)
+        // Cek apakah sudah pernah ada record kunjungan yang DIMULAI pada hari ini
+        $alreadyCheckedIn = TrKunjunganPerpu::whereDate('START_KUNJUNGAN', $today->toDateString())
             ->where(function($query) use ($idSiswa, $nipKaryawan) {
                 if ($idSiswa) {
                     $query->where('ID_SISWA_TETAP', $idSiswa);
@@ -43,15 +46,28 @@ class KunjunganController extends Controller
         if ($alreadyCheckedIn) {
             return response()->json([
                 'success' => false,
-                'message' => 'Anda sudah melakukan check-in kunjungan hari ini.'
-            ], 422); // 422 Unprocessable Entity
+                'message' => 'Anda sudah melakukan check-in hari ini. Sesuai aturan, kunjungan hanya dapat dicatat sekali dalam sehari.'
+            ], 422);
         }
 
         try {
-            // Hotfix: Ensure tr_kunjungan_perpus has AUTO_INCREMENT if missing (sama seperti access_log)
-            DB::statement('ALTER TABLE tr_kunjungan_perpus MODIFY ID_KUNJUNGAN INT NOT NULL AUTO_INCREMENT');
+            // Catat kunjungan dengan waktu sekarang (WIB)
+            $kunjungan = TrKunjunganPerpu::create([
+                'ID_SISWA_TETAP' => $idSiswa,
+                'NIP_KARYAWAN' => $nipKaryawan,
+                'START_KUNJUNGAN' => Carbon::now($tz)
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Check-in kunjungan berhasil dicatat.',
+                'data' => $kunjungan
+            ]);
         } catch (\Exception $e) {
-            // ignore
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal mencatat kunjungan: ' . $e->getMessage()
+            ], 500);
         }
 
         // PERBAIKAN: Hanya daftarkan key yang ada nilainya ke dalam array insert
@@ -87,9 +103,11 @@ class KunjunganController extends Controller
 
         $idSiswa = $user->ID_SISWA_TETAP ?? null;
         $nipKaryawan = $user->NIP_KARYAWAN ?? null;
-        $today = Carbon::today();
+        
+        $tz = 'Asia/Jakarta';
+        $today = Carbon::now($tz)->toDateString();
 
-        // Cari record check-in hari ini yang belum di check-out
+        // Cari record check-in hari ini (WIB) yang belum di check-out
         $kunjungan = TrKunjunganPerpu::whereDate('START_KUNJUNGAN', $today)
             ->where(function($query) use ($idSiswa, $nipKaryawan) {
                 if ($idSiswa) {
@@ -102,7 +120,7 @@ class KunjunganController extends Controller
         if (!$kunjungan) {
             return response()->json([
                 'success' => false,
-                'message' => 'Anda belum melakukan check-in hari ini.'
+                'message' => 'Anda belum melakukan check-in hari ini (WIB).'
             ], 422);
         }
 
@@ -114,7 +132,7 @@ class KunjunganController extends Controller
         }
 
         $kunjungan->update([
-            'END_KUNJUNGAN' => Carbon::now()
+            'END_KUNJUNGAN' => Carbon::now($tz)
         ]);
 
         return response()->json([
