@@ -174,7 +174,7 @@ const LaporanPeminjamanGuruPanel = () => {
                   </td>
                   <td className="p-4">
                     <p className="font-semibold">{item.judul_koleksi}</p>
-                    <p className="text-[11px] text-[#585858] mt-1">{item.pengarang} • Rak {item.no_rak_buku}</p>
+                    <p className="text-[11px] text-[#585858] mt-1">{item.pengarang} - Rak {item.no_rak_buku}</p>
                   </td>
                   <td className="p-4 font-medium text-[#585858]">{formatDate(item.tgl_peminjaman)}</td>
                   <td className="p-4 font-medium text-[#585858]">{formatDate(item.tgl_harus_kembali)}</td>

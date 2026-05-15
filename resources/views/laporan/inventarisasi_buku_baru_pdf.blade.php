@@ -23,7 +23,7 @@
         }
         .identity {
             width: 64%;
-            margin: 0 auto 20px;
+            margin: 0 0 28px;
             border-collapse: collapse;
         }
         .identity td {
@@ -35,7 +35,7 @@
         .identity .colon { width: 4%; text-align: center; }
         h2 {
             font-size: 12pt;
-            margin: 18px 0 10px;
+            margin: 22px 0 10px;
             font-weight: bold;
         }
         p {
@@ -50,6 +50,9 @@
             line-height: 1.15;
         }
         li { margin-bottom: 3px; }
+        .content-section {
+            margin-bottom: 24px;
+        }
         .activity-list { margin-top: 0; }
         .activity-list strong { display: block; }
         .activity-list li { margin-bottom: 2px; }
@@ -97,9 +100,14 @@
         }
         .summary strong { font-weight: normal; }
         .closing { margin-top: 18px; }
+        .date-line {
+            margin: 52px 0 26px;
+            padding-right: 38px;
+            text-align: right;
+        }
         .signatures {
             width: 100%;
-            margin-top: 50px;
+            margin-top: 0;
             border-collapse: collapse;
             font-size: 12pt;
         }
@@ -132,32 +140,37 @@
         </tr>
     </table>
 
-    <h2>A. &nbsp;Pendahuluan</h2>
-    <p>Perpustakaan sebagai pusat sumber belajar memiliki peran penting dalam menyediakan bahan bacaan yang relevan bagi siswa, guru, dan seluruh warga sekolah. Kegiatan inventarisasi dan katalogisasi buku baru dilakukan untuk mendata, mengolah, serta menata buku agar mudah ditemukan dan dimanfaatkan oleh pemustaka.</p>
-    <p>Kegiatan ini bertujuan untuk mendata, mengolah, serta menata buku agar mudah ditemukan dan dimanfaatkan oleh pemustaka.</p>
+    <div class="content-section">
+        <h2>A. &nbsp;Pendahuluan</h2>
+        <p>Kegiatan inventarisasi dan katalogisasi buku baru dilakukan untuk mendata, mengolah, serta menata buku agar mudah ditemukan dan dimanfaatkan oleh pemustaka.</p>
+    </div>
 
-    <h2>B. &nbsp;Tujuan Kegiatan</h2>
-    <ol>
-        <li>Mendata buku baru yang masuk ke perpustakaan.</li>
-        <li>Memberikan nomor inventaris pada setiap buku.</li>
-        <li>Melakukan proses katalogisasi agar buku mudah dicari dalam sistem perpustakaan.</li>
-        <li>Menata buku sesuai klasifikasi yang berlaku.</li>
-        <li>Menambah koleksi bahan pustaka untuk mendukung kegiatan belajar.</li>
-    </ol>
+    <div class="content-section">
+        <h2>B. &nbsp;Tujuan Kegiatan</h2>
+        <ol>
+            <li>Mendata buku baru yang masuk ke perpustakaan.</li>
+            <li>Memberikan nomor inventaris pada setiap buku.</li>
+            <li>Melakukan proses katalogisasi agar buku mudah dicari dalam sistem perpustakaan.</li>
+            <li>Menata buku sesuai klasifikasi yang berlaku.</li>
+            <li>Menambah koleksi bahan pustaka untuk mendukung kegiatan belajar.</li>
+        </ol>
+    </div>
 
-    <h2>C. &nbsp;Waktu dan Tempat</h2>
-    <table class="field-table">
-        <tr>
-            <td class="label">Hari/Tanggal</td>
-            <td class="colon">:</td>
-            <td>{{ $filter['periode_label'] }}</td>
-        </tr>
-        <tr>
-            <td class="label">Tempat</td>
-            <td class="colon">:</td>
-            <td>Perpustakaan <strong>WIGATY LIBRARY</strong></td>
-        </tr>
-    </table>
+    <div class="content-section">
+        <h2>C. &nbsp;Waktu dan Tempat</h2>
+        <table class="field-table">
+            <tr>
+                <td class="label">Hari/Tanggal</td>
+                <td class="colon">:</td>
+                <td>{{ \Carbon\Carbon::now('Asia/Jakarta')->locale('id')->translatedFormat('l, d F Y') }}</td>
+            </tr>
+            <tr>
+                <td class="label">Tempat</td>
+                <td class="colon">:</td>
+                <td>Perpustakaan <strong>WIGATY LIBRARY</strong></td>
+            </tr>
+        </table>
+    </div>
 
     <h2 class="page-break">D. &nbsp;Kegiatan yang Dilakukan</h2>
     <p class="section-intro">Kegiatan inventarisasi dan katalogisasi buku baru meliputi beberapa tahap berikut:</p>
@@ -211,15 +224,16 @@
     <div class="summary">Total Buku Baru : <strong>{{ number_format($summary['total_eksemplar'], 0, ',', '.') }}</strong> Eksemplar</div>
 
     <h2>F. &nbsp;Kesimpulan</h2>
-    <p>Kegiatan inventarisasi dan katalogisasi buku baru telah dilaksanakan dengan baik. Buku-buku yang diterima telah didata, dikatalogkan, serta ditata di rak perpustakaan sehingga siap dimanfaatkan oleh pemustaka.</p>
+    <p>Kegiatan inventarisasi dan katalogisasi buku baru telah dilaksanakan dengan baik. Buku-buku yang diterima telah didata, diberi nomor inventaris, dikatalogkan, serta ditata di rak perpustakaan sehingga siap dimanfaatkan oleh pemustaka untuk mendukung kegiatan pembelajaran dan literasi di sekolah.</p>
 
     <h2>G. &nbsp;Penutup</h2>
     <p class="closing">Demikian laporan kegiatan inventarisasi dan katalogisasi buku baru ini dibuat sebagai dokumentasi kegiatan pengelolaan perpustakaan.</p>
 
+    <div class="date-line">Yogyakarta, {{ \Carbon\Carbon::now('Asia/Jakarta')->locale('id')->translatedFormat('d F Y') }}</div>
     <table class="signatures">
         <tr>
             <td>Mengetahui,<br>Kepala Sekolah<div class="space"></div>Visca Veronica, M.Pd.<br>NIY. 015 820 570</td>
-            <td class="signature-right">Yogyakarta, {{ \Carbon\Carbon::now('Asia/Jakarta')->translatedFormat('d F Y') }}<br><br>Kepala Perpustakaan<div class="space"></div>Dewi Wulansari, S.Pd.<br>NIY. -</td>
+            <td class="signature-right"><br>Kepala Perpustakaan<div class="space"></div>Dewi Wulansari, S.Pd.<br>NIY. -</td>
         </tr>
     </table>
 </body>

@@ -200,7 +200,7 @@ class LaporanController extends Controller
             $report = $this->buildLaporanPeminjamanGuruReport($request);
             $pdf = Pdf::loadView('laporan.peminjaman_guru_pdf', $report);
 
-            return $pdf->setPaper('a4', 'landscape')
+            return $pdf->setPaper('a4', 'portrait')
                 ->download('Laporan_Peminjaman_Buku_Guru_' . $report['filter']['tahun'] . '.pdf');
         } catch (\Exception $e) {
             return response()->json([
@@ -248,7 +248,6 @@ class LaporanController extends Controller
             ->whereRaw('LOWER(guru.jabatan_fungsional) = ?', ['guru'])
             ->where('buku.is_delete', 0)
             ->where('peminjaman.STATUS_PEMINJAMAN', '!=', 'Dihapus')
-            ->whereNull('peminjaman.ID_SISWA_TETAP')
             ->whereYear('peminjaman.TGL_PINJAM', $tahun);
 
         if ($bulan !== null) {
