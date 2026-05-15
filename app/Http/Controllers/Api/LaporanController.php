@@ -186,61 +186,22 @@ class LaporanController extends Controller
     public function laporanPeminjamanGuru(Request $request)
     {
         try {
-            $tahun = (int) ($request->get('tahun', date('Y')));
-            $bulan = $request->filled('bulan') ? (int) $request->get('bulan') : null;
-
-            $query = DB::table('tr_peminjaman as peminjaman')
-                ->join('mst_karyawan as guru', 'peminjaman.NIP_KARYAWAN', '=', 'guru.nip_karyawan')
-                ->join('cp_koleksi as copy', 'peminjaman.ID_CP_KOLEKSI', '=', 'copy.id_cp_koleksi')
-                ->join('mst_koleksi_buku as buku', 'copy.ISBN', '=', 'buku.ISBN')
-                ->where('guru.is_delete', 0)
-                ->whereRaw('LOWER(guru.jabatan_fungsional) = ?', ['guru'])
-                ->where('buku.is_delete', 0)
-                ->where('peminjaman.STATUS_PEMINJAMAN', '!=', 'Dihapus')
-                ->whereNull('peminjaman.ID_SISWA_TETAP')
-                ->whereYear('peminjaman.TGL_PINJAM', $tahun);
-
-            if ($bulan !== null) {
-                $query->whereMonth('peminjaman.TGL_PINJAM', $bulan);
-            }
-
-            $data = (clone $query)
-                ->select(
-                    'peminjaman.ID_PEMINJAMAN as id_peminjaman',
-                    'peminjaman.TGL_PINJAM as tgl_peminjaman',
-                    'peminjaman.TGL_HARUS_KEMBALI as tgl_harus_kembali',
-                    'peminjaman.TGL_KEMBALI as tgl_kembali',
-                    'peminjaman.STATUS_PEMINJAMAN as status_peminjaman',
-                    'guru.nip_karyawan',
-                    'guru.nama_karyawan as nama_guru',
-                    'guru.jabatan_fungsional',
-                    'buku.ISBN',
-                    'buku.judul_koleksi',
-                    'buku.pengarang',
-                    'buku.no_rak_buku'
-                )
-                ->orderBy('peminjaman.TGL_PINJAM', 'desc')
-                ->get()
-                ->values();
-
-            $periodeLabel = $bulan !== null
-                ? Carbon::create($tahun, $bulan, 1)->locale('id')->translatedFormat('F Y')
-                : 'Tahun ' . $tahun;
-
+            return response()->json($this->buildLaporanPeminjamanGuruReport($request));
+        } catch (\Exception $e) {
             return response()->json([
-                'filter' => [
-                    'tahun' => $tahun,
-                    'bulan' => $bulan,
-                    'periode_label' => $periodeLabel,
-                ],
-                'summary' => [
-                    'total_transaksi' => $data->count(),
-                    'sedang_dipinjam' => $data->where('status_peminjaman', 'Dipinjam')->count(),
-                    'sudah_kembali' => $data->where('status_peminjaman', 'Kembali')->count(),
-                    'jumlah_guru' => $data->pluck('nip_karyawan')->unique()->count(),
-                ],
-                'data' => $data,
-            ]);
+                'message' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    public function exportPdfPeminjamanGuru(Request $request)
+    {
+        try {
+            $report = $this->buildLaporanPeminjamanGuruReport($request);
+            $pdf = Pdf::loadView('laporan.peminjaman_guru_pdf', $report);
+
+            return $pdf->setPaper('a4', 'landscape')
+                ->download('Laporan_Peminjaman_Buku_Guru_' . $report['filter']['tahun'] . '.pdf');
         } catch (\Exception $e) {
             return response()->json([
                 'message' => $e->getMessage(),
@@ -251,65 +212,7 @@ class LaporanController extends Controller
     public function inventarisasiBukuBaru(Request $request)
     {
         try {
-            $tahun = (int) ($request->get('tahun', date('Y')));
-            $bulan = $request->filled('bulan') ? (int) $request->get('bulan') : null;
-
-            $query = DB::table('mst_koleksi_buku as buku')
-                ->join('ref_koleksi as kategori', 'buku.id_ref_koleksi', '=', 'kategori.id_ref_koleksi')
-                ->where('buku.is_delete', 0)
-                ->where('buku.id_ref_koleksi', '!=', 4)
-                ->whereNotNull('buku.ISBN')
-                ->whereNotNull('buku.judul_koleksi')
-                ->where('buku.judul_koleksi', '!=', '')
-                ->whereNotNull('buku.pengarang')
-                ->where('buku.pengarang', '!=', '')
-                ->whereNotNull('buku.penerbit')
-                ->where('buku.penerbit', '!=', '')
-                ->whereNotNull('buku.tgl_masuk_koleksi')
-                ->whereNotNull('buku.id_ref_koleksi')
-                ->whereNotNull('buku.no_rak_buku')
-                ->where('buku.no_rak_buku', '!=', '')
-                ->whereYear('buku.tgl_masuk_koleksi', $tahun);
-
-            if ($bulan !== null) {
-                $query->whereMonth('buku.tgl_masuk_koleksi', $bulan);
-            }
-
-            $books = (clone $query)
-                ->select(
-                    'buku.ISBN',
-                    'buku.judul_koleksi',
-                    'buku.pengarang',
-                    'buku.penerbit',
-                    'buku.tahun',
-                    'buku.tgl_masuk_koleksi',
-                    'buku.no_rak_buku',
-                    'buku.jumlah_eksemplar', // Note: Pastikan di database memang jumlah_eksemplar (bukan eksemplar)
-                    'kategori.deskripsi as kategori'
-                )
-                ->distinct()
-                ->orderBy('buku.tgl_masuk_koleksi', 'desc')
-                ->orderBy('buku.judul_koleksi')
-                ->get()
-                ->values();
-
-            $periodeLabel = $bulan !== null
-                ? Carbon::create($tahun, $bulan, 1)->locale('id')->translatedFormat('F Y')
-                : 'Tahun ' . $tahun;
-
-            return response()->json([
-                'filter' => [
-                    'tahun' => $tahun,
-                    'bulan' => $bulan,
-                    'periode_label' => $periodeLabel,
-                ],
-                'summary' => [
-                    'total_buku_baru' => $books->count(),
-                    'total_eksemplar' => (int) $books->sum('jumlah_eksemplar'),
-                    'total_kategori' => $books->pluck('kategori')->unique()->count(),
-                ],
-                'data' => $books,
-            ]);
+            return response()->json($this->buildInventarisasiBukuBaruReport($request));
         } catch (\Exception $e) {
             return response()->json([
                 'message' => $e->getMessage(),
@@ -317,73 +220,169 @@ class LaporanController extends Controller
         }
     }
 
+    public function exportPdfInventarisasiBukuBaru(Request $request)
+    {
+        try {
+            $report = $this->buildInventarisasiBukuBaruReport($request);
+            $pdf = Pdf::loadView('laporan.inventarisasi_buku_baru_pdf', $report);
+
+            return $pdf->setPaper('a4', 'portrait')
+                ->download('Laporan_Inventarisasi_Buku_Baru_' . $report['filter']['tahun'] . '.pdf');
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    private function buildLaporanPeminjamanGuruReport(Request $request): array
+    {
+        $tahun = (int) ($request->get('tahun', date('Y')));
+        $bulan = $request->filled('bulan') ? (int) $request->get('bulan') : null;
+
+        $query = DB::table('tr_peminjaman as peminjaman')
+            ->join('mst_karyawan as guru', 'peminjaman.NIP_KARYAWAN', '=', 'guru.nip_karyawan')
+            ->join('cp_koleksi as copy', 'peminjaman.ID_CP_KOLEKSI', '=', 'copy.id_cp_koleksi')
+            ->join('mst_koleksi_buku as buku', 'copy.ISBN', '=', 'buku.ISBN')
+            ->where('guru.is_delete', 0)
+            ->whereRaw('LOWER(guru.jabatan_fungsional) = ?', ['guru'])
+            ->where('buku.is_delete', 0)
+            ->where('peminjaman.STATUS_PEMINJAMAN', '!=', 'Dihapus')
+            ->whereNull('peminjaman.ID_SISWA_TETAP')
+            ->whereYear('peminjaman.TGL_PINJAM', $tahun);
+
+        if ($bulan !== null) {
+            $query->whereMonth('peminjaman.TGL_PINJAM', $bulan);
+        }
+
+        $data = (clone $query)
+            ->select(
+                'peminjaman.ID_PEMINJAMAN as id_peminjaman',
+                'peminjaman.TGL_PINJAM as tgl_peminjaman',
+                'peminjaman.TGL_HARUS_KEMBALI as tgl_harus_kembali',
+                'peminjaman.TGL_KEMBALI as tgl_kembali',
+                'peminjaman.STATUS_PEMINJAMAN as status_peminjaman',
+                'guru.nip_karyawan',
+                'guru.nama_karyawan as nama_guru',
+                'guru.jabatan_fungsional',
+                'buku.ISBN',
+                'buku.judul_koleksi',
+                'buku.pengarang',
+                'buku.no_rak_buku'
+            )
+            ->orderBy('peminjaman.TGL_PINJAM', 'desc')
+            ->get()
+            ->values();
+
+        $periodeLabel = $bulan !== null
+            ? Carbon::create($tahun, $bulan, 1)->locale('id')->translatedFormat('F Y')
+            : 'Tahun ' . $tahun;
+
+        return [
+            'filter' => [
+                'tahun' => $tahun,
+                'bulan' => $bulan,
+                'periode_label' => $periodeLabel,
+            ],
+            'summary' => [
+                'total_transaksi' => $data->count(),
+                'sedang_dipinjam' => $data->where('status_peminjaman', 'Dipinjam')->count(),
+                'sudah_kembali' => $data->where('status_peminjaman', 'Kembali')->count(),
+                'jumlah_guru' => $data->pluck('nip_karyawan')->unique()->count(),
+            ],
+            'data' => $data,
+        ];
+    }
+
+    private function buildInventarisasiBukuBaruReport(Request $request): array
+    {
+        $tahun = (int) ($request->get('tahun', date('Y')));
+        $bulan = $request->filled('bulan') ? (int) $request->get('bulan') : null;
+        $kategoriLaporanPkl = $this->getKategoriLaporanPkl();
+
+        $query = DB::table('mst_koleksi_buku as buku')
+            ->join('ref_koleksi as kategori', 'buku.ID_REF_KOLEKSI', '=', 'kategori.ID_REF_KOLEKSI')
+            ->where('buku.IS_DELETE', 0)
+            ->when($kategoriLaporanPkl, function ($query) use ($kategoriLaporanPkl) {
+                $query->where('buku.ID_REF_KOLEKSI', '!=', $kategoriLaporanPkl->ID_REF_KOLEKSI);
+            })
+            ->where(function ($query) {
+                $query->where('kategori.IS_DELETE', 0)
+                    ->orWhereNull('kategori.IS_DELETE');
+            })
+            ->whereNotNull('buku.ISBN')
+            ->whereNotNull('buku.JUDUL_KOLEKSI')
+            ->where('buku.JUDUL_KOLEKSI', '!=', '')
+            ->whereNotNull('buku.PENGARANG')
+            ->where('buku.PENGARANG', '!=', '')
+            ->whereNotNull('buku.PENERBIT')
+            ->where('buku.PENERBIT', '!=', '')
+            ->whereNotNull('buku.TGL_MASUK_KOLEKSI')
+            ->whereNotNull('buku.ID_REF_KOLEKSI')
+            ->whereNotNull('buku.NO_RAK_BUKU')
+            ->where('buku.NO_RAK_BUKU', '!=', '')
+            ->whereYear('buku.TGL_MASUK_KOLEKSI', $tahun);
+
+        if ($bulan !== null) {
+            $query->whereMonth('buku.TGL_MASUK_KOLEKSI', $bulan);
+        }
+
+        $books = (clone $query)
+            ->select(
+                'buku.ISBN',
+                'buku.JUDUL_KOLEKSI as judul_koleksi',
+                'buku.PENGARANG as pengarang',
+                'buku.PENERBIT as penerbit',
+                'buku.TAHUN as tahun',
+                'buku.TGL_MASUK_KOLEKSI as tgl_masuk_koleksi',
+                'buku.NO_RAK_BUKU as no_rak_buku',
+                'buku.JUMLAH_EKSEMPLAR as jumlah_eksemplar',
+                'kategori.DESKRIPSI_KATEGORI as kategori'
+            )
+            ->distinct()
+            ->orderBy('buku.TGL_MASUK_KOLEKSI', 'desc')
+            ->orderBy('buku.JUDUL_KOLEKSI')
+            ->get()
+            ->values();
+
+        $periodeLabel = $bulan !== null
+            ? Carbon::create($tahun, $bulan, 1)->locale('id')->translatedFormat('F Y')
+            : 'Tahun ' . $tahun;
+
+        return [
+            'filter' => [
+                'tahun' => $tahun,
+                'bulan' => $bulan,
+                'periode_label' => $periodeLabel,
+            ],
+            'summary' => [
+                'total_buku_baru' => $books->count(),
+                'total_eksemplar' => (int) $books->sum('jumlah_eksemplar'),
+                'total_kategori' => $books->pluck('kategori')->unique()->count(),
+            ],
+            'data' => $books,
+        ];
+    }
+
     public function distribusiKunjunganHari(Request $request)
     {
         try {
-            $tahun = (int) ($request->get('tahun', date('Y')));
-            $bulan = $request->filled('bulan') ? (int) $request->get('bulan') : null;
-
-            $baseQuery = DB::table('tr_kunjungan_perpus as kunjungan')
-                ->join('mst_siswa as siswa', 'kunjungan.id_siswa_tetap', '=', 'siswa.id_siswa_tetap')
-                ->where('siswa.is_delete', 0)
-                ->whereYear('kunjungan.start_kunjungan', $tahun);
-
-            if ($bulan !== null) {
-                $baseQuery->whereMonth('kunjungan.start_kunjungan', $bulan);
-            }
-
-            $rows = (clone $baseQuery)
-                ->selectRaw('DAYOFWEEK(kunjungan.start_kunjungan) as hari_angka')
-                ->selectRaw('COUNT(*) as total_kunjungan')
-                ->groupBy('hari_angka')
-                ->get()
-                ->keyBy('hari_angka');
-
-            $hariMap = [
-                2 => 'Senin',
-                3 => 'Selasa',
-                4 => 'Rabu',
-                5 => 'Kamis',
-                6 => 'Jumat',
-                7 => 'Sabtu',
-                1 => 'Minggu',
-            ];
-
-            $data = collect($hariMap)->map(function ($label, $angka) use ($rows) {
-                $jumlah = (int) optional($rows->get($angka))->total_kunjungan;
-
-                return [
-                    'hari_angka' => (int) $angka,
-                    'hari' => $label,
-                    'jumlah_kunjungan' => $jumlah,
-                ];
-            })->values();
-
-            $totalKunjungan = $data->sum('jumlah_kunjungan');
-            $data = $data->map(function ($item) use ($totalKunjungan) {
-                $item['persentase'] = $totalKunjungan > 0
-                    ? round(($item['jumlah_kunjungan'] / $totalKunjungan) * 100, 2)
-                    : 0;
-
-                return $item;
-            })->values();
-
-            $periodeLabel = $bulan !== null
-                ? Carbon::create($tahun, $bulan, 1)->locale('id')->translatedFormat('F Y')
-                : 'Tahun ' . $tahun;
-
+            return response()->json($this->buildDistribusiKunjunganHariReport($request));
+        } catch (\Exception $e) {
             return response()->json([
-                'filter' => [
-                    'tahun' => $tahun,
-                    'bulan' => $bulan,
-                    'periode_label' => $periodeLabel,
-                ],
-                'summary' => [
-                    'total_kunjungan' => $totalKunjungan,
-                    'hari_aktif' => $data->where('jumlah_kunjungan', '>', 0)->count(),
-                ],
-                'data' => $data,
-            ]);
+                'message' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    public function exportPdfDistribusiKunjunganHari(Request $request)
+    {
+        try {
+            $report = $this->buildDistribusiKunjunganHariReport($request);
+            $pdf = Pdf::loadView('laporan.distribusi_kunjungan_hari_pdf', $report);
+
+            return $pdf->setPaper('a4', 'portrait')
+                ->download('Distribusi_Kunjungan_Hari_' . $report['filter']['tahun'] . '.pdf');
         } catch (\Exception $e) {
             return response()->json([
                 'message' => $e->getMessage(),
@@ -394,73 +393,7 @@ class LaporanController extends Controller
     public function distribusiKunjunganKelas(Request $request)
     {
         try {
-            $tahun = (int) ($request->get('tahun', date('Y')));
-            $bulan = $request->filled('bulan') ? (int) $request->get('bulan') : null;
-
-            $baseQuery = DB::table('tr_kunjungan_perpus as kunjungan')
-                ->join('mst_siswa as siswa', 'kunjungan.id_siswa_tetap', '=', 'siswa.id_siswa_tetap')
-                ->where('siswa.is_delete', 0)
-                ->whereYear('kunjungan.start_kunjungan', $tahun);
-
-            if ($bulan !== null) {
-                $baseQuery->whereMonth('kunjungan.start_kunjungan', $bulan);
-            }
-
-            $kelasExpression = "
-                CASE
-                    WHEN CAST(siswa.tahun_lulus AS SIGNED) - ? = 2 THEN 'X'
-                    WHEN CAST(siswa.tahun_lulus AS SIGNED) - ? = 1 THEN 'XI'
-                    WHEN CAST(siswa.tahun_lulus AS SIGNED) - ? = 0 THEN 'XII'
-                    ELSE NULL
-                END
-            ";
-
-            $rows = (clone $baseQuery)
-                ->selectRaw("$kelasExpression as kelas_label", [$tahun, $tahun, $tahun])
-                ->selectRaw('COUNT(*) as total_kunjungan')
-                ->groupBy('kelas_label')
-                ->get();
-
-            $validRows = collect(['X', 'XI', 'XII'])->map(function ($kelas) use ($rows) {
-                $match = $rows->firstWhere('kelas_label', $kelas);
-
-                return [
-                    'kelas' => $kelas,
-                    'jumlah_kunjungan' => (int) ($match->total_kunjungan ?? 0),
-                ];
-            });
-
-            $totalValid = $validRows->sum('jumlah_kunjungan');
-            $totalSemuaKunjungan = (clone $baseQuery)->count();
-            $totalTidakValid = max(0, $totalSemuaKunjungan - $totalValid);
-
-            $data = $validRows->map(function ($item) use ($totalValid) {
-                return [
-                    'kelas' => $item['kelas'],
-                    'jumlah_kunjungan' => $item['jumlah_kunjungan'],
-                    'persentase' => $totalValid > 0
-                        ? round(($item['jumlah_kunjungan'] / $totalValid) * 100, 2)
-                        : 0,
-                ];
-            })->values();
-
-            $periodeLabel = $bulan !== null
-                ? Carbon::create($tahun, $bulan, 1)->locale('id')->translatedFormat('F Y')
-                : 'Tahun ' . $tahun;
-
-            return response()->json([
-                'filter' => [
-                    'tahun' => $tahun,
-                    'bulan' => $bulan,
-                    'periode_label' => $periodeLabel,
-                ],
-                'summary' => [
-                    'total_kunjungan_valid' => $totalValid,
-                    'total_kunjungan_tidak_valid' => $totalTidakValid,
-                    'jumlah_kelas_aktif' => $data->where('jumlah_kunjungan', '>', 0)->count(),
-                ],
-                'data' => $data,
-            ]);
+            return response()->json($this->buildDistribusiKunjunganKelasReport($request));
         } catch (\Exception $e) {
             return response()->json([
                 'message' => $e->getMessage(),
@@ -468,59 +401,246 @@ class LaporanController extends Controller
         }
     }
 
-    public function statistikPeminjamanBulanan(Request $request)
+    public function exportPdfDistribusiKunjunganKelas(Request $request)
     {
         try {
-            $tahun = (int) ($request->get('tahun', date('Y')));
-            $bulan = $request->filled('bulan') ? (int) $request->get('bulan') : null;
+            $report = $this->buildDistribusiKunjunganKelasReport($request);
+            $pdf = Pdf::loadView('laporan.distribusi_kunjungan_kelas_pdf', $report);
 
-            $query = DB::table('tr_peminjaman')
-                ->whereYear('TGL_PINJAM', $tahun);
-
-            if ($bulan !== null) {
-                $query->whereMonth('TGL_PINJAM', $bulan);
-            }
-
-            $rows = (clone $query)
-                ->selectRaw('MONTH(TGL_PINJAM) as nomor_bulan')
-                ->selectRaw('COUNT(*) as jumlah_peminjaman')
-                ->groupBy('nomor_bulan')
-                ->orderBy('nomor_bulan')
-                ->get()
-                ->map(function ($item) use ($tahun) {
-                    $tanggal = Carbon::create($tahun, $item->nomor_bulan, 1);
-
-                    return [
-                        'nomor_bulan' => (int) $item->nomor_bulan,
-                        'nama_bulan' => $tanggal->locale('id')->translatedFormat('F'),
-                        'jumlah_peminjaman' => (int) $item->jumlah_peminjaman,
-                    ];
-                })
-                ->values();
-
-            $totalPeminjaman = (clone $query)->count();
-
-            $periodeLabel = $bulan !== null
-                ? Carbon::create($tahun, $bulan, 1)->locale('id')->translatedFormat('F Y')
-                : 'Tahun ' . $tahun;
-
-            return response()->json([
-                'filter' => [
-                    'tahun' => $tahun,
-                    'bulan' => $bulan,
-                    'periode_label' => $periodeLabel,
-                ],
-                'summary' => [
-                    'total_peminjaman' => $totalPeminjaman,
-                    'jumlah_bulan_aktif' => $rows->count(),
-                ],
-                'data' => $rows,
-            ]);
+            return $pdf->setPaper('a4', 'portrait')
+                ->download('Distribusi_Kunjungan_Kelas_' . $report['filter']['tahun'] . '.pdf');
         } catch (\Exception $e) {
             return response()->json([
                 'message' => $e->getMessage(),
             ], 500);
         }
+    }
+
+    private function buildDistribusiKunjunganHariReport(Request $request): array
+    {
+        $tahun = (int) ($request->get('tahun', date('Y')));
+        $bulan = $request->filled('bulan') ? (int) $request->get('bulan') : null;
+
+        $baseQuery = DB::table('tr_kunjungan_perpus as kunjungan')
+            ->join('mst_siswa as siswa', 'kunjungan.id_siswa_tetap', '=', 'siswa.id_siswa_tetap')
+            ->where('siswa.is_delete', 0)
+            ->whereYear('kunjungan.start_kunjungan', $tahun);
+
+        if ($bulan !== null) {
+            $baseQuery->whereMonth('kunjungan.start_kunjungan', $bulan);
+        }
+
+        $rows = (clone $baseQuery)
+            ->selectRaw('DAYOFWEEK(kunjungan.start_kunjungan) as hari_angka')
+            ->selectRaw('COUNT(*) as total_kunjungan')
+            ->groupBy('hari_angka')
+            ->get()
+            ->keyBy('hari_angka');
+
+        $hariMap = [
+            2 => 'Senin',
+            3 => 'Selasa',
+            4 => 'Rabu',
+            5 => 'Kamis',
+            6 => 'Jumat',
+            7 => 'Sabtu',
+            1 => 'Minggu',
+        ];
+
+        $data = collect($hariMap)->map(function ($label, $angka) use ($rows) {
+            $jumlah = (int) optional($rows->get($angka))->total_kunjungan;
+
+            return [
+                'hari_angka' => (int) $angka,
+                'hari' => $label,
+                'jumlah_kunjungan' => $jumlah,
+            ];
+        })->values();
+
+        $totalKunjungan = $data->sum('jumlah_kunjungan');
+        $data = $data->map(function ($item) use ($totalKunjungan) {
+            $item['persentase'] = $totalKunjungan > 0
+                ? round(($item['jumlah_kunjungan'] / $totalKunjungan) * 100, 2)
+                : 0;
+
+            return $item;
+        })->values();
+
+        $periodeLabel = $bulan !== null
+            ? Carbon::create($tahun, $bulan, 1)->locale('id')->translatedFormat('F Y')
+            : 'Tahun ' . $tahun;
+
+        return [
+            'filter' => [
+                'tahun' => $tahun,
+                'bulan' => $bulan,
+                'periode_label' => $periodeLabel,
+            ],
+            'summary' => [
+                'total_kunjungan' => $totalKunjungan,
+                'hari_aktif' => $data->where('jumlah_kunjungan', '>', 0)->count(),
+            ],
+            'data' => $data,
+        ];
+    }
+
+    private function buildDistribusiKunjunganKelasReport(Request $request): array
+    {
+        $tahun = (int) ($request->get('tahun', date('Y')));
+        $bulan = $request->filled('bulan') ? (int) $request->get('bulan') : null;
+
+        $baseQuery = DB::table('tr_kunjungan_perpus as kunjungan')
+            ->join('mst_siswa as siswa', 'kunjungan.id_siswa_tetap', '=', 'siswa.id_siswa_tetap')
+            ->where('siswa.is_delete', 0)
+            ->whereYear('kunjungan.start_kunjungan', $tahun);
+
+        if ($bulan !== null) {
+            $baseQuery->whereMonth('kunjungan.start_kunjungan', $bulan);
+        }
+
+        $kelasExpression = "
+            CASE
+                WHEN CAST(siswa.tahun_lulus AS SIGNED) - ? = 2 THEN 'X'
+                WHEN CAST(siswa.tahun_lulus AS SIGNED) - ? = 1 THEN 'XI'
+                WHEN CAST(siswa.tahun_lulus AS SIGNED) - ? = 0 THEN 'XII'
+                ELSE NULL
+            END
+        ";
+
+        $rows = (clone $baseQuery)
+            ->selectRaw("$kelasExpression as kelas_label", [$tahun, $tahun, $tahun])
+            ->selectRaw('COUNT(*) as total_kunjungan')
+            ->groupBy('kelas_label')
+            ->get();
+
+        $validRows = collect(['X', 'XI', 'XII'])->map(function ($kelas) use ($rows) {
+            $match = $rows->firstWhere('kelas_label', $kelas);
+
+            return [
+                'kelas' => $kelas,
+                'jumlah_kunjungan' => (int) ($match->total_kunjungan ?? 0),
+            ];
+        });
+
+        $totalValid = $validRows->sum('jumlah_kunjungan');
+        $totalSemuaKunjungan = (clone $baseQuery)->count();
+        $totalTidakValid = max(0, $totalSemuaKunjungan - $totalValid);
+
+        $data = $validRows->map(function ($item) use ($totalValid) {
+            return [
+                'kelas' => $item['kelas'],
+                'jumlah_kunjungan' => $item['jumlah_kunjungan'],
+                'persentase' => $totalValid > 0
+                    ? round(($item['jumlah_kunjungan'] / $totalValid) * 100, 2)
+                    : 0,
+            ];
+        })->values();
+
+        $periodeLabel = $bulan !== null
+            ? Carbon::create($tahun, $bulan, 1)->locale('id')->translatedFormat('F Y')
+            : 'Tahun ' . $tahun;
+
+        return [
+            'filter' => [
+                'tahun' => $tahun,
+                'bulan' => $bulan,
+                'periode_label' => $periodeLabel,
+            ],
+            'summary' => [
+                'total_kunjungan_valid' => $totalValid,
+                'total_kunjungan_tidak_valid' => $totalTidakValid,
+                'jumlah_kelas_aktif' => $data->where('jumlah_kunjungan', '>', 0)->count(),
+            ],
+            'data' => $data,
+        ];
+    }
+
+    public function statistikPeminjamanBulanan(Request $request)
+    {
+        try {
+            return response()->json($this->buildStatistikPeminjamanBulananReport($request));
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    public function exportPdfPeminjamanBulanan(Request $request)
+    {
+        try {
+            $report = $this->buildStatistikPeminjamanBulananReport($request);
+            $pdf = Pdf::loadView('laporan.statistik_peminjaman_bulanan_pdf', $report);
+
+            return $pdf->setPaper('a4', 'portrait')
+                ->download('Statistik_Peminjaman_Buku_' . $report['filter']['tahun'] . '.pdf');
+        } catch (\Exception $e) {
+            return response()->json(['message' => $e->getMessage()], 500);
+        }
+    }
+
+    private function buildStatistikPeminjamanBulananReport(Request $request): array
+    {
+        $tahun = (int) ($request->get('tahun', date('Y')));
+        $bulan = $request->filled('bulan') ? (int) $request->get('bulan') : null;
+
+        $query = DB::table('tr_peminjaman')
+            ->whereYear('TGL_PINJAM', $tahun)
+            ->where(function ($query) {
+                $query->where('STATUS_PEMINJAMAN', '!=', 'Dihapus')
+                    ->orWhereNull('STATUS_PEMINJAMAN');
+            });
+
+        if ($bulan !== null) {
+            $query->whereMonth('TGL_PINJAM', $bulan);
+        }
+
+        $rows = (clone $query)
+            ->selectRaw('MONTH(TGL_PINJAM) as nomor_bulan')
+            ->selectRaw('COUNT(*) as jumlah_peminjaman')
+            ->groupBy('nomor_bulan')
+            ->pluck('jumlah_peminjaman', 'nomor_bulan');
+
+        $bulanMap = [
+            1 => 'Januari',
+            2 => 'Februari',
+            3 => 'Maret',
+            4 => 'April',
+            5 => 'Mei',
+            6 => 'Juni',
+            7 => 'Juli',
+            8 => 'Agustus',
+            9 => 'September',
+            10 => 'Oktober',
+            11 => 'November',
+            12 => 'Desember',
+        ];
+
+        $bulanRange = $bulan !== null ? [$bulan] : range(1, 12);
+        $data = collect($bulanRange)->map(function ($nomorBulan) use ($rows, $bulanMap) {
+            return [
+                'nomor_bulan' => $nomorBulan,
+                'nama_bulan' => $bulanMap[$nomorBulan],
+                'jumlah_peminjaman' => (int) ($rows[$nomorBulan] ?? 0),
+            ];
+        })->values();
+
+        $periodeLabel = $bulan !== null
+            ? Carbon::create($tahun, $bulan, 1)->locale('id')->translatedFormat('F Y')
+            : 'Tahun ' . $tahun;
+
+        return [
+            'filter' => [
+                'tahun' => $tahun,
+                'bulan' => $bulan,
+                'periode_label' => $periodeLabel,
+            ],
+            'summary' => [
+                'total_peminjaman' => (int) $data->sum('jumlah_peminjaman'),
+                'jumlah_bulan_aktif' => $data->where('jumlah_peminjaman', '>', 0)->count(),
+            ],
+            'data' => $data,
+        ];
     }
 
     public function getLaporan(Request $request)

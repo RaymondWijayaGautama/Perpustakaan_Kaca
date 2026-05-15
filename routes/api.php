@@ -85,10 +85,15 @@ Route::delete('/kategori/{id}', [KoleksiController::class, 'destroy']);
 // --- LAPORAN ---
 Route::get('/laporan', [LaporanController::class, 'getLaporan']); 
 Route::get('/laporan/peminjaman-bulanan', [LaporanController::class, 'statistikPeminjamanBulanan']);
+Route::get('/laporan/export-pdf-peminjaman-bulanan', [LaporanController::class, 'exportPdfPeminjamanBulanan']);
 Route::get('/laporan/peminjaman-guru', [LaporanController::class, 'laporanPeminjamanGuru']);
+Route::get('/laporan/export-pdf-peminjaman-guru', [LaporanController::class, 'exportPdfPeminjamanGuru']);
 Route::get('/laporan/kunjungan-distribusi-kelas', [LaporanController::class, 'distribusiKunjunganKelas']);
+Route::get('/laporan/export-pdf-kunjungan-distribusi-kelas', [LaporanController::class, 'exportPdfDistribusiKunjunganKelas']);
 Route::get('/laporan/kunjungan-distribusi-hari', [LaporanController::class, 'distribusiKunjunganHari']);
+Route::get('/laporan/export-pdf-kunjungan-distribusi-hari', [LaporanController::class, 'exportPdfDistribusiKunjunganHari']);
 Route::get('/laporan/inventarisasi-buku-baru', [LaporanController::class, 'inventarisasiBukuBaru']);
+Route::get('/laporan/export-pdf-inventarisasi-buku-baru', [LaporanController::class, 'exportPdfInventarisasiBukuBaru']);
 Route::get('/laporan/siswa-terajin', [LaporanController::class, 'siswaTerajin']);
 Route::get('/laporan/kunjungan-bulanan', [LaporanController::class, 'kunjunganBulanan']);
 Route::get('/laporan/buku-terpopuler', [LaporanController::class, 'bukuTerpopuler']);

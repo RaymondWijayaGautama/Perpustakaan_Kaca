@@ -64,6 +64,12 @@ const LaporanDistribusiKunjunganKelasPanel = () => {
     fetchReport();
   }, [tahun, bulan]);
 
+  const handleDownloadPdf = () => {
+    const params = new URLSearchParams({ tahun });
+    if (bulan) params.set('bulan', bulan);
+    window.open(`${API_BASE_URL}/laporan/export-pdf-kunjungan-distribusi-kelas?${params.toString()}`, '_blank');
+  };
+
   return (
     <section className="bg-white rounded-xl shadow p-6 border border-gray-100 text-[#1A1A1A]">
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6 mb-8">
@@ -73,7 +79,7 @@ const LaporanDistribusiKunjunganKelasPanel = () => {
             Distribusi dihitung dari data kunjungan yang terhubung ke siswa dan hanya kelas valid yang ikut dihitung.
           </p>
         </div>
-        <div className="flex gap-3">
+        <div className="flex flex-wrap gap-3">
           <select
             className="p-3 border rounded-xl text-sm bg-gray-50 font-medium"
             value={bulan}
@@ -96,6 +102,13 @@ const LaporanDistribusiKunjunganKelasPanel = () => {
               </option>
             ))}
           </select>
+          <button
+            type="button"
+            onClick={handleDownloadPdf}
+            className="rounded-xl bg-[#265F9C] px-5 py-3 text-sm font-bold text-white shadow-sm hover:brightness-110"
+          >
+            Unduh PDF
+          </button>
         </div>
       </div>
 

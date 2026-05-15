@@ -1,5 +1,14 @@
 import { useEffect, useState } from 'react';
 import axios from 'axios';
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+} from 'recharts';
 
 const API_BASE_URL = 'http://localhost:8000/api';
 
@@ -58,16 +67,22 @@ const LaporanPeminjamanBulananPanel = () => {
     fetchReport();
   }, [tahun, bulan]);
 
+  const handleDownloadPdf = () => {
+    const params = new URLSearchParams({ tahun });
+    if (bulan) params.set('bulan', bulan);
+    window.open(`${API_BASE_URL}/laporan/export-pdf-peminjaman-bulanan?${params.toString()}`, '_blank');
+  };
+
   return (
     <section className="bg-white rounded-xl shadow p-6 border border-gray-100 text-[#1A1A1A]">
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6 mb-8">
         <div>
-          <h1 className="text-2xl font-bold font-montserrat">Laporan Statistik Peminjaman Buku Bulanan</h1>
+          <h1 className="text-2xl font-bold font-montserrat">Peminjaman Bulanan</h1>
           <p className="text-sm text-[#585858] mt-2">
-            Data diambil dari transaksi peminjaman dan dapat difilter per bulan maupun tahun.
+            Data diambil dari transaksi peminjaman buku dan dapat difilter per bulan maupun tahun.
           </p>
         </div>
-        <div className="flex gap-3">
+        <div className="flex flex-wrap gap-3">
           <select
             className="p-3 border rounded-xl text-sm bg-gray-50 font-medium"
             value={bulan}
@@ -90,6 +105,13 @@ const LaporanPeminjamanBulananPanel = () => {
               </option>
             ))}
           </select>
+          <button
+            type="button"
+            onClick={handleDownloadPdf}
+            className="rounded-xl bg-[#265F9C] px-5 py-3 text-sm font-bold text-white shadow-sm hover:brightness-110"
+          >
+            Unduh PDF
+          </button>
         </div>
       </div>
 
@@ -118,28 +140,53 @@ const LaporanPeminjamanBulananPanel = () => {
         <div className="py-16 text-center text-[#585858]">Memuat laporan statistik peminjaman...</div>
       ) : (
         <>
-          <table className="w-full text-left">
-            <thead className="bg-gray-50 uppercase text-[10px] font-bold text-[#585858] border-b">
-              <tr>
-                <th className="p-4 w-16 text-center">No</th>
-                <th className="p-4">Bulan</th>
-                <th className="p-4 text-center">Jumlah Peminjaman</th>
-              </tr>
-            </thead>
-            <tbody>
-              {report.data.map((item, index) => (
-                <tr key={`${item.nomor_bulan}-${index}`} className="border-b text-sm hover:bg-blue-50/40 transition-colors">
-                  <td className="p-4 text-center text-[#7D7D7E]">{index + 1}</td>
-                  <td className="p-4 font-semibold">{item.nama_bulan}</td>
-                  <td className="p-4 text-center">
-                    <span className="inline-flex items-center rounded-full bg-gray-100 px-3 py-1 text-xs font-bold text-[#1A1A1A]">
-                      {item.jumlah_peminjaman} transaksi
-                    </span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <div className="grid grid-cols-1 xl:grid-cols-[1fr,1fr] gap-6">
+            <div className="overflow-hidden rounded-xl border border-gray-200">
+              <table className="w-full text-left">
+                <thead className="bg-gray-50 uppercase text-[10px] font-bold text-[#585858] border-b">
+                  <tr>
+                    <th className="p-4 w-16 text-center">No</th>
+                    <th className="p-4">Bulan</th>
+                    <th className="p-4 text-center">Jumlah Peminjaman</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {report.data.map((item, index) => (
+                    <tr key={`${item.nomor_bulan}-${index}`} className="border-b text-sm hover:bg-blue-50/40 transition-colors">
+                      <td className="p-4 text-center text-[#7D7D7E]">{index + 1}</td>
+                      <td className="p-4 font-semibold">{item.nama_bulan}</td>
+                      <td className="p-4 text-center">
+                        <span className="inline-flex items-center rounded-full bg-gray-100 px-3 py-1 text-xs font-bold text-[#1A1A1A]">
+                          {item.jumlah_peminjaman} transaksi
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="rounded-xl border border-gray-200 bg-gray-50 p-5">
+              <h2 className="mb-5 text-lg font-bold font-montserrat">Grafik Peminjaman Bulanan</h2>
+              <div className="h-80">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={report.data} margin={{ top: 10, right: 10, left: 0, bottom: 40 }}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                    <XAxis
+                      dataKey="nama_bulan"
+                      angle={-35}
+                      textAnchor="end"
+                      height={70}
+                      tick={{ fontSize: 11 }}
+                    />
+                    <YAxis allowDecimals={false} tick={{ fontSize: 11 }} />
+                    <Tooltip formatter={(value) => [`${value} transaksi`, 'Jumlah Peminjaman']} />
+                    <Bar dataKey="jumlah_peminjaman" fill="#9A7952" radius={[6, 6, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          </div>
 
           {report.data.length === 0 && (
             <div className="mt-8 rounded-xl border border-dashed border-gray-300 bg-gray-50 px-6 py-10 text-center text-[#585858]">
