@@ -62,7 +62,12 @@ const KunjunganPanel = ({ user }) => {
   };
 
   // Determine current status based on today's history
-  const todayStr = new Date().toISOString().split('T')[0];
+  // Gunakan format lokal YYYY-MM-DD agar sinkron dengan WIB
+  const now = new Date();
+  const offset = now.getTimezoneOffset() * 60000;
+  const localISOTime = new Date(now - offset).toISOString();
+  const todayStr = localISOTime.split('T')[0];
+  
   const todayVisit = history.find(log => log.START_KUNJUNGAN?.startsWith(todayStr));
   
   const status = !todayVisit 
@@ -138,12 +143,20 @@ const KunjunganPanel = ({ user }) => {
               </thead>
               <tbody>
                 {history.map((log, index) => {
-                  const inObj = log.START_KUNJUNGAN ? new Date(log.START_KUNJUNGAN) : null;
-                  const outObj = log.END_KUNJUNGAN ? new Date(log.END_KUNJUNGAN) : null;
+                  const parseDate = (dateStr) => {
+                    if (!dateStr) return null;
+                    // Jika string tidak mengandung 'Z' atau '+', asumsikan itu waktu lokal dari server
+                    // Kita ganti spasi dengan 'T' agar formatnya standar
+                    const isoStr = dateStr.replace(' ', 'T');
+                    return new Date(isoStr);
+                  };
+
+                  const inObj = parseDate(log.START_KUNJUNGAN);
+                  const outObj = parseDate(log.END_KUNJUNGAN);
                   
                   const dateStr = inObj ? inObj.toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) : '-';
-                  const inTimeStr = inObj ? inObj.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : '-';
-                  const outTimeStr = outObj ? outObj.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : '-';
+                  const inTimeStr = inObj ? inObj.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', hour12: false }) : '-';
+                  const outTimeStr = outObj ? outObj.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', hour12: false }) : '-';
                   
                   return (
                     <tr key={log.ID_KUNJUNGAN || index} className="bg-white border-b border-slate-50 last:border-0 hover:bg-blue-50/50 transition-colors">

@@ -21,6 +21,7 @@ const getUserNip = (user) => (
 const ManajemenKoleksiPanel = ({ user }) => {
     const [collections, setCollections] = useState([]);
     const [search, setSearch] = useState('');
+    const [tempSearch, setTempSearch] = useState('');
     const [sortBy, setSortBy] = useState('deskripsi');
     const [sortOrder, setSortOrder] = useState('asc');
     const [page, setPage] = useState(1);
@@ -38,10 +39,8 @@ const ManajemenKoleksiPanel = ({ user }) => {
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
 
-    const deferredSearch = useDeferredValue(search);
-
     const loadCollections = async ({
-        currentSearch = deferredSearch,
+        currentSearch = search,
         currentSortBy = sortBy,
         currentSortOrder = sortOrder,
         currentPage = page,
@@ -71,7 +70,13 @@ const ManajemenKoleksiPanel = ({ user }) => {
 
     useEffect(() => {
         loadCollections();
-    }, [deferredSearch, sortBy, sortOrder, page]);
+    }, [search, sortBy, sortOrder, page]);
+
+    const handleSearch = (e) => {
+        if (e) e.preventDefault();
+        setSearch(tempSearch);
+        setPage(1);
+    };
 
     const closeFormModal = () => {
         setShowFormModal(false);
@@ -213,17 +218,19 @@ const ManajemenKoleksiPanel = ({ user }) => {
                 </button>
             </div>
 
-            <div className="mb-8 flex flex-wrap gap-3 justify-end">
-                <input
-                    type="text"
-                    placeholder="Cari ID, kode, atau deskripsi..."
-                    className="p-3 border rounded-xl text-sm outline-none min-w-[260px] focus:ring-2 focus:ring-[#265F9C] transition-all shadow-sm"
-                    value={search}
-                    onChange={(event) => {
-                        setSearch(event.target.value);
-                        setPage(1);
-                    }}
-                />
+            <div className="mb-8 flex flex-wrap gap-3 justify-end items-center">
+                <form onSubmit={handleSearch} className="flex gap-2">
+                    <input
+                        type="text"
+                        placeholder="Cari ID, kode, atau deskripsi..."
+                        className="p-3 border rounded-xl text-sm outline-none min-w-[260px] focus:ring-2 focus:ring-[#265F9C] transition-all shadow-sm"
+                        value={tempSearch}
+                        onChange={(event) => setTempSearch(event.target.value)}
+                    />
+                    <button type="submit" className="bg-[#265F9C] text-white px-4 py-2 rounded-xl text-xs font-bold hover:bg-blue-800 transition-all">
+                        Cari
+                    </button>
+                </form>
                 <select
                     className="p-3 border rounded-xl text-sm bg-gray-50 font-medium"
                     value={sortBy}

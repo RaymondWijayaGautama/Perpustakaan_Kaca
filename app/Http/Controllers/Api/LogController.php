@@ -104,33 +104,33 @@ class LogController extends Controller
         );
     }
 
-    public function visitor(Request $request)
+public function visitor(Request $request)
     {
         $perPage = min((int) $request->query('per_page', 15), 50);
 
-        $query = DB::table('visitor_logs')
-            ->leftJoin('mst_karyawan', 'visitor_logs.username', '=', 'mst_karyawan.NIP_KARYAWAN')
-            ->leftJoin('mst_siswa', 'visitor_logs.username', '=', 'mst_siswa.NISN_SISWA')
+        // Karena di tabel tr_kunjungan_perpus cuma ada ID_SISWA_TETAP, kita pakai itu aja dulu
+        $query = DB::table('tr_kunjungan_perpus')
+            ->leftJoin('mst_siswa', 'tr_kunjungan_perpus.ID_SISWA_TETAP', '=', 'mst_siswa.ID_SISWA_TETAP')
             ->select([
-                'visitor_logs.id',
-                'visitor_logs.visited_at as date',
-                'visitor_logs.username',
-                // PERBAIKAN: NAMA_SISWA_TETAP (Sesuai database lo)
-                DB::raw("COALESCE(mst_karyawan.NAMA_KARYAWAN, mst_siswa.NAMA_SISWA_TETAP, 'Unknown') as visitor_name"),
-                'visitor_logs.username as visitor_npm',
-                'visitor_logs.purpose as purpose',
+                'tr_kunjungan_perpus.ID_KUNJUNGAN',
+                'tr_kunjungan_perpus.START_KUNJUNGAN',
+                'tr_kunjungan_perpus.END_KUNJUNGAN',
+                'tr_kunjungan_perpus.ID_SISWA_TETAP',
+                // Ambil nama siswa
+                DB::raw("COALESCE(mst_siswa.NAMA_SISWA_TETAP, 'Unknown') as nama_pengunjung")
             ]);
 
+        // Sesuaikan filternya tanpa NIP_KARYAWAN
         $this->applyCommonFilters(
             $query, 
             $request, 
-            'visitor_logs.visited_at', 
-            ['visitor_logs.username', 'mst_karyawan.NAMA_KARYAWAN', 'mst_siswa.NAMA_SISWA_TETAP', 'visitor_logs.purpose'], 
+            'tr_kunjungan_perpus.START_KUNJUNGAN', 
+            ['tr_kunjungan_perpus.ID_SISWA_TETAP', 'mst_siswa.NAMA_SISWA_TETAP'], 
             [] 
         );
 
         return response()->json(
-            $query->orderByDesc('visitor_logs.visited_at')->paginate($perPage)
+            $query->orderByDesc('tr_kunjungan_perpus.START_KUNJUNGAN')->paginate($perPage)
         );
     }
 

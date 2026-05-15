@@ -23,6 +23,7 @@ use Illuminate\Database\Eloquent\Model;
  * @property string|null $KONDISI_BUKU
  * @property string|null $KETERANGAN_PEMINJAMAN
  * @property float|null $DENDA_PEMINJAMAN
+ * @property int|null $JUMLAH_PERPANJANGAN
  * 
  * @property MstSiswa|null $mst_siswa
  * @property CpKoleksi|null $cp_koleksi
@@ -42,7 +43,8 @@ class TrPeminjaman extends Model
 		'TGL_PINJAM' => 'datetime',
 		'TGL_HARUS_KEMBALI' => 'datetime',
 		'TGL_KEMBALI' => 'datetime',
-		'DENDA_PEMINJAMAN' => 'float'
+		'DENDA_PEMINJAMAN' => 'float',
+		'JUMLAH_PERPANJANGAN' => 'int'
 	];
 
 	protected $fillable = [
@@ -55,7 +57,8 @@ class TrPeminjaman extends Model
 		'STATUS_PEMINJAMAN',
 		'KONDISI_BUKU',
 		'KETERANGAN_PEMINJAMAN',
-		'DENDA_PEMINJAMAN'
+		'DENDA_PEMINJAMAN',
+		'JUMLAH_PERPANJANGAN'
 	];
 
 	public function mst_siswa()

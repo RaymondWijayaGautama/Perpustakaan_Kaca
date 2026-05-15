@@ -2,6 +2,7 @@ import { useDeferredValue, useEffect, useState } from 'react';
 import axios from 'axios';
 import ProfilePanel from './ProfilePanel';
 import KunjunganPanel from './KunjunganPanel';
+import BookingPanel from './BookingPanel'; // <-- TAMBAHAN IMPORT
 
 const API_BASE_URL = 'http://localhost:8000/api';
 
@@ -72,7 +73,8 @@ const MemberPanel = ({ user, onLogout }) => {
 
   useEffect(() => {
     const fetchBooks = async () => {
-      if (activeTab === 'profile') {
+      // PERUBAHAN: Jangan fetch buku kalau di tab profile, kunjungan, atau booking
+      if (activeTab === 'profile' || activeTab === 'kunjungan' || activeTab === 'booking') {
         return;
       }
 
@@ -93,7 +95,6 @@ const MemberPanel = ({ user, onLogout }) => {
       } catch (err) {
         console.error(err);
         setError('Gagal memuat data. Pastikan API Laravel tidak 404.');
-        // PENTING: Kosongkan data lama agar tidak nyangkut saat error
         setBooks([]); 
         setPagination({});
       } finally {
@@ -110,6 +111,22 @@ const MemberPanel = ({ user, onLogout }) => {
       setSearchJudul('');
       setFilterPenulis('');
       setKategori('');
+  };
+
+  // FUNGSI BARU: Untuk proses booking (Task 26)
+  const handleBooking = async (book) => {
+    if (!window.confirm(`Konfirmasi booking buku: "${book.judul_koleksi}"?`)) return;
+
+    try {
+      const res = await axios.post(`${API_BASE_URL}/bookings/store`, {
+        id_cp_koleksi: book.id_cp_koleksi,
+        id_siswa_tetap: user.ID_SISWA_TETAP || user.id_siswa_tetap
+      });
+      alert(res.data.message);
+      handleTabChange('booking'); // Pindah tab riwayat setelah berhasil
+    } catch (err) {
+      alert(err.response?.data?.message || "Gagal melakukan booking");
+    }
   };
 
   const handleDownloadLaporan = async (isbn, judul) => {
@@ -186,24 +203,31 @@ const MemberPanel = ({ user, onLogout }) => {
           </div>
         </nav>
 
-        <div className="flex gap-2 mb-0">
+        <div className="flex gap-2 mb-0 overflow-x-auto no-scrollbar">
             <button 
                 onClick={() => handleTabChange('buku')}
-                className={`px-8 py-3 font-montserrat font-bold text-sm rounded-t-2xl transition-all ${activeTab === 'buku' ? 'bg-white text-[#265F9C] border-t-2 border-x border-[#265F9C] shadow-sm relative z-10' : 'bg-slate-200/50 text-slate-500 hover:bg-slate-200'}`}
+                className={`px-8 py-3 font-montserrat font-bold text-sm rounded-t-2xl transition-all whitespace-nowrap ${activeTab === 'buku' ? 'bg-white text-[#265F9C] border-t-2 border-x border-[#265F9C] shadow-sm relative z-10' : 'bg-slate-200/50 text-slate-500 hover:bg-slate-200'}`}
             >
                 Koleksi Buku
             </button>
             <button 
                 onClick={() => handleTabChange('laporan')}
-                className={`px-8 py-3 font-montserrat font-bold text-sm rounded-t-2xl transition-all ${activeTab === 'laporan' ? 'bg-white text-[#265F9C] border-t-2 border-x border-[#265F9C] shadow-sm relative z-10' : 'bg-slate-200/50 text-slate-500 hover:bg-slate-200'}`}
+                className={`px-8 py-3 font-montserrat font-bold text-sm rounded-t-2xl transition-all whitespace-nowrap ${activeTab === 'laporan' ? 'bg-white text-[#265F9C] border-t-2 border-x border-[#265F9C] shadow-sm relative z-10' : 'bg-slate-200/50 text-slate-500 hover:bg-slate-200'}`}
             >
                 Laporan PKL
             </button>
             <button 
                 onClick={() => handleTabChange('kunjungan')}
-                className={`px-8 py-3 font-montserrat font-bold text-sm rounded-t-2xl transition-all ${activeTab === 'kunjungan' ? 'bg-white text-[#265F9C] border-t-2 border-x border-[#265F9C] shadow-sm relative z-10' : 'bg-slate-200/50 text-slate-500 hover:bg-slate-200'}`}
+                className={`px-8 py-3 font-montserrat font-bold text-sm rounded-t-2xl transition-all whitespace-nowrap ${activeTab === 'kunjungan' ? 'bg-white text-[#265F9C] border-t-2 border-x border-[#265F9C] shadow-sm relative z-10' : 'bg-slate-200/50 text-slate-500 hover:bg-slate-200'}`}
             >
                 Kunjungan
+            </button>
+            {/* TAB BARU: Riwayat Booking */}
+            <button 
+                onClick={() => handleTabChange('booking')}
+                className={`px-8 py-3 font-montserrat font-bold text-sm rounded-t-2xl transition-all whitespace-nowrap ${activeTab === 'booking' ? 'bg-white text-[#265F9C] border-t-2 border-x border-[#265F9C] shadow-sm relative z-10' : 'bg-slate-200/50 text-slate-500 hover:bg-slate-200'}`}
+            >
+                Riwayat Booking
             </button>
         </div>
 
@@ -211,10 +235,13 @@ const MemberPanel = ({ user, onLogout }) => {
           <ProfilePanel user={user} onLogout={onLogout} context="member" />
         ) : activeTab === 'kunjungan' ? (
           <KunjunganPanel user={user} />
+        ) : activeTab === 'booking' ? (
+          /* KOMPONEN BARU: Menampilkan list booking milik user (Task 28) */
+          <BookingPanel userRole="pemustaka" userId={user.ID_SISWA_TETAP || user.id_siswa_tetap} />
         ) : (
           <>
         <section className="bg-white p-8 rounded-b-2xl rounded-tr-2xl shadow-sm border border-slate-100 mb-8">
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:flex gap-4">
+            <form onSubmit={(e) => e.preventDefault()} className="grid grid-cols-1 md:grid-cols-2 xl:flex gap-4">
                 <div className="relative flex-1">
                     <input type="text" placeholder="Cari Judul..." value={searchJudul} onChange={(e) => { setSearchJudul(e.target.value); setPage(1); }} className="w-full p-3 pl-10 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-[#265F9C] transition-all" />
                     <span className="absolute left-3 top-3.5 text-slate-400">🔍</span>
@@ -223,6 +250,12 @@ const MemberPanel = ({ user, onLogout }) => {
                 <div className="relative flex-1">
                     <input type="text" placeholder={activeTab === 'laporan' ? "Nama Siswa..." : "Penulis..."} value={filterPenulis} onChange={(e) => { setFilterPenulis(e.target.value); setPage(1); }} className="w-full p-3 pl-10 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-[#2E7D32] bg-slate-50 focus:bg-white transition-all" />
                     <span className="absolute left-3 top-3.5 text-slate-400">👤</span>
+                </div>
+
+                <div className="flex gap-2">
+                    <button type="submit" className="bg-[#265F9C] text-white px-5 py-2 rounded-xl text-xs font-bold hover:bg-blue-800 transition-all">
+                        Cari
+                    </button>
                 </div>
 
                 {activeTab === 'buku' && (
@@ -244,7 +277,7 @@ const MemberPanel = ({ user, onLogout }) => {
                     <option value="asc">A-Z / Terlama</option>
                     <option value="desc">Z-A / Terbaru</option>
                 </select>
-            </div>
+            </form>
         </section>
 
         {error && <div className="mb-6 bg-red-50 border border-red-200 text-red-700 p-4 rounded-xl text-sm font-bold">{error}</div>}
@@ -304,6 +337,17 @@ const MemberPanel = ({ user, onLogout }) => {
                       {downloadingId === book.ISBN ? 'Mengunduh...' : 'Download Laporan'}
                     </button>
                   )}
+
+                  {/* TOMBOL BARU: Booking Sekarang (Hanya muncul jika buku tersedia di tab Koleksi Buku) */}
+                  {activeTab === 'buku' && book.status_buku === 'Tersedia' && (
+                    <button
+                      type="button"
+                      onClick={() => handleBooking(book)}
+                      className="mt-4 w-full rounded-xl border-2 border-[#265F9C] text-[#265F9C] px-4 py-2 text-xs font-black uppercase tracking-widest hover:bg-[#265F9C] hover:text-white transition-all active:scale-95 shadow-sm"
+                    >
+                      Booking Sekarang
+                    </button>
+                  )}
                   
                   <div className="absolute -right-2 -bottom-2 w-12 h-12 bg-slate-50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"></div>
                 </article>
@@ -338,4 +382,4 @@ const MemberPanel = ({ user, onLogout }) => {
   );
 };
 
-export default MemberPanel; 
+export default MemberPanel;
