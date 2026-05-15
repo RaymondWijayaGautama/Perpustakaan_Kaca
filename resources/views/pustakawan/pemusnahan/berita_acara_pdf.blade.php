@@ -2,53 +2,18 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Berita Acara Pemusnahan Buku</title>
     <style>
+        @page { margin: 58px 66px 54px; }
+
         body {
-            background: #e5e7eb;
             color: #111;
             font-family: "Times New Roman", Times, serif;
-            font-size: 12pt;
+            font-size: 11pt;
             margin: 0;
         }
 
-        .actions {
-            display: flex;
-            gap: 10px;
-            justify-content: flex-end;
-            margin: 16px auto;
-            width: 794px;
-        }
-
-        .actions button {
-            background: #265f9c;
-            border: none;
-            border-radius: 8px;
-            color: #fff;
-            cursor: pointer;
-            font-family: Arial, sans-serif;
-            font-size: 13px;
-            font-weight: 700;
-            padding: 10px 14px;
-        }
-
-        .actions .secondary {
-            background: #374151;
-        }
-
-        .document-page {
-            background: #fff;
-            box-shadow: 0 10px 30px rgba(15, 23, 42, 0.18);
-            box-sizing: border-box;
-            margin: 0 auto 24px;
-            min-height: 1123px;
-            padding: 70px 76px 64px;
-            width: 794px;
-        }
-
         h1 {
-            font-size: 16pt;
+            font-size: 14pt;
             font-weight: bold;
             margin: 0 0 4px;
             text-align: center;
@@ -56,53 +21,53 @@
         }
 
         h2 {
-            font-size: 16pt;
-            margin: 64px 0 14px;
+            font-size: 14pt;
+            margin: 44px 0 12px;
         }
 
         p {
             line-height: 1.55;
-            margin: 0 0 12px;
+            margin: 0 0 11px;
             text-align: justify;
         }
 
         .doc-number {
-            font-size: 11pt;
-            margin-top: 36px;
-            margin-bottom: 28px;
+            font-size: 10.5pt;
+            margin-top: 32px;
+            margin-bottom: 24px;
             text-align: left;
         }
 
         .dot-fill {
             border-bottom: 1px dotted #111;
             display: inline-block;
-            height: 11px;
+            height: 10px;
             vertical-align: baseline;
         }
 
         .day-fill {
-            width: 78px;
+            width: 72px;
         }
 
         .date-fill {
-            width: 68px;
+            width: 62px;
         }
 
         .month-fill {
-            width: 76px;
+            width: 70px;
         }
 
         .year-fill {
-            width: 76px;
+            width: 70px;
         }
 
         .method-fill {
-            width: 176px;
+            width: 156px;
         }
 
         .data-table {
             border-collapse: collapse;
-            margin: 14px 0;
+            margin: 12px 0;
             table-layout: fixed;
             width: 100%;
         }
@@ -110,8 +75,8 @@
         .data-table th,
         .data-table td {
             border: 1px solid #111;
-            font-size: 10pt;
-            padding: 7px 6px;
+            font-size: 9.5pt;
+            padding: 6px 5px;
             vertical-align: top;
         }
 
@@ -181,23 +146,27 @@
 
         .method {
             line-height: 1.55;
-            margin: 14px 0;
+            margin: 12px 0;
         }
 
         .checkbox {
-            font-family: "DejaVu Sans", Arial, sans-serif;
-            font-size: 11pt;
+            font-family: "DejaVu Sans", sans-serif;
+            font-size: 10.5pt;
+        }
+
+        .page-break {
+            page-break-before: always;
         }
 
         .date-block {
-            margin: 110px 0 74px 66px;
-            width: 240px;
+            margin: 90px 0 62px 54px;
+            width: 220px;
         }
 
         .date-line {
             border-bottom: 1px dotted #111;
-            height: 24px;
-            width: 210px;
+            height: 22px;
+            width: 190px;
         }
 
         .signature-table {
@@ -209,14 +178,14 @@
 
         .signature-table td {
             border: none;
-            font-size: 11pt;
+            font-size: 10.5pt;
             text-align: left;
             vertical-align: top;
             width: 33.333%;
         }
 
         .signature-space {
-            height: 76px;
+            height: 62px;
         }
 
         .attachment-title {
@@ -225,42 +194,11 @@
         }
 
         .attachment-table td {
-            height: 42px;
-        }
-
-        @media print {
-            @page {
-                margin: 58px 66px 54px;
-            }
-
-            body {
-                background: #fff;
-            }
-
-            .actions {
-                display: none;
-            }
-
-            .document-page {
-                box-shadow: none;
-                margin: 0;
-                min-height: auto;
-                padding: 0;
-                width: auto;
-            }
-
-            .page-break {
-                page-break-before: always;
-            }
+            height: 34px;
         }
     </style>
 </head>
 <body>
-    <div class="actions">
-        <button onclick="window.print()">Cetak / Simpan PDF</button>
-        <button class="secondary" onclick="window.close()">Tutup</button>
-    </div>
-
     @include('pustakawan.pemusnahan.partials.berita_acara_document')
 </body>
 </html>

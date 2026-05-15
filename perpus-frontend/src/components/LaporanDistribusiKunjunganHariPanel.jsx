@@ -68,6 +68,12 @@ const LaporanDistribusiKunjunganHariPanel = () => {
     fetchReport();
   }, [tahun, bulan]);
 
+  const handleDownloadPdf = () => {
+    const params = new URLSearchParams({ tahun });
+    if (bulan) params.set('bulan', bulan);
+    window.open(`${API_BASE_URL}/laporan/export-pdf-kunjungan-distribusi-hari?${params.toString()}`, '_blank');
+  };
+
   return (
     <section className="bg-white rounded-xl shadow p-6 border border-gray-100 text-[#1A1A1A]">
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6 mb-8">
@@ -77,7 +83,7 @@ const LaporanDistribusiKunjunganHariPanel = () => {
             Data kunjungan dikelompokkan otomatis dari Senin sampai Minggu dengan format tampilan yang konsisten.
           </p>
         </div>
-        <div className="flex gap-3">
+        <div className="flex flex-wrap gap-3">
           <select
             className="p-3 border rounded-xl text-sm bg-gray-50 font-medium"
             value={bulan}
@@ -100,6 +106,13 @@ const LaporanDistribusiKunjunganHariPanel = () => {
               </option>
             ))}
           </select>
+          <button
+            type="button"
+            onClick={handleDownloadPdf}
+            className="rounded-xl bg-[#265F9C] px-5 py-3 text-sm font-bold text-white shadow-sm hover:brightness-110"
+          >
+            Unduh PDF
+          </button>
         </div>
       </div>
 

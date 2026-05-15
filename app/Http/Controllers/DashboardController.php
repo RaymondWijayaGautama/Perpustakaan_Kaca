@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rule;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Carbon\Carbon; // Tambahan untuk pengolahan tanggal
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class DashboardController extends Controller
 {
@@ -58,27 +59,318 @@ class DashboardController extends Controller
         $raw = trim($value);
         $normalized = preg_replace('/\s+/', '', $raw) ?? '';
 
-        if (preg_match('/(?<isbn>97[89]\d{10})\D+(?<copy>\d+)$/', $normalized, $matches)) {
+        if ($raw === '') {
             return [
-                'raw' => $raw,
-                'isbn' => $matches['isbn'],
-                'id_cp_koleksi' => (int) $matches['copy'],
+                'raw' => '',
+                'isbn' => null,
+                'id_cp_koleksi' => null,
             ];
         }
 
-        if (preg_match('/(?<isbn>97[89]\d{10})/', $normalized, $matches)) {
+        $separatorPatterns = [
+            '/^(?<isbn>.+)[\/#_|](?<copy>\d+)$/',
+            '/^(?<isbn>.+)-(?<copy>\d+)$/',
+        ];
+
+        foreach ($separatorPatterns as $pattern) {
+            if (!preg_match($pattern, $normalized, $matches)) {
+                continue;
+            }
+
+            $isbnDigits = preg_replace('/\D/', '', $matches['isbn']);
+
+            if (preg_match('/^97[89]\d{10}$/', $isbnDigits)) {
+                return [
+                    'raw' => $raw,
+                    'isbn' => $isbnDigits,
+                    'id_cp_koleksi' => (int) $matches['copy'],
+                ];
+            }
+        }
+
+        $numeric = preg_replace('/\D/', '', $normalized);
+
+        if (preg_match('/^97[89]\d{10}\d+$/', $numeric)) {
             return [
                 'raw' => $raw,
-                'isbn' => $matches['isbn'],
+                'isbn' => substr($numeric, 0, 13),
+                'id_cp_koleksi' => (int) substr($numeric, 13),
+            ];
+        }
+
+        if (preg_match('/^97[89]\d{10}$/', $numeric)) {
+            return [
+                'raw' => $raw,
+                'isbn' => $numeric,
                 'id_cp_koleksi' => null,
             ];
         }
 
         return [
             'raw' => $raw,
-            'isbn' => $normalized,
+            'isbn' => null,
             'id_cp_koleksi' => ctype_digit($normalized) ? (int) $normalized : null,
         ];
+    }
+
+    private function legacyPemusnahanActiveScope($query)
+    {
+        return $query->where(function ($subQuery) {
+            $subQuery->whereNull('pemusnahan.IS_DELETE')
+                ->orWhere('pemusnahan.IS_DELETE', 0);
+        });
+    }
+
+    private function legacyPemusnahanBaseQuery()
+    {
+        return $this->legacyPemusnahanActiveScope(
+            DB::table('tr_pemusnahan_buku as pemusnahan')
+                ->leftJoin('cp_koleksi as copy', 'pemusnahan.ID_CP_KOLEKSI', '=', 'copy.ID_CP_KOLEKSI')
+                ->leftJoin('mst_koleksi_buku as buku', 'copy.ISBN', '=', 'buku.ISBN')
+                ->select(
+                    'pemusnahan.ID_PEMUSNAHAN_BUKU as id',
+                    'copy.ISBN as isbn',
+                    'copy.ID_CP_KOLEKSI as id_cp_koleksi',
+                    'pemusnahan.KET_PEMUSNAHAN_BUKU as alasan',
+                    DB::raw('NULL as nip_karyawan'),
+                    'pemusnahan.TGL_PEMUSNAHAN_BUKU as tanggal_pemusnahan',
+                    DB::raw('pemusnahan.TGL_PEMUSNAHAN_BUKU as created_at'),
+                    DB::raw('pemusnahan.TGL_PEMUSNAHAN_BUKU as updated_at'),
+                    DB::raw("CASE WHEN copy.STATUS_BUKU = 'Dimusnahkan' THEN 'disetujui' ELSE 'menunggu_konfirmasi' END as status"),
+                    'buku.judul_koleksi',
+                    'buku.judul_koleksi as judul',
+                    'buku.pengarang',
+                    'buku.penerbit',
+                    'buku.tahun',
+                    'buku.nb_koleksi',
+                    'buku.no_rak_buku',
+                    'buku.keterangan_buku',
+                    DB::raw('NULL as nama_petugas')
+                )
+        );
+    }
+
+    private function normalizeLegacyPemusnahanRow(?object $row): ?object
+    {
+        if (!$row) {
+            return null;
+        }
+
+        $alasan = (string) ($row->alasan ?? '');
+
+        if (preg_match('/^\[nip:([^\]]+)\]\s*/', $alasan, $matches)) {
+            $row->nip_karyawan = $matches[1];
+            $row->alasan = preg_replace('/^\[nip:[^\]]+\]\s*/', '', $alasan) ?? $alasan;
+
+            $row->nama_petugas = DB::table('mst_karyawan')
+                ->where('NIP_KARYAWAN', $row->nip_karyawan)
+                ->where('IS_DELETE', 0)
+                ->value('NAMA_KARYAWAN');
+        }
+
+        return $row;
+    }
+
+    private function legacyPemusnahanRow($id): ?object
+    {
+        return $this->normalizeLegacyPemusnahanRow(
+            $this->legacyPemusnahanBaseQuery()
+                ->where('pemusnahan.ID_PEMUSNAHAN_BUKU', $id)
+                ->first()
+        );
+    }
+
+    private function legacyEligibleCopy(array $identifier): ?object
+    {
+        $query = DB::table('cp_koleksi')
+            ->where('ISBN', $identifier['isbn'])
+            ->where(function ($subQuery) {
+                $subQuery->whereNull('STATUS_BUKU')
+                    ->orWhere('STATUS_BUKU', '!=', 'Dimusnahkan');
+            })
+            ->whereNotExists(function ($subQuery) {
+                $subQuery->select(DB::raw(1))
+                    ->from('tr_peminjaman')
+                    ->whereColumn('tr_peminjaman.ID_CP_KOLEKSI', 'cp_koleksi.ID_CP_KOLEKSI')
+                    ->whereNull('tr_peminjaman.TGL_KEMBALI')
+                    ->whereIn('tr_peminjaman.STATUS_PEMINJAMAN', ['Dipinjam', 'Terlambat']);
+            })
+            ->select(
+                'ID_CP_KOLEKSI as id_cp_koleksi',
+                'ISBN',
+                'STATUS_BUKU as status_buku'
+            );
+
+        if ($identifier['id_cp_koleksi']) {
+            $query->where('ID_CP_KOLEKSI', $identifier['id_cp_koleksi']);
+        }
+
+        return $query->orderByDesc('ID_CP_KOLEKSI')->first();
+    }
+
+    private function legacyPemusnahanExistsForCopy(int $idCpKoleksi, ?int $ignoreId = null): bool
+    {
+        $query = DB::table('tr_pemusnahan_buku')
+            ->where('ID_CP_KOLEKSI', $idCpKoleksi)
+            ->where(function ($subQuery) {
+                $subQuery->whereNull('IS_DELETE')
+                    ->orWhere('IS_DELETE', 0);
+            });
+
+        if ($ignoreId !== null) {
+            $query->where('ID_PEMUSNAHAN_BUKU', '!=', $ignoreId);
+        }
+
+        return $query->exists();
+    }
+
+    private function legacyPemusnahanDescription(string $nipKaryawan, string $kategoriPemusnahan, string $alasan): string
+    {
+        return substr('[nip:' . $nipKaryawan . '] [' . $kategoriPemusnahan . '] ' . trim($alasan), 0, 255);
+    }
+
+    private function updateLegacyPemusnahan(Request $request, $id, object $petugas)
+    {
+        $pemusnahan = $this->legacyPemusnahanRow($id);
+
+        if (!$pemusnahan) {
+            return response()->json(['message' => 'Data pemusnahan tidak ditemukan.'], 404);
+        }
+
+        if ($pemusnahan->status !== 'menunggu_konfirmasi') {
+            return response()->json(['message' => 'Pemusnahan yang sudah dikonfirmasi tidak bisa diedit.'], 409);
+        }
+
+        $identifier = $this->parsePemusnahanIdentifier($request->isbn);
+
+        if (!$identifier['isbn']) {
+            return response()->json(['message' => 'Format ISBN/barcode tidak dikenali. Gunakan ISBN atau barcode ISBN/ID copy.'], 422);
+        }
+
+        $buku = DB::table('mst_koleksi_buku')
+            ->where('ISBN', $identifier['isbn'])
+            ->where('is_delete', 0)
+            ->select(
+                'ISBN as isbn',
+                'JUDUL_KOLEKSI as judul_koleksi',
+                'KETERANGAN_BUKU as keterangan_buku'
+            )
+            ->first();
+
+        if (!$buku) {
+            return response()->json(['message' => 'ISBN tidak ditemukan atau sudah dihapus.'], 404);
+        }
+
+        $copyLegacy = $this->legacyEligibleCopy($identifier);
+
+        if (!$copyLegacy) {
+            return response()->json(['message' => 'Copy fisik yang bisa dimusnahkan tidak ditemukan untuk ISBN ini.'], 404);
+        }
+
+        $kategoriPemusnahan = $this->getKategoriPemusnahan(
+            (object) ['keterangan_buku' => trim(($buku->keterangan_buku ?? '') . ' ' . ($copyLegacy->status_buku ?? ''))],
+            $request->alasan
+        );
+
+        if (!$kategoriPemusnahan) {
+            return response()->json([
+                'message' => 'Buku hanya dapat dimusnahkan bila statusnya rusak atau non-aktif. Perbarui keterangan buku terlebih dahulu.'
+            ], 422);
+        }
+
+        if ($this->legacyPemusnahanExistsForCopy((int) $copyLegacy->id_cp_koleksi, (int) $id)) {
+            return response()->json(['message' => 'Buku ini sudah memiliki proses pemusnahan aktif.'], 409);
+        }
+
+        DB::table('tr_pemusnahan_buku')
+            ->where('ID_PEMUSNAHAN_BUKU', $id)
+            ->update([
+                'ID_CP_KOLEKSI' => $copyLegacy->id_cp_koleksi,
+                'KET_PEMUSNAHAN_BUKU' => $this->legacyPemusnahanDescription($request->nip_karyawan, $kategoriPemusnahan, $request->alasan),
+                'TGL_PEMUSNAHAN_BUKU' => Carbon::now(),
+                'IS_DELETE' => 0,
+            ]);
+
+        Log::info('Data pemusnahan buku diedit.', [
+            'id_pemusnahan' => $id,
+            'isbn' => $identifier['isbn'],
+            'id_cp_koleksi' => $copyLegacy->id_cp_koleksi,
+            'judul' => $buku->judul_koleksi,
+            'kategori_pemusnahan' => $kategoriPemusnahan,
+            'petugas_editor' => $petugas->nip_karyawan,
+        ]);
+
+        return response()->json(['message' => 'Data pemusnahan berhasil diperbarui.']);
+    }
+
+    private function confirmLegacyPemusnahan(Request $request, $id)
+    {
+        try {
+            $petugas = $this->getPetugasPemusnahan($request->nip_karyawan);
+
+            if (!$this->isPustakawan($petugas)) {
+                return response()->json(['message' => 'Konfirmasi pemusnahan hanya dapat dilakukan pustakawan.'], 403);
+            }
+
+            $pemusnahan = $this->legacyPemusnahanRow($id);
+
+            if (!$pemusnahan) {
+                return response()->json(['message' => 'Data pemusnahan tidak ditemukan.'], 404);
+            }
+
+            if ($pemusnahan->status === 'disetujui') {
+                return response()->json(['message' => 'Pemusnahan ini sudah dikonfirmasi sebelumnya.'], 409);
+            }
+
+            $buku = DB::table('mst_koleksi_buku')
+                ->where('ISBN', $pemusnahan->isbn)
+                ->where('is_delete', 0)
+                ->select(
+                    'ISBN as isbn',
+                    'JUDUL_KOLEKSI as judul_koleksi',
+                    'JUMLAH_EKSEMPLAR as jumlah_eksemplar'
+                )
+                ->first();
+
+            if (!$buku || (int) $buku->jumlah_eksemplar < 1) {
+                return response()->json(['message' => 'Stok buku tidak cukup untuk diproses sebagai pemusnahan.'], 422);
+            }
+
+            DB::beginTransaction();
+
+            DB::table('mst_koleksi_buku')
+                ->where('ISBN', $pemusnahan->isbn)
+                ->decrement('jumlah_eksemplar', 1);
+
+            DB::table('cp_koleksi')
+                ->where('ID_CP_KOLEKSI', $pemusnahan->id_cp_koleksi)
+                ->update(['STATUS_BUKU' => 'Dimusnahkan']);
+
+            DB::table('tr_pemusnahan_buku')
+                ->where('ID_PEMUSNAHAN_BUKU', $id)
+                ->update([
+                    'TGL_PEMUSNAHAN_BUKU' => Carbon::now(),
+                    'IS_DELETE' => 0,
+                ]);
+
+            Log::info('Pemusnahan buku dikonfirmasi.', [
+                'id_pemusnahan' => $id,
+                'isbn' => $pemusnahan->isbn,
+                'judul' => $buku->judul_koleksi,
+                'petugas_konfirmasi' => $petugas->nip_karyawan,
+                'copy_dimusnahkan' => $pemusnahan->id_cp_koleksi,
+            ]);
+
+            DB::commit();
+
+            return response()->json(['message' => 'Pemusnahan buku berhasil dikonfirmasi dan tercatat dalam log sistem.']);
+        } catch (\Exception $e) {
+            if (DB::transactionLevel() > 0) {
+                DB::rollBack();
+            }
+
+            return response()->json(['message' => 'Gagal mengonfirmasi pemusnahan: ' . $e->getMessage()], 500);
+        }
     }
 
     public function getStats()
@@ -447,8 +739,6 @@ class DashboardController extends Controller
         ]);
 
         try {
-            DB::beginTransaction();
-
             $petugas = $this->getPetugasPemusnahan($request->nip_karyawan);
 
             if (!$this->isPustakawan($petugas)) {
@@ -523,41 +813,38 @@ class DashboardController extends Controller
                 ], 422);
             }
 
-            $existing = DB::table('tr_pemusnahan')
-                ->where('isbn', $identifier['isbn'])
-                ->when($identifier['id_cp_koleksi'], function ($query) use ($identifier) {
-                    $query->where('id_cp_koleksi', $identifier['id_cp_koleksi']);
-                })
-                ->whereIn('status', ['menunggu_konfirmasi', 'disetujui'])
-                ->exists();
+            $copyLegacy = $this->legacyEligibleCopy($identifier);
 
-            if ($existing) {
+            if (!$copyLegacy) {
+                return response()->json(['message' => 'Copy fisik yang bisa dimusnahkan tidak ditemukan untuk ISBN ini.'], 404);
+            }
+
+            if ($this->legacyPemusnahanExistsForCopy((int) $copyLegacy->id_cp_koleksi)) {
                 return response()->json(['message' => 'Buku ini sudah memiliki proses pemusnahan aktif.'], 409);
             }
 
-            DB::table('tr_pemusnahan')->insert([
-                'isbn' => $identifier['isbn'],
-                'id_cp_koleksi' => $identifier['id_cp_koleksi'],
-                'alasan' => '[' . $kategoriPemusnahan . '] ' . trim($request->alasan),
-                'nip_karyawan' => $request->nip_karyawan,
-                'tanggal_pemusnahan' => Carbon::now(),
-                'status' => 'menunggu_konfirmasi',
-                'created_at' => Carbon::now(),
-                'updated_at' => Carbon::now(),
-            ]);
+            DB::transaction(function () use ($copyLegacy, $kategoriPemusnahan, $request) {
+                DB::table('tr_pemusnahan_buku')->insert([
+                    'ID_CP_KOLEKSI' => $copyLegacy->id_cp_koleksi,
+                    'KET_PEMUSNAHAN_BUKU' => $this->legacyPemusnahanDescription($request->nip_karyawan, $kategoriPemusnahan, $request->alasan),
+                    'TGL_PEMUSNAHAN_BUKU' => Carbon::now(),
+                    'IS_DELETE' => 0,
+                ]);
+            });
 
             Log::info('Pemusnahan buku diajukan.', [
                 'isbn' => $identifier['isbn'],
-                'id_cp_koleksi' => $identifier['id_cp_koleksi'],
+                'id_cp_koleksi' => $copyLegacy->id_cp_koleksi,
                 'judul' => $buku->judul_koleksi,
                 'kategori_pemusnahan' => $kategoriPemusnahan,
                 'petugas_pengaju' => $petugas->nip_karyawan,
             ]);
 
-            DB::commit();
             return response()->json(['message' => 'Pengajuan pemusnahan berhasil dicatat dan menunggu konfirmasi admin.'], 201);
         } catch (\Exception $e) {
-            DB::rollBack();
+            if (DB::transactionLevel() > 0) {
+                DB::rollBack();
+            }
             return response()->json(['message' => 'Error: ' . $e->getMessage()], 500);
         }
     }
@@ -567,17 +854,7 @@ class DashboardController extends Controller
         $search = trim((string) $request->get('search', ''));
         $status = $request->get('status');
 
-        $query = DB::table('tr_pemusnahan')
-            ->join('mst_koleksi_buku', 'tr_pemusnahan.isbn', '=', 'mst_koleksi_buku.ISBN')
-            ->leftJoin('mst_karyawan as petugas', 'tr_pemusnahan.nip_karyawan', '=', 'petugas.nip_karyawan')
-            ->select(
-                'tr_pemusnahan.*',
-                'mst_koleksi_buku.judul_koleksi as judul',
-                'mst_koleksi_buku.keterangan_buku',
-                'mst_koleksi_buku.no_rak_buku',
-                'petugas.nama_karyawan as nama_petugas'
-            )
-            ->where('tr_pemusnahan.status', '!=', 'soft_deleted');
+        $query = $this->legacyPemusnahanBaseQuery();
 
         if ($search !== '') {
             $query->where(function($q) use ($search) {
@@ -591,14 +868,29 @@ class DashboardController extends Controller
                   ->orWhere('tr_pemusnahan.status', 'like', "%$search%")
                   ->orWhere('tr_pemusnahan.nip_karyawan', 'like', "%$search%")
                   ->orWhere('petugas.nama_karyawan', 'like', "%$search%");
+        if ($search) {
+            $query->where(function ($q) use ($search) {
+                $q->where('copy.ISBN', 'like', "%$search%")
+                    ->orWhere('buku.judul_koleksi', 'like', "%$search%")
+                    ->orWhere('pemusnahan.KET_PEMUSNAHAN_BUKU', 'like', "%$search%");
             });
         }
 
-        if ($status && $status !== 'semua') {
-            $query->where('tr_pemusnahan.status', $status);
+        if ($status === 'disetujui') {
+            $query->where('copy.STATUS_BUKU', 'Dimusnahkan');
+        } elseif ($status === 'menunggu_konfirmasi') {
+            $query->where(function ($q) {
+                $q->whereNull('copy.STATUS_BUKU')
+                    ->orWhere('copy.STATUS_BUKU', '!=', 'Dimusnahkan');
+            });
         }
 
-        return response()->json($query->orderBy('tr_pemusnahan.created_at', 'desc')->get());
+        return response()->json(
+            $query->orderBy('pemusnahan.TGL_PEMUSNAHAN_BUKU', 'desc')
+                ->get()
+                ->map(fn ($row) => $this->normalizeLegacyPemusnahanRow($row))
+                ->values()
+        );
     }
 
     public function getBukuRusak()
@@ -797,15 +1089,19 @@ class DashboardController extends Controller
             'message' => 'Data pemusnahan berhasil diperbarui.',
             'data' => $updated,
         ]);
+        return $this->updateLegacyPemusnahan($request, $id, $petugas);
     }
 
     public function updateStatusPemusnahan(Request $request, $id)
     {
         $statusBaru = $request->get('status', 'soft_deleted');
 
-        DB::table('tr_pemusnahan')->where('id', $id)->update([
-            'status' => $statusBaru,
-            'updated_at' => Carbon::now()
+        if ($statusBaru !== 'soft_deleted') {
+            return response()->json(['message' => 'Status hanya bisa diarsipkan atau dikonfirmasi lewat tombol Konfirmasi.'], 422);
+        }
+
+        DB::table('tr_pemusnahan_buku')->where('ID_PEMUSNAHAN_BUKU', $id)->update([
+            'IS_DELETE' => 1,
         ]);
 
         Log::info('Status pemusnahan diperbarui.', [
@@ -846,119 +1142,35 @@ class DashboardController extends Controller
             $request->validate([
                 'nip_karyawan' => 'required|string',
             ]);
-    
-            try {
-                DB::beginTransaction();
-    
-                $petugas = $this->getPetugasPemusnahan($request->nip_karyawan);
-    
-                if (!$this->isPustakawan($petugas)) {
-                    return response()->json(['message' => 'Konfirmasi pemusnahan hanya dapat dilakukan pustakawan.'], 403);
-                }
-    
-                $pemusnahan = DB::table('tr_pemusnahan')->where('id', $id)->first();
-    
-                if (!$pemusnahan || $pemusnahan->status === 'soft_deleted') {
-                    return response()->json(['message' => 'Data pemusnahan tidak ditemukan.'], 404);
-                }
-    
-                if ($pemusnahan->status === 'disetujui') {
-                    return response()->json(['message' => 'Pemusnahan ini sudah dikonfirmasi sebelumnya.'], 409);
-                }
-    
-                $buku = DB::table('mst_koleksi_buku')
-                    ->where('ISBN', $pemusnahan->isbn)
-                    ->where('is_delete', 0)
-                    ->select(
-                        'ISBN as isbn',
-                        'JUDUL_KOLEKSI as judul_koleksi',
-                        'JUMLAH_EKSEMPLAR as jumlah_eksemplar'
-                    )
-                    ->first();
-    
-                if (!$buku || (int) $buku->jumlah_eksemplar < 1) {
-                    return response()->json(['message' => 'Stok buku tidak cukup untuk diproses sebagai pemusnahan.'], 422);
-                }
-    
-                DB::table('mst_koleksi_buku')
-                    ->where('ISBN', $pemusnahan->isbn)
-                    ->decrement('jumlah_eksemplar', 1);
-    
-                $copyQuery = DB::table('cp_koleksi')
-                    ->where('ISBN', $pemusnahan->isbn)
-                    ->where('STATUS_BUKU', '!=', 'Dimusnahkan')
-                    ->whereNotExists(function ($query) {
-                        $query->select(DB::raw(1))
-                            ->from('tr_peminjaman')
-                            ->whereColumn('tr_peminjaman.ID_CP_KOLEKSI', 'cp_koleksi.ID_CP_KOLEKSI')
-                            ->whereNull('tr_peminjaman.TGL_KEMBALI')
-                            ->whereIn('tr_peminjaman.STATUS_PEMINJAMAN', ['Dipinjam', 'Terlambat']);
-                    })
-                    ->select(
-                        'ID_CP_KOLEKSI as id_cp_koleksi',
-                        'ISBN',
-                        'STATUS_BUKU as status_buku'
-                    );
 
-                if ($pemusnahan->id_cp_koleksi) {
-                    $copyQuery->where('ID_CP_KOLEKSI', $pemusnahan->id_cp_koleksi);
-                }
-
-                $copy = $copyQuery->orderByDesc('ID_CP_KOLEKSI')->first();
-    
-                if ($copy) {
-                    DB::table('cp_koleksi')
-                        ->where('ID_CP_KOLEKSI', $copy->id_cp_koleksi)
-                        ->update(['STATUS_BUKU' => 'Dimusnahkan']);
-                }
-    
-                DB::table('tr_pemusnahan')
-                    ->where('id', $id)
-                    ->update([
-                        'status' => 'disetujui',
-                        'updated_at' => Carbon::now(),
-                    ]);
-    
-                Log::info('Pemusnahan buku dikonfirmasi.', [
-                    'id_pemusnahan' => $id,
-                    'isbn' => $pemusnahan->isbn,
-                    'judul' => $buku->judul_koleksi,
-                    'petugas_konfirmasi' => $petugas->nip_karyawan,
-                    'copy_dimusnahkan' => $copy?->id_cp_koleksi,
-                ]);
-    
-                DB::commit();
-    
-                return response()->json(['message' => 'Pemusnahan buku berhasil dikonfirmasi dan tercatat dalam log sistem.']);
-            } catch (\Exception $e) {
-                DB::rollBack();
-                return response()->json(['message' => 'Gagal mengonfirmasi pemusnahan: ' . $e->getMessage()], 500);
-            }
+            return $this->confirmLegacyPemusnahan($request, $id);
         }
     
         public function printBeritaAcaraPemusnahan($id)
         {
-            $data = DB::table('tr_pemusnahan as pemusnahan')
-                ->join('mst_koleksi_buku as buku', 'pemusnahan.isbn', '=', 'buku.ISBN')
-                ->leftJoin('mst_karyawan as petugas', 'pemusnahan.nip_karyawan', '=', 'petugas.nip_karyawan')
-                ->select(
-                    'pemusnahan.*',
-                    'buku.judul_koleksi',
-                    'buku.pengarang',
-                    'buku.penerbit',
-                    'buku.no_rak_buku',
-                    'buku.keterangan_buku',
-                    'petugas.nama_karyawan as nama_petugas'
-                )
-                ->where('pemusnahan.id', $id)
-                ->where('pemusnahan.status', 'disetujui')
-                ->first();
-    
-            abort_unless($data, 404);
+            $data = $this->legacyPemusnahanRow($id);
+
+            abort_unless($data && $data->status === 'disetujui', 404);
     
             return view('pustakawan.pemusnahan.berita_acara', [
                 'data' => $data,
                 'tanggalCetak' => Carbon::now('Asia/Jakarta'),
             ]);
+        }
+
+        public function exportPdfBeritaAcaraPemusnahan($id)
+        {
+            $data = $this->legacyPemusnahanRow($id);
+
+            abort_unless($data && $data->status === 'disetujui', 404);
+
+            $tanggalCetak = Carbon::now('Asia/Jakarta');
+            $pdf = Pdf::loadView('pustakawan.pemusnahan.berita_acara_pdf', [
+                'data' => $data,
+                'tanggalCetak' => $tanggalCetak,
+            ]);
+
+            return $pdf->setPaper('a4', 'portrait')
+                ->download('Berita_Acara_Pemusnahan_' . str_pad((string) $data->id, 4, '0', STR_PAD_LEFT) . '.pdf');
         }
 }

@@ -176,6 +176,7 @@ const PemusnahanPanelV2 = ({ user }) => {
     };
 
     const openPrint = (id) => window.open(`${API}/pustakawan/pemusnahan/${id}/berita-acara`, "_blank", "noopener,noreferrer");
+    const openPdf = (id) => window.open(`${API}/pustakawan/pemusnahan/${id}/berita-acara/pdf`, "_blank", "noopener,noreferrer");
 
     const safeSubmit = async (isbn, alasan) => {
         if (!isbn || !alasan.trim()) return window.alert("ISBN dan alasan wajib diisi.");
@@ -294,7 +295,7 @@ const PemusnahanPanelV2 = ({ user }) => {
                     <div className="rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm font-semibold text-green-700">Hanya data yang sudah disetujui admin.</div>
                 </div>
                 <div className="mt-6 grid gap-4 md:grid-cols-2">
-                    {rows.length > 0 ? rows.map((row) => <div key={row.id} className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm"><p className="text-xs font-bold uppercase tracking-[0.3em] text-[#265F9C]">Berita Acara</p><h3 className="mt-2 text-xl font-bold text-[#1F2937]">{row.judul}</h3><p className="mt-2 font-mono text-sm text-gray-500">{row.isbn}</p><div className="mt-4 space-y-2 text-sm text-[#4B5563]"><p><span className="font-bold text-[#1F2937]">Tanggal:</span> {formatWibDateTime(row.updated_at || row.tanggal_pemusnahan)}</p><p><span className="font-bold text-[#1F2937]">Petugas:</span> {getPetugasName(row, user)}</p><p><span className="font-bold text-[#1F2937]">Alasan:</span> {row.alasan}</p></div><div className="mt-5 flex justify-end"><button onClick={() => openPrint(row.id)} className="rounded-xl bg-[#265F9C] px-4 py-3 text-xs font-bold text-white">Buka Printable</button></div></div>) : <div className="col-span-full rounded-2xl border border-dashed border-gray-300 bg-gray-50 px-6 py-12 text-center text-gray-500">Belum ada berita acara yang siap dicetak.</div>}
+                    {rows.length > 0 ? rows.map((row) => <div key={row.id} className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm"><p className="text-xs font-bold uppercase tracking-[0.3em] text-[#265F9C]">Berita Acara</p><h3 className="mt-2 text-xl font-bold text-[#1F2937]">{row.judul}</h3><p className="mt-2 font-mono text-sm text-gray-500">{row.isbn}</p><div className="mt-4 space-y-2 text-sm text-[#4B5563]"><p><span className="font-bold text-[#1F2937]">Tanggal:</span> {formatWibDateTime(row.updated_at || row.tanggal_pemusnahan)}</p><p><span className="font-bold text-[#1F2937]">Petugas:</span> {getPetugasName(row, user)}</p><p><span className="font-bold text-[#1F2937]">Alasan:</span> {row.alasan}</p></div><div className="mt-5 flex justify-end gap-2"><button onClick={() => openPrint(row.id)} className="rounded-xl bg-gray-700 px-4 py-3 text-xs font-bold text-white">Buka Printable</button><button onClick={() => openPdf(row.id)} className="rounded-xl bg-[#265F9C] px-4 py-3 text-xs font-bold text-white">Unduh PDF</button></div></div>) : <div className="col-span-full rounded-2xl border border-dashed border-gray-300 bg-gray-50 px-6 py-12 text-center text-gray-500">Belum ada berita acara yang siap dicetak.</div>}
                 </div>
             </>}
             <ConfirmDialog />

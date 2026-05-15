@@ -59,7 +59,7 @@ const LaporanInventarisasiBukuBaruPanel = () => {
         setReport(res.data);
       } catch (err) {
         console.error(err);
-        setError('Laporan inventarisasi dan katalogisasi buku baru gagal dimuat.');
+        setError(err.response?.data?.message || 'Laporan inventarisasi dan katalogisasi buku baru gagal dimuat.');
       } finally {
         setLoading(false);
       }
@@ -67,6 +67,12 @@ const LaporanInventarisasiBukuBaruPanel = () => {
 
     fetchReport();
   }, [tahun, bulan]);
+
+  const handleDownloadPdf = () => {
+    const params = new URLSearchParams({ tahun });
+    if (bulan) params.set('bulan', bulan);
+    window.open(`${API_BASE_URL}/laporan/export-pdf-inventarisasi-buku-baru?${params.toString()}`, '_blank');
+  };
 
   return (
     <section className="bg-white rounded-xl shadow p-6 border border-gray-100 text-[#1A1A1A]">
@@ -77,7 +83,7 @@ const LaporanInventarisasiBukuBaruPanel = () => {
             Menampilkan buku aktif yang sudah lengkap atributnya, tercatat di database, dan lolos validasi duplikasi.
           </p>
         </div>
-        <div className="flex gap-3">
+        <div className="flex flex-wrap gap-3">
           <select
             className="p-3 border rounded-xl text-sm bg-gray-50 font-medium"
             value={bulan}
@@ -100,6 +106,13 @@ const LaporanInventarisasiBukuBaruPanel = () => {
               </option>
             ))}
           </select>
+          <button
+            type="button"
+            onClick={handleDownloadPdf}
+            className="rounded-xl bg-[#265F9C] px-5 py-3 text-sm font-bold text-white shadow-sm hover:brightness-110"
+          >
+            Unduh PDF
+          </button>
         </div>
       </div>
 

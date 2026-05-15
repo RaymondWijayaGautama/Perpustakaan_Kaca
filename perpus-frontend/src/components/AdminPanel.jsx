@@ -41,7 +41,6 @@ const getInitials = (name) => {
 
 const AdminPanel = ({ user, onLogout }) => {
     const [activeTab, setActiveTab] = useState('dashboard');
-    const [isDistribusiMenuOpen, setIsDistribusiMenuOpen] = useState(false);
     const [isLaporanMenuOpen, setIsLaporanMenuOpen] = useState(false); 
     const [stats, setStats] = useState({ total_buku: 0, total_siswa: 0, total_laporan: 0 });
     const [loading, setLoading] = useState(false);
@@ -90,14 +89,16 @@ const AdminPanel = ({ user, onLogout }) => {
 
     // Mengatur auto-open pada dropdown jika tab aktif ada di dalamnya
     useEffect(() => {
-        if (activeTab.includes('laporan_distribusi')) {
-            setIsDistribusiMenuOpen(true);
-        }
-        
         const laporanGroup = [
+            'laporan_peminjaman_bulanan',
+            'laporan_peminjaman_guru',
+            'laporan_inventarisasi_buku_baru',
+            'pemusnahan',
             'laporan_siswa_terajin', 
             'kunjungan_bulanan', 
             'statistik_kunjungan_bulanan', 
+            'laporan_distribusi_kunjungan_kelas',
+            'laporan_distribusi_kunjungan_hari',
             'laporan_peminjaman_kelas', 
             'buku_terpopuler', 
             'kategori_populer'
@@ -108,7 +109,7 @@ const AdminPanel = ({ user, onLogout }) => {
         }
     }, [activeTab]);
 
-    const isAnyLaporanActive = ['laporan_siswa_terajin', 'kunjungan_bulanan', 'statistik_kunjungan_bulanan', 'laporan_peminjaman_kelas', 'buku_terpopuler', 'kategori_populer'].includes(activeTab);
+    const isAnyLaporanActive = ['laporan_peminjaman_bulanan', 'laporan_peminjaman_guru', 'laporan_inventarisasi_buku_baru', 'pemusnahan', 'laporan_siswa_terajin', 'kunjungan_bulanan', 'statistik_kunjungan_bulanan', 'laporan_distribusi_kunjungan_kelas', 'laporan_distribusi_kunjungan_hari', 'laporan_peminjaman_kelas', 'buku_terpopuler', 'kategori_populer'].includes(activeTab);
 
     return (
         <div className="min-h-screen bg-[#F6F7F9] flex font-roboto text-[#1A1A1A]">
@@ -152,12 +153,8 @@ const AdminPanel = ({ user, onLogout }) => {
                         <div onClick={() => setActiveTab('peminjaman')} className={`p-3 rounded-lg cursor-pointer transition-all ${activeTab === 'peminjaman' ? 'bg-white text-[#265F9C] font-bold shadow-md' : 'hover:bg-white/10'}`}>Peminjaman Buku</div>
                         <div onClick={() => setActiveTab('buku_belum_kembali')} className={`p-3 rounded-lg cursor-pointer transition-all ${activeTab === 'buku_belum_kembali' ? 'bg-white text-[#265F9C] font-bold shadow-md' : 'hover:bg-white/10'}`}>Buku Belum Kembali</div>
                         <div onClick={() => setActiveTab('denda_kerusakan')} className={`p-3 rounded-lg cursor-pointer transition-all ${activeTab === 'denda_kerusakan' ? 'bg-white text-[#265F9C] font-bold shadow-md' : 'hover:bg-white/10'}`}>Denda Kerusakan</div>
-                        <div onClick={() => setActiveTab('pemusnahan')} className={`p-3 rounded-lg cursor-pointer transition-all ${activeTab === 'pemusnahan' ? 'bg-white text-[#265F9C] font-bold shadow-md' : 'hover:bg-white/10'}`}>Pemusnahan Buku</div>
                         <div onClick={() => setActiveTab('riwayat_pinjam')} className={`p-3 rounded-lg cursor-pointer transition-all ${activeTab === 'riwayat_pinjam' ? 'bg-white text-[#265F9C] font-bold shadow-md' : 'hover:bg-white/10'}`}>Riwayat Peminjaman</div>
                         <div onClick={() => setActiveTab('logs')} className={`p-3 rounded-lg cursor-pointer transition-all ${activeTab === 'logs' ? 'bg-white text-[#265F9C] font-bold shadow-md' : 'hover:bg-white/10'}`}>Log Sistem</div>
-                        <div onClick={() => setActiveTab('laporan_peminjaman_bulanan')} className={`p-3 rounded-lg cursor-pointer transition-all ${activeTab === 'laporan_peminjaman_bulanan' ? 'bg-white text-[#265F9C] font-bold shadow-md' : 'hover:bg-white/10'}`}>Statistik Peminjaman</div>
-                        <div onClick={() => setActiveTab('laporan_peminjaman_guru')} className={`p-3 rounded-lg cursor-pointer transition-all ${activeTab === 'laporan_peminjaman_guru' ? 'bg-white text-[#265F9C] font-bold shadow-md' : 'hover:bg-white/10'}`}>Peminjaman Guru</div>
-                        <div onClick={() => setActiveTab('laporan_inventarisasi_buku_baru')} className={`p-3 rounded-lg cursor-pointer transition-all ${activeTab === 'laporan_inventarisasi_buku_baru' ? 'bg-white text-[#265F9C] font-bold shadow-md' : 'hover:bg-white/10'}`}>Inventarisasi Buku Baru</div>
                         
                         <div className={`rounded-lg transition-all overflow-hidden ${isAnyLaporanActive || isLaporanMenuOpen ? 'bg-white/10' : ''}`}>
                             <div
@@ -170,9 +167,15 @@ const AdminPanel = ({ user, onLogout }) => {
                             
                             {isLaporanMenuOpen && (
                                 <div className="px-2 pt-1 pb-2 space-y-1 text-sm">
+                                    <div onClick={() => setActiveTab('laporan_peminjaman_bulanan')} className={`ml-3 p-2 rounded-lg cursor-pointer ${activeTab === 'laporan_peminjaman_bulanan' ? 'bg-white text-[#265F9C] font-bold shadow-sm' : 'hover:bg-white/10'}`}>Peminjaman Bulanan</div>
+                                    <div onClick={() => setActiveTab('laporan_peminjaman_guru')} className={`ml-3 p-2 rounded-lg cursor-pointer ${activeTab === 'laporan_peminjaman_guru' ? 'bg-white text-[#265F9C] font-bold shadow-sm' : 'hover:bg-white/10'}`}>Peminjaman Guru</div>
+                                    <div onClick={() => setActiveTab('laporan_inventarisasi_buku_baru')} className={`ml-3 p-2 rounded-lg cursor-pointer ${activeTab === 'laporan_inventarisasi_buku_baru' ? 'bg-white text-[#265F9C] font-bold shadow-sm' : 'hover:bg-white/10'}`}>Inventarisasi Buku Baru</div>
+                                    <div onClick={() => setActiveTab('pemusnahan')} className={`ml-3 p-2 rounded-lg cursor-pointer ${activeTab === 'pemusnahan' ? 'bg-white text-[#265F9C] font-bold shadow-sm' : 'hover:bg-white/10'}`}>Berita Acara Pemusnahan</div>
                                     <div onClick={() => setActiveTab('laporan_siswa_terajin')} className={`ml-3 p-2 rounded-lg cursor-pointer ${activeTab === 'laporan_siswa_terajin' ? 'bg-white text-[#265F9C] font-bold shadow-sm' : 'hover:bg-white/10'}`}>Peringkat Siswa Terajin</div>
                                     <div onClick={() => setActiveTab('kunjungan_bulanan')} className={`ml-3 p-2 rounded-lg cursor-pointer ${activeTab === 'kunjungan_bulanan' ? 'bg-white text-[#265F9C] font-bold shadow-sm' : 'hover:bg-white/10'}`}>Kunjungan Bulanan</div>
                                     <div onClick={() => setActiveTab('statistik_kunjungan_bulanan')} className={`ml-3 p-2 rounded-lg cursor-pointer ${activeTab === 'statistik_kunjungan_bulanan' ? 'bg-white text-[#265F9C] font-bold shadow-sm' : 'hover:bg-white/10'}`}>Statistik Kunjungan</div>
+                                    <div onClick={() => setActiveTab('laporan_distribusi_kunjungan_kelas')} className={`ml-3 p-2 rounded-lg cursor-pointer ${activeTab === 'laporan_distribusi_kunjungan_kelas' ? 'bg-white text-[#265F9C] font-bold shadow-sm' : 'hover:bg-white/10'}`}>Kunjungan Kelas</div>
+                                    <div onClick={() => setActiveTab('laporan_distribusi_kunjungan_hari')} className={`ml-3 p-2 rounded-lg cursor-pointer ${activeTab === 'laporan_distribusi_kunjungan_hari' ? 'bg-white text-[#265F9C] font-bold shadow-sm' : 'hover:bg-white/10'}`}>Kunjungan Hari</div>
                                     <div onClick={() => setActiveTab('laporan_peminjaman_kelas')} className={`ml-3 p-2 rounded-lg cursor-pointer ${activeTab === 'laporan_peminjaman_kelas' ? 'bg-white text-[#265F9C] font-bold shadow-sm' : 'hover:bg-white/10'}`}>Peminjaman Kelas</div>
                                     <div onClick={() => setActiveTab('buku_terpopuler')} className={`ml-3 p-2 rounded-lg cursor-pointer ${activeTab === 'buku_terpopuler' ? 'bg-white text-[#265F9C] font-bold shadow-sm' : 'hover:bg-white/10'}`}>Buku Terpopuler</div>
                                     <div onClick={() => setActiveTab('kategori_populer')} className={`ml-3 p-2 rounded-lg cursor-pointer ${activeTab === 'kategori_populer' ? 'bg-white text-[#265F9C] font-bold shadow-sm' : 'hover:bg-white/10'}`}>Kategori Terpopuler</div>
@@ -180,21 +183,6 @@ const AdminPanel = ({ user, onLogout }) => {
                             )}
                         </div>
                         
-                        <div className={`rounded-lg transition-all overflow-hidden ${activeTab === 'laporan_distribusi_kunjungan_kelas' || activeTab === 'laporan_distribusi_kunjungan_hari' || isDistribusiMenuOpen ? 'bg-white/10' : ''}`}>
-                            <div
-                                onClick={() => setIsDistribusiMenuOpen((current) => !current)}
-                                className={`p-3 cursor-pointer transition-all flex items-center justify-between rounded-lg ${activeTab === 'laporan_distribusi_kunjungan_kelas' || activeTab === 'laporan_distribusi_kunjungan_hari' ? 'bg-white text-[#265F9C] font-bold shadow-md' : 'hover:bg-white/10'}`}
-                            >
-                                <span>Distribusi Kunjungan</span>
-                                <span className={`text-xs transition-transform ${isDistribusiMenuOpen ? 'rotate-180' : ''}`}>▼</span>
-                            </div>
-                            {isDistribusiMenuOpen && (
-                                <div className="px-2 pt-1 pb-2 space-y-1 text-sm">
-                                    <div onClick={() => setActiveTab('laporan_distribusi_kunjungan_kelas')} className={`ml-3 p-2 rounded-lg cursor-pointer ${activeTab === 'laporan_distribusi_kunjungan_kelas' ? 'bg-white text-[#265F9C] font-bold shadow-sm' : 'hover:bg-white/10'}`}>Berdasarkan Kelas</div>
-                                    <div onClick={() => setActiveTab('laporan_distribusi_kunjungan_hari')} className={`ml-3 p-2 rounded-lg cursor-pointer ${activeTab === 'laporan_distribusi_kunjungan_hari' ? 'bg-white text-[#265F9C] font-bold shadow-sm' : 'hover:bg-white/10'}`}>Berdasarkan Hari</div>
-                                </div>
-                            )}
-                        </div>
                     </nav>
                 </div>
 
