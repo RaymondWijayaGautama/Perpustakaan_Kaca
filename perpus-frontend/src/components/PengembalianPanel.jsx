@@ -278,7 +278,10 @@ const PengembalianBulkPanel = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-10 mb-10">
         <div className="space-y-4">
           <label className="font-bold text-slate-400 uppercase tracking-widest block">01. Identitas Pemustaka</label>
-          <div className="flex gap-2">
+          <form 
+            onSubmit={(e) => { e.preventDefault(); cariMember(); }}
+            className="flex gap-2"
+          >
             <input 
               type="text" 
               value={memberInput} 
@@ -286,8 +289,8 @@ const PengembalianBulkPanel = () => {
               className="flex-1 p-2 border border-slate-300 outline-none focus:border-slate-900 bg-slate-50"
               placeholder="NIP / NISN"
             />
-            <button onClick={cariMember} className="bg-slate-900 text-white px-6 py-2 font-bold uppercase hover:bg-black transition-colors">Cari</button>
-          </div>
+            <button type="submit" className="bg-slate-900 text-white px-6 py-2 font-bold uppercase hover:bg-black transition-colors">Cari</button>
+          </form>
           {memberData && (
             <div className="p-4 bg-slate-100 border-l-4 border-slate-900">
               <p className="font-bold uppercase">{getMemberName(memberData)}</p>

@@ -280,7 +280,34 @@ class PeminjamanController extends Controller
                 $query->where('peminjaman.STATUS_PEMINJAMAN', $request->status);
             }
 
-            return response()->json($query->orderBy('peminjaman.TGL_PINJAM', 'desc')->get());
+            if ($request->search) {
+                $search = $request->search;
+                $query->where(function($q) use ($search) {
+                    $q->where('buku.JUDUL_KOLEKSI', 'like', "%{$search}%")
+                      ->orWhere('siswa.NAMA_SISWA_TETAP', 'like', "%{$search}%")
+                      ->orWhere('karyawan.NAMA_KARYAWAN', 'like', "%{$search}%")
+                      ->orWhere('siswa.NISN_SISWA', 'like', "%{$search}%")
+                      ->orWhere('karyawan.NIP_KARYAWAN', 'like', "%{$search}%")
+                      ->orWhere('peminjaman.ID_PEMINJAMAN', 'like', "%{$search}%");
+                });
+            }
+
+            $sortBy = $request->query('sort_by', 'peminjaman.TGL_PINJAM');
+            $sortOrder = $request->query('sort_order', 'desc');
+
+            // Sanitize sort field to prevent SQL injection if needed, 
+            // though Eloquent/QueryBuilder handles basic parameter binding.
+            $allowedSort = [
+                'tgl_peminjaman' => 'peminjaman.TGL_PINJAM',
+                'tgl_harus_kembali' => 'peminjaman.TGL_HARUS_KEMBALI',
+                'nama_peminjam' => 'nama_peminjam',
+                'judul_buku' => 'buku.JUDUL_KOLEKSI',
+                'status' => 'peminjaman.STATUS_PEMINJAMAN'
+            ];
+
+            $sortColumn = $allowedSort[$sortBy] ?? 'peminjaman.TGL_PINJAM';
+            
+            return response()->json($query->orderBy($sortColumn, $sortOrder)->get());
             
         } catch (\Exception $e) {
             return response()->json(['error' => $e->getMessage()], 500);

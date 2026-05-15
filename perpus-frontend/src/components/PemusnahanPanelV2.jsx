@@ -207,9 +207,14 @@ const PemusnahanPanelV2 = ({ user }) => {
                 <div className="rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm text-[#265F9C]">
                     <span className="font-bold">Petugas Pustakawan:</span> {getUserName(user) || getUserNip(user) || "-"}
                 </div>
-                <input value={form.isbn} onChange={(e) => setForm({ ...form, isbn: e.target.value })} className="w-full rounded-xl border bg-gray-50 p-4 outline-none focus:ring-2 focus:ring-[#265F9C]" placeholder="ISBN buku" />
-                <textarea value={form.alasan} onChange={(e) => setForm({ ...form, alasan: e.target.value })} className="h-32 w-full rounded-xl border bg-gray-50 p-4 outline-none focus:ring-2 focus:ring-[#265F9C]" placeholder="Alasan pemusnahan" />
-                <button onClick={() => safeSubmit(form.isbn, form.alasan)} className="rounded-xl bg-red-600 px-6 py-4 font-bold text-white hover:bg-red-700">Ajukan Pemusnahan</button>
+                <form 
+                    onSubmit={(e) => { e.preventDefault(); safeSubmit(form.isbn, form.alasan); }}
+                    className="space-y-4"
+                >
+                    <input value={form.isbn} onChange={(e) => setForm({ ...form, isbn: e.target.value })} className="w-full rounded-xl border bg-gray-50 p-4 outline-none focus:ring-2 focus:ring-[#265F9C]" placeholder="ISBN buku" />
+                    <textarea value={form.alasan} onChange={(e) => setForm({ ...form, alasan: e.target.value })} className="h-32 w-full rounded-xl border bg-gray-50 p-4 outline-none focus:ring-2 focus:ring-[#265F9C]" placeholder="Alasan pemusnahan" />
+                    <button type="submit" className="rounded-xl bg-red-600 px-6 py-4 font-bold text-white hover:bg-red-700">Ajukan Pemusnahan</button>
+                </form>
             </div>}
 
             {tab === "rusak" && <div className="mt-6 overflow-x-auto">
@@ -219,13 +224,18 @@ const PemusnahanPanelV2 = ({ user }) => {
             </div>}
 
             {tab === "history" && <>
-                <div className="mt-6 flex flex-col gap-3 lg:flex-row">
-                    <input value={search} onChange={(e) => setSearch(e.target.value)} className="flex-1 rounded-xl border bg-gray-50 p-4 outline-none focus:ring-2 focus:ring-[#265F9C]" placeholder="Cari ISBN, judul, atau alasan..." />
-                    <select value={status} onChange={(e) => setStatus(e.target.value)} className="rounded-xl border bg-gray-50 p-4 outline-none focus:ring-2 focus:ring-[#265F9C]">
-                        <option value="semua">Semua Status</option>
-                        <option value="menunggu_konfirmasi">Menunggu Konfirmasi</option>
-                        <option value="disetujui">Disetujui</option>
-                    </select>
+                <div className="mt-6">
+                    <form 
+                        onSubmit={(e) => e.preventDefault()} // Effect already handles search on change, but this prevents reload
+                        className="flex flex-col gap-3 lg:flex-row"
+                    >
+                        <input value={search} onChange={(e) => setSearch(e.target.value)} className="flex-1 rounded-xl border bg-gray-50 p-4 outline-none focus:ring-2 focus:ring-[#265F9C]" placeholder="Cari ISBN, judul, atau alasan..." />
+                        <select value={status} onChange={(e) => setStatus(e.target.value)} className="rounded-xl border bg-gray-50 p-4 outline-none focus:ring-2 focus:ring-[#265F9C]">
+                            <option value="semua">Semua Status</option>
+                            <option value="menunggu_konfirmasi">Menunggu Konfirmasi</option>
+                            <option value="disetujui">Disetujui</option>
+                        </select>
+                    </form>
                 </div>
                 <div className="mt-6 overflow-x-auto">
                     <table className="w-full text-left"><thead className="bg-gray-50 text-[10px] font-bold uppercase text-gray-400"><tr><th className="p-4">Tanggal</th><th className="p-4">ISBN</th><th className="p-4">Judul</th><th className="p-4">Alasan</th><th className="p-4">Status</th><th className="p-4">Petugas</th><th className="p-4 text-right">Aksi</th></tr></thead><tbody>
@@ -255,9 +265,14 @@ const PemusnahanPanelV2 = ({ user }) => {
             </div>}
 
             {tab === "berita" && <>
-                <div className="mt-6 flex items-center gap-3">
-                    <input value={search} onChange={(e) => setSearch(e.target.value)} className="flex-1 rounded-xl border bg-gray-50 p-4 outline-none focus:ring-2 focus:ring-[#265F9C]" placeholder="Cari berita acara..." />
-                    <div className="rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm font-semibold text-green-700">Hanya data yang sudah disetujui admin.</div>
+                <div className="mt-6">
+                    <form 
+                        onSubmit={(e) => e.preventDefault()}
+                        className="flex items-center gap-3"
+                    >
+                        <input value={search} onChange={(e) => setSearch(e.target.value)} className="flex-1 rounded-xl border bg-gray-50 p-4 outline-none focus:ring-2 focus:ring-[#265F9C]" placeholder="Cari berita acara..." />
+                        <div className="rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm font-semibold text-green-700">Hanya data yang sudah disetujui admin.</div>
+                    </form>
                 </div>
                 <div className="mt-6 grid gap-4 md:grid-cols-2">
                     {rows.length > 0 ? rows.map((row) => <div key={row.id} className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm"><p className="text-xs font-bold uppercase tracking-[0.3em] text-[#265F9C]">Berita Acara</p><h3 className="mt-2 text-xl font-bold text-[#1F2937]">{row.judul}</h3><p className="mt-2 font-mono text-sm text-gray-500">{row.isbn}</p><div className="mt-4 space-y-2 text-sm text-[#4B5563]"><p><span className="font-bold text-[#1F2937]">Tanggal:</span> {formatWibDateTime(row.updated_at || row.tanggal_pemusnahan)}</p><p><span className="font-bold text-[#1F2937]">Petugas:</span> {getPetugasName(row, user)}</p><p><span className="font-bold text-[#1F2937]">Alasan:</span> {row.alasan}</p></div><div className="mt-5 flex justify-end"><button onClick={() => openPrint(row.id)} className="rounded-xl bg-[#265F9C] px-4 py-3 text-xs font-bold text-white">Buka Printable</button></div></div>) : <div className="col-span-full rounded-2xl border border-dashed border-gray-300 bg-gray-50 px-6 py-12 text-center text-gray-500">Belum ada berita acara yang siap dicetak.</div>}
