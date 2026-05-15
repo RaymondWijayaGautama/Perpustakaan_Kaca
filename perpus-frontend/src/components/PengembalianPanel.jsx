@@ -278,10 +278,7 @@ const PengembalianBulkPanel = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-10 mb-10">
         <div className="space-y-4">
           <label className="font-bold text-slate-400 uppercase tracking-widest block">01. Identitas Pemustaka</label>
-          <form 
-            onSubmit={(e) => { e.preventDefault(); cariMember(); }}
-            className="flex gap-2"
-          >
+          <form onSubmit={(e) => { e.preventDefault(); cariMember(); }} className="flex gap-2">
             <input 
               type="text" 
               value={memberInput} 

@@ -282,32 +282,31 @@ class PeminjamanController extends Controller
 
             if ($request->search) {
                 $search = $request->search;
-                $query->where(function($q) use ($search) {
-                    $q->where('buku.JUDUL_KOLEKSI', 'like', "%{$search}%")
-                      ->orWhere('siswa.NAMA_SISWA_TETAP', 'like', "%{$search}%")
-                      ->orWhere('karyawan.NAMA_KARYAWAN', 'like', "%{$search}%")
-                      ->orWhere('siswa.NISN_SISWA', 'like', "%{$search}%")
-                      ->orWhere('karyawan.NIP_KARYAWAN', 'like', "%{$search}%")
-                      ->orWhere('peminjaman.ID_PEMINJAMAN', 'like', "%{$search}%");
+                $query->where(function ($q) use ($search) {
+                    $q->where('siswa.NAMA_SISWA_TETAP', 'like', "%{$search}%")
+                        ->orWhere('karyawan.NAMA_KARYAWAN', 'like', "%{$search}%")
+                        ->orWhere('buku.JUDUL_KOLEKSI', 'like', "%{$search}%")
+                        ->orWhere('copy.ISBN', 'like', "%{$search}%")
+                        ->orWhere('siswa.NISN_SISWA', 'like', "%{$search}%")
+                        ->orWhere('karyawan.NIP_KARYAWAN', 'like', "%{$search}%");
                 });
             }
 
-            $sortBy = $request->query('sort_by', 'peminjaman.TGL_PINJAM');
-            $sortOrder = $request->query('sort_order', 'desc');
+            $sortBy = $request->input('sort_by', 'peminjaman.TGL_PINJAM');
+            $sortOrder = $request->input('sort_order', 'desc');
 
-            // Sanitize sort field to prevent SQL injection if needed, 
-            // though Eloquent/QueryBuilder handles basic parameter binding.
-            $allowedSort = [
+            // Map frontend column names to backend table columns
+            $sortMap = [
+                'nama_peminjam' => DB::raw("COALESCE(siswa.NAMA_SISWA_TETAP, karyawan.NAMA_KARYAWAN)"),
+                'judul_buku' => 'buku.JUDUL_KOLEKSI',
                 'tgl_peminjaman' => 'peminjaman.TGL_PINJAM',
                 'tgl_harus_kembali' => 'peminjaman.TGL_HARUS_KEMBALI',
-                'nama_peminjam' => 'nama_peminjam',
-                'judul_buku' => 'buku.JUDUL_KOLEKSI',
-                'status' => 'peminjaman.STATUS_PEMINJAMAN'
+                'status_peminjaman' => 'peminjaman.STATUS_PEMINJAMAN'
             ];
 
-            $sortColumn = $allowedSort[$sortBy] ?? 'peminjaman.TGL_PINJAM';
-            
-            return response()->json($query->orderBy($sortColumn, $sortOrder)->get());
+            $orderColumn = $sortMap[$sortBy] ?? $sortBy;
+
+            return response()->json($query->orderBy($orderColumn, $sortOrder)->get());
             
         } catch (\Exception $e) {
             return response()->json(['error' => $e->getMessage()], 500);
