@@ -13,11 +13,18 @@ use App\Http\Controllers\Api\LaporanPklController;
 use App\Http\Controllers\Api\LogController;
 use App\Http\Controllers\Pustakawan\BukuController;
 use App\Http\Controllers\Pustakawan\PengembalianController;
+use App\Http\Controllers\Api\BookingController;
 // 1. Tampil Data
 Route::get('/laporan', [LaporanController::class, 'getLaporan']);
 Route::post('/laporan/tambah', [LaporanController::class, 'store']);
 Route::put('/laporan/ubah/{isbn}', [LaporanController::class, 'update']);
 Route::delete('/laporan/hapus/{isbn}', [LaporanController::class, 'destroy']);
+
+// Booking Group
+Route::get('/bookings', [BookingController::class, 'index']);      
+Route::post('/bookings/store', [BookingController::class, 'store']);
+Route::put('/bookings/cancel/{id}', [BookingController::class, 'cancel']);
+
 
 // --- AUTH & USER ---
 Route::post('/login', [AuthController::class, 'login']);
