@@ -25,6 +25,7 @@ const PengembalianBulkPanel = () => {
   const [loadingRiwayat, setLoadingRiwayat] = useState(false);
   const [editingReturn, setEditingReturn] = useState(null);
   const [savingEdit, setSavingEdit] = useState(false);
+  const [deletingReturnId, setDeletingReturnId] = useState(null);
 
   const inputBukuRef = useRef(null);
   const memberDataRef = useRef(null);
@@ -316,6 +317,25 @@ const PengembalianBulkPanel = () => {
       showToast('error', err.response?.data?.message || 'GAGAL UPDATE DATA PENGEMBALIAN');
     } finally {
       setSavingEdit(false);
+    }
+  };
+
+  const hapusPengembalian = async (item) => {
+    if (!item?.id_peminjaman) return;
+
+    const approved = window.confirm(`Hapus data pengembalian #${item.id_peminjaman}? Data akan diarsipkan dengan IS_DELETE.`);
+
+    if (!approved) return;
+
+    setDeletingReturnId(item.id_peminjaman);
+    try {
+      const res = await axios.delete(`http://localhost:8000/api/pengembalian/${item.id_peminjaman}`);
+      setRiwayatData(current => current.filter(row => row.id_peminjaman !== item.id_peminjaman));
+      showToast('success', res.data?.message || 'DATA PENGEMBALIAN BERHASIL DIHAPUS');
+    } catch (err) {
+      showToast('error', err.response?.data?.message || 'GAGAL HAPUS DATA PENGEMBALIAN');
+    } finally {
+      setDeletingReturnId(null);
     }
   };
 
@@ -623,13 +643,23 @@ const PengembalianBulkPanel = () => {
                       )}
                     </td>
                     <td className="py-3 px-4 text-right">
-                      <button
-                        type="button"
-                        onClick={() => openEditPengembalian(item)}
-                        className="bg-slate-900 text-white px-4 py-2 font-bold uppercase hover:bg-black transition-colors"
-                      >
-                        Edit
-                      </button>
+                      <div className="flex justify-end gap-2">
+                        <button
+                          type="button"
+                          onClick={() => openEditPengembalian(item)}
+                          className="bg-slate-900 text-white px-4 py-2 font-bold uppercase hover:bg-black transition-colors"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => hapusPengembalian(item)}
+                          disabled={deletingReturnId === item.id_peminjaman}
+                          className="bg-red-50 text-red-700 border border-red-200 px-4 py-2 font-bold uppercase hover:bg-red-600 hover:text-white transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          {deletingReturnId === item.id_peminjaman ? '...' : 'Hapus'}
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))

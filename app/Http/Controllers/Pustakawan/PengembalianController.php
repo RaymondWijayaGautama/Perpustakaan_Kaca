@@ -76,6 +76,9 @@ class PengembalianController extends Controller
                     $q->whereNotNull('tp.TGL_KEMBALI')
                       ->orWhere('tp.STATUS_PEMINJAMAN', 'Dikembalikan');
                 })
+                ->where(function ($q) {
+                    $q->where('tp.IS_DELETE', 0)->orWhereNull('tp.IS_DELETE');
+                })
                 ->select(
                     'tp.ID_PEMINJAMAN',
                     'tp.TGL_KEMBALI',
@@ -162,6 +165,9 @@ class PengembalianController extends Controller
             ->where(function($q) {
                 $q->whereNotNull('tp.TGL_KEMBALI')
                   ->orWhere('tp.STATUS_PEMINJAMAN', 'Dikembalikan');
+            })
+            ->where(function ($q) {
+                $q->where('tp.IS_DELETE', 0)->orWhereNull('tp.IS_DELETE');
             })
             ->select(
                 'tp.ID_PEMINJAMAN',

@@ -665,14 +665,26 @@ class DashboardController extends Controller
             return response()->json(['message' => 'Data pemusnahan tidak ditemukan.'], 404);
         }
 
-        if ($pemusnahan->status !== 'menunggu_konfirmasi') {
-            return response()->json(['message' => 'Pemusnahan yang sudah dikonfirmasi tidak bisa diedit.'], 409);
+        if (!in_array($pemusnahan->status, ['menunggu_konfirmasi', 'disetujui'], true)) {
+            return response()->json(['message' => 'Status pemusnahan ini tidak bisa diedit.'], 409);
         }
 
         $identifier = $this->parsePemusnahanIdentifier($request->isbn);
 
         if (!$identifier['isbn']) {
             return response()->json(['message' => 'Format ISBN/barcode tidak dikenali. Gunakan ISBN atau barcode ISBN/ID copy.'], 422);
+        }
+
+        if (
+            $pemusnahan->status === 'disetujui' &&
+            (
+                (string) $identifier['isbn'] !== (string) $pemusnahan->isbn ||
+                (string) ($identifier['id_cp_koleksi'] ?? '') !== (string) ($pemusnahan->id_cp_koleksi ?? '')
+            )
+        ) {
+            return response()->json([
+                'message' => 'ISBN/copy pemusnahan yang sudah disetujui tidak bisa diubah agar stok dan status copy tetap sesuai.'
+            ], 409);
         }
 
         $buku = DB::table('mst_koleksi_buku')

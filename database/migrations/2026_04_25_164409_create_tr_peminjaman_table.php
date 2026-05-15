@@ -23,6 +23,7 @@ return new class extends Migration
             $table->string('KONDISI_BUKU', 25)->nullable();
             $table->string('KETERANGAN_PEMINJAMAN')->nullable();
             $table->double('DENDA_PEMINJAMAN')->nullable();
+            $table->boolean('IS_DELETE')->default(false);
 
             $table->unique(['ID_PEMINJAMAN'], 'tr_peminjaman_pk');
         });

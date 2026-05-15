@@ -60,6 +60,7 @@ Route::get('/pengembalian/history', [PeminjamanController::class, 'historyPengem
 Route::get('/pengembalian', [DashboardController::class, 'getPengembalian']);
 Route::get('/pengembalian/export', [PengembalianController::class, 'exportExcel']);
 Route::put('/pengembalian/{id}', [PeminjamanController::class, 'updatePengembalian']);
+Route::delete('/pengembalian/{id}', [PeminjamanController::class, 'destroyPengembalian']);
 Route::post('/pengembalian/batch', [PeminjamanController::class, 'batchReturn']);
 Route::post('/pengembalian/scan', [PeminjamanController::class, 'scanPengembalian']);
 Route::post('/pengembalian/proses/{id}', [PeminjamanController::class, 'prosesPengembalian']);
@@ -144,5 +145,4 @@ Route::get('/buku-overdue', [DashboardController::class, 'getBukuOverdue']);
 Route::put('/pemusnahan/{id}', [DashboardController::class, 'updatePemusnahan']);
 Route::patch('/pemusnahan/{id}', [DashboardController::class, 'updateStatusPemusnahan']);
 Route::patch('/pemusnahan/{id}/konfirmasi', [DashboardController::class, 'confirmPemusnahan']);
-
 

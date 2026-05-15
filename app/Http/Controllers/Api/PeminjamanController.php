@@ -126,8 +126,23 @@ class PeminjamanController extends Controller
     private function activeLoanQuery()
     {
         return DB::table('tr_peminjaman')
+            ->where(function ($query) {
+                $query->where('IS_DELETE', 0)->orWhereNull('IS_DELETE');
+            })
             ->whereNull('TGL_KEMBALI')
             ->whereIn('STATUS_PEMINJAMAN', self::ACTIVE_LOAN_STATUSES);
+    }
+
+    private function hasApprovedDestruction(object $copy): bool
+    {
+        return DB::table('tr_pemusnahan')
+            ->where('isbn', $copy->ISBN)
+            ->where('status', 'disetujui')
+            ->where(function ($query) use ($copy) {
+                $query->where('id_cp_koleksi', $copy->id_cp_koleksi)
+                    ->orWhereNull('id_cp_koleksi');
+            })
+            ->exists();
     }
 
     private function normalizeDenda(mixed $value): float
@@ -204,6 +219,10 @@ class PeminjamanController extends Controller
 
     private function prepareBorrowableCopy(object $copy): object|string
     {
+        if ($this->hasApprovedDestruction($copy)) {
+            return 'Buku ini sudah masuk data pemusnahan dan tidak bisa dipinjam.';
+        }
+
         if ($this->hasActiveLoan((int) $copy->id_cp_koleksi)) {
             return 'Buku ini sedang dipinjam atau belum diproses pengembaliannya.';
         }
@@ -278,6 +297,9 @@ class PeminjamanController extends Controller
                 ->leftJoin('mst_karyawan as karyawan', 'peminjaman.NIP_KARYAWAN', '=', 'karyawan.NIP_KARYAWAN')
                 ->join('cp_koleksi as copy', 'peminjaman.ID_CP_KOLEKSI', '=', 'copy.ID_CP_KOLEKSI')
                 ->join('mst_koleksi_buku as buku', 'copy.ISBN', '=', 'buku.ISBN')
+                ->where(function ($query) {
+                    $query->where('peminjaman.IS_DELETE', 0)->orWhereNull('peminjaman.IS_DELETE');
+                })
                 ->select(
                     'peminjaman.ID_PEMINJAMAN as id_peminjaman',
                     'peminjaman.ID_CP_KOLEKSI as id_cp_koleksi',
@@ -369,6 +391,9 @@ class PeminjamanController extends Controller
             ->join('mst_koleksi_buku as buku', 'copy.ISBN', '=', 'buku.ISBN')
             ->leftJoin('mst_siswa as siswa', 'peminjaman.ID_SISWA_TETAP', '=', 'siswa.ID_SISWA_TETAP')
             ->leftJoin('mst_karyawan as karyawan', 'peminjaman.NIP_KARYAWAN', '=', 'karyawan.NIP_KARYAWAN')
+            ->where(function ($query) {
+                $query->where('peminjaman.IS_DELETE', 0)->orWhereNull('peminjaman.IS_DELETE');
+            })
             ->whereNull('peminjaman.TGL_KEMBALI')
             ->whereIn('peminjaman.STATUS_PEMINJAMAN', self::ACTIVE_LOAN_STATUSES)
             ->whereRaw('DATEDIFF(?, peminjaman.TGL_HARUS_KEMBALI) >= ?', [$today, $minHariTerlambat])
@@ -433,6 +458,9 @@ class PeminjamanController extends Controller
             ->leftJoin('ref_koleksi as kategori', 'buku.ID_REF_KOLEKSI', '=', 'kategori.ID_REF_KOLEKSI')
             ->leftJoin('tr_peminjaman as pinjam_aktif', function ($join) {
                 $join->on('pinjam_aktif.ID_CP_KOLEKSI', '=', 'copy.ID_CP_KOLEKSI')
+                    ->where(function ($query) {
+                        $query->where('pinjam_aktif.IS_DELETE', 0)->orWhereNull('pinjam_aktif.IS_DELETE');
+                    })
                     ->whereNull('pinjam_aktif.TGL_KEMBALI')
                     ->whereIn('pinjam_aktif.STATUS_PEMINJAMAN', self::ACTIVE_LOAN_STATUSES);
             })
@@ -540,6 +568,7 @@ class PeminjamanController extends Controller
                 'KONDISI_BUKU' => 'Baik',
                 'KETERANGAN_PEMINJAMAN' => '-',
                 'DENDA_PEMINJAMAN' => 0,
+                'IS_DELETE' => 0,
             ]);
 
             DB::table('cp_koleksi')
@@ -565,7 +594,12 @@ class PeminjamanController extends Controller
         try {
             DB::beginTransaction();
 
-            $peminjamanLama = DB::table('tr_peminjaman')->where('ID_PEMINJAMAN', $id)->first();
+            $peminjamanLama = DB::table('tr_peminjaman')
+                ->where('ID_PEMINJAMAN', $id)
+                ->where(function ($query) {
+                    $query->where('IS_DELETE', 0)->orWhereNull('IS_DELETE');
+                })
+                ->first();
             if (!$peminjamanLama) {
                 return response()->json(['message' => 'Data tidak ditemukan'], 404);
             }
@@ -627,6 +661,9 @@ class PeminjamanController extends Controller
 
             $peminjaman = DB::table('tr_peminjaman')
                 ->where('ID_PEMINJAMAN', $id)
+                ->where(function ($query) {
+                    $query->where('IS_DELETE', 0)->orWhereNull('IS_DELETE');
+                })
                 ->first();
 
             if (!$peminjaman) {
@@ -670,7 +707,12 @@ class PeminjamanController extends Controller
     {
         try {
             DB::beginTransaction();
-            $peminjaman = DB::table('tr_peminjaman')->where('ID_PEMINJAMAN', $id)->first();
+            $peminjaman = DB::table('tr_peminjaman')
+                ->where('ID_PEMINJAMAN', $id)
+                ->where(function ($query) {
+                    $query->where('IS_DELETE', 0)->orWhereNull('IS_DELETE');
+                })
+                ->first();
             if (!$peminjaman) {
                 return response()->json(['message' => 'Data tidak ditemukan'], 404);
             }
@@ -679,6 +721,7 @@ class PeminjamanController extends Controller
                 ->where('ID_PEMINJAMAN', $id)
                 ->update([
                     'STATUS_PEMINJAMAN' => 'Dihapus',
+                    'IS_DELETE' => 1,
                 ]);
 
             if ($peminjaman->STATUS_PEMINJAMAN === 'Dipinjam') {
@@ -687,7 +730,7 @@ class PeminjamanController extends Controller
                     ->update(['STATUS_BUKU' => 'Kembali']);
             }
             DB::commit();
-            return response()->json(['message' => 'Data transaksi berhasil diarsipkan !']);
+            return response()->json(['message' => 'Data transaksi berhasil diarsipkan.']);
 
         } catch (\Exception $e) {
             DB::rollBack();
@@ -710,6 +753,9 @@ class PeminjamanController extends Controller
         $query = DB::table('tr_peminjaman')
             ->join('cp_koleksi', 'tr_peminjaman.ID_CP_KOLEKSI', '=', 'cp_koleksi.ID_CP_KOLEKSI')
             ->join('mst_koleksi_buku', 'cp_koleksi.ISBN', '=', 'mst_koleksi_buku.ISBN')
+            ->where(function ($query) {
+                $query->where('tr_peminjaman.IS_DELETE', 0)->orWhereNull('tr_peminjaman.IS_DELETE');
+            })
             ->whereNull('tr_peminjaman.TGL_KEMBALI') // Memastikan buku belum dikembalikan
             ->whereIn('tr_peminjaman.STATUS_PEMINJAMAN', self::ACTIVE_LOAN_STATUSES)
             ->where(function ($query) use ($inputBuku, $barcode) {
@@ -760,6 +806,9 @@ class PeminjamanController extends Controller
             foreach ($items as $item) {
                 $peminjaman = DB::table('tr_peminjaman')
                     ->where('ID_PEMINJAMAN', $item['id_peminjaman'] ?? null)
+                    ->where(function ($query) {
+                        $query->where('IS_DELETE', 0)->orWhereNull('IS_DELETE');
+                    })
                     ->whereNull('TGL_KEMBALI')
                     ->whereIn('STATUS_PEMINJAMAN', self::ACTIVE_LOAN_STATUSES)
                     ->lockForUpdate()
@@ -824,6 +873,9 @@ class PeminjamanController extends Controller
             ->join('mst_koleksi_buku', 'cp_koleksi.ISBN', '=', 'mst_koleksi_buku.ISBN')
             ->leftJoin('mst_siswa', 'tr_peminjaman.ID_SISWA_TETAP', '=', 'mst_siswa.ID_SISWA_TETAP')
             ->leftJoin('mst_karyawan', 'tr_peminjaman.NIP_KARYAWAN', '=', 'mst_karyawan.NIP_KARYAWAN')
+            ->where(function ($query) {
+                $query->where('tr_peminjaman.IS_DELETE', 0)->orWhereNull('tr_peminjaman.IS_DELETE');
+            })
             ->whereNull('tr_peminjaman.TGL_KEMBALI')
             ->whereIn('tr_peminjaman.STATUS_PEMINJAMAN', self::ACTIVE_LOAN_STATUSES)
             ->where(function ($query) use ($inputBuku, $barcode) {
@@ -870,6 +922,9 @@ class PeminjamanController extends Controller
         try {
             $peminjaman = DB::table('tr_peminjaman')
                 ->where('ID_PEMINJAMAN', $id)
+                ->where(function ($query) {
+                    $query->where('IS_DELETE', 0)->orWhereNull('IS_DELETE');
+                })
                 ->whereNull('TGL_KEMBALI')
                 ->whereIn('STATUS_PEMINJAMAN', self::ACTIVE_LOAN_STATUSES)
                 ->lockForUpdate()
@@ -939,6 +994,9 @@ class PeminjamanController extends Controller
         try {
             $peminjaman = DB::table('tr_peminjaman')
                 ->where('ID_PEMINJAMAN', $id)
+                ->where(function ($query) {
+                    $query->where('IS_DELETE', 0)->orWhereNull('IS_DELETE');
+                })
                 ->whereNotNull('TGL_KEMBALI')
                 ->first();
 
@@ -974,6 +1032,9 @@ class PeminjamanController extends Controller
                 ->leftJoin('mst_siswa as siswa', 'peminjaman.ID_SISWA_TETAP', '=', 'siswa.ID_SISWA_TETAP')
                 ->leftJoin('mst_karyawan as karyawan', 'peminjaman.NIP_KARYAWAN', '=', 'karyawan.NIP_KARYAWAN')
                 ->where('peminjaman.ID_PEMINJAMAN', $id)
+                ->where(function ($query) {
+                    $query->where('peminjaman.IS_DELETE', 0)->orWhereNull('peminjaman.IS_DELETE');
+                })
                 ->select(
                     'peminjaman.ID_PEMINJAMAN as id_peminjaman',
                     'peminjaman.ID_CP_KOLEKSI as id_cp_koleksi',
@@ -999,6 +1060,37 @@ class PeminjamanController extends Controller
         }
     }
 
+    public function destroyPengembalian($id)
+    {
+        try {
+            $peminjaman = DB::table('tr_peminjaman')
+                ->where('ID_PEMINJAMAN', $id)
+                ->whereNotNull('TGL_KEMBALI')
+                ->where(function ($query) {
+                    $query->where('IS_DELETE', 0)->orWhereNull('IS_DELETE');
+                })
+                ->first();
+
+            if (!$peminjaman) {
+                return response()->json([
+                    'message' => 'Data pengembalian tidak ditemukan atau sudah dihapus.',
+                ], 404);
+            }
+
+            DB::table('tr_peminjaman')
+                ->where('ID_PEMINJAMAN', $id)
+                ->update(['IS_DELETE' => 1]);
+
+            return response()->json([
+                'message' => 'Data pengembalian berhasil dihapus.',
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Gagal menghapus data pengembalian: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
     public function historyPengembalian(Request $request)
     {
         $search = trim((string) $request->query('search', ''));
@@ -1008,6 +1100,9 @@ class PeminjamanController extends Controller
             ->join('mst_koleksi_buku as buku', 'copy.ISBN', '=', 'buku.ISBN')
             ->leftJoin('mst_siswa as siswa', 'peminjaman.ID_SISWA_TETAP', '=', 'siswa.ID_SISWA_TETAP')
             ->leftJoin('mst_karyawan as karyawan', 'peminjaman.NIP_KARYAWAN', '=', 'karyawan.NIP_KARYAWAN')
+            ->where(function ($query) {
+                $query->where('peminjaman.IS_DELETE', 0)->orWhereNull('peminjaman.IS_DELETE');
+            })
             ->whereNotNull('peminjaman.TGL_KEMBALI')
             ->select(
                 'peminjaman.ID_PEMINJAMAN as id_peminjaman',
