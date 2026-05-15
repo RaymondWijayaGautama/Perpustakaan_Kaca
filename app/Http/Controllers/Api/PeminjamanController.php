@@ -30,7 +30,7 @@ class PeminjamanController extends Controller
 
         if (!$petugas || strtolower((string) $petugas->JABATAN_FUNGSIONAL) !== 'pustakawan') {
             return response()->json([
-                'message' => 'Hanya pustakawan yang dapat mengecek buku overdue.',
+                'message' => 'Aksi ini hanya dapat dilakukan oleh Pustakawan.',
             ], 403);
         }
 
@@ -267,6 +267,7 @@ class PeminjamanController extends Controller
                     'peminjaman.KONDISI_BUKU as kondisi_buku',
                     'peminjaman.KETERANGAN_PEMINJAMAN as keterangan_peminjaman',
                     'peminjaman.DENDA_PEMINJAMAN as denda_peminjaman',
+                    'peminjaman.JUMLAH_PERPANJANGAN as jumlah_perpanjangan',
                     DB::raw("COALESCE(siswa.NAMA_SISWA_TETAP, karyawan.NAMA_KARYAWAN, '-') as nama_peminjam"),
                     DB::raw("COALESCE(siswa.NISN_SISWA, karyawan.NIP_KARYAWAN, '-') as identitas_peminjam"),
                     DB::raw("CASE WHEN peminjaman.ID_SISWA_TETAP IS NOT NULL THEN 'Siswa' WHEN peminjaman.NIP_KARYAWAN IS NOT NULL THEN 'Karyawan' ELSE '-' END as tipe_peminjam"),
@@ -279,7 +280,33 @@ class PeminjamanController extends Controller
                 $query->where('peminjaman.STATUS_PEMINJAMAN', $request->status);
             }
 
-            return response()->json($query->orderBy('peminjaman.TGL_PINJAM', 'desc')->get());
+            if ($request->search) {
+                $search = $request->search;
+                $query->where(function ($q) use ($search) {
+                    $q->where('siswa.NAMA_SISWA_TETAP', 'like', "%{$search}%")
+                        ->orWhere('karyawan.NAMA_KARYAWAN', 'like', "%{$search}%")
+                        ->orWhere('buku.JUDUL_KOLEKSI', 'like', "%{$search}%")
+                        ->orWhere('copy.ISBN', 'like', "%{$search}%")
+                        ->orWhere('siswa.NISN_SISWA', 'like', "%{$search}%")
+                        ->orWhere('karyawan.NIP_KARYAWAN', 'like', "%{$search}%");
+                });
+            }
+
+            $sortBy = $request->input('sort_by', 'peminjaman.TGL_PINJAM');
+            $sortOrder = $request->input('sort_order', 'desc');
+
+            // Map frontend column names to backend table columns
+            $sortMap = [
+                'nama_peminjam' => DB::raw("COALESCE(siswa.NAMA_SISWA_TETAP, karyawan.NAMA_KARYAWAN)"),
+                'judul_buku' => 'buku.JUDUL_KOLEKSI',
+                'tgl_peminjaman' => 'peminjaman.TGL_PINJAM',
+                'tgl_harus_kembali' => 'peminjaman.TGL_HARUS_KEMBALI',
+                'status_peminjaman' => 'peminjaman.STATUS_PEMINJAMAN'
+            ];
+
+            $orderColumn = $sortMap[$sortBy] ?? $sortBy;
+
+            return response()->json($query->orderBy($orderColumn, $sortOrder)->get());
             
         } catch (\Exception $e) {
             return response()->json(['error' => $e->getMessage()], 500);
@@ -443,12 +470,15 @@ class PeminjamanController extends Controller
             DB::table('tr_peminjaman')
                 ->where('ID_PEMINJAMAN', $id)
                 ->update(array_filter([
+                    'TGL_PINJAM' => $request->tgl_pinjam,
+                    'TGL_HARUS_KEMBALI' => $request->tgl_harus_kembali,
                     'STATUS_PEMINJAMAN' => $request->status_peminjaman,
                     'TGL_KEMBALI' => $request->status_peminjaman === 'Kembali'
                         ? ($peminjamanLama->TGL_KEMBALI ?: now()->toDateString())
                         : null,
                     'KONDISI_BUKU' => $request->kondisi_buku,
                     'KETERANGAN_PEMINJAMAN' => $request->keterangan ?? '-',
+                    'DENDA_PEMINJAMAN' => $request->denda_peminjaman,
                 ], fn ($value) => $value !== null || $request->status_peminjaman !== 'Kembali'));
 
             if ($request->status_peminjaman === 'Kembali') {
@@ -467,6 +497,69 @@ class PeminjamanController extends Controller
         } catch (\Exception $e) {
             DB::rollBack();
             return response()->json(['message' => 'Gagal update: ' . $e->getMessage()], 500);
+        }
+    }
+
+    public function perpanjang(Request $request, $id)
+    {
+        $validator = validator($request->all(), [
+            'editor_nip_karyawan' => ['required', 'string', 'max:20'],
+        ], [
+            'editor_nip_karyawan.required' => 'Identitas pustakawan wajib dikirim.',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'message' => 'Validasi data gagal.',
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
+        if ($authError = $this->ensurePustakawan($request->editor_nip_karyawan)) {
+            return $authError;
+        }
+
+        try {
+            DB::beginTransaction();
+
+            $peminjaman = DB::table('tr_peminjaman')
+                ->where('ID_PEMINJAMAN', $id)
+                ->first();
+
+            if (!$peminjaman) {
+                return response()->json(['message' => 'Data peminjaman tidak ditemukan'], 404);
+            }
+
+            if ($peminjaman->TGL_KEMBALI !== null || $peminjaman->STATUS_PEMINJAMAN === 'Kembali') {
+                return response()->json(['message' => 'Buku sudah dikembalikan, tidak bisa diperpanjang.'], 400);
+            }
+
+            // Check if overdue
+            $tglHarusKembali = Carbon::parse($peminjaman->TGL_HARUS_KEMBALI);
+            if (now()->greaterThan($tglHarusKembali)) {
+                return response()->json(['message' => 'Buku sudah melewati jatuh tempo, tidak bisa diperpanjang.'], 400);
+            }
+
+            // Check max extensions (2x)
+            if (($peminjaman->JUMLAH_PERPANJANGAN ?? 0) >= 2) {
+                return response()->json(['message' => 'Maksimal perpanjangan (2x) sudah tercapai.'], 400);
+            }
+
+            // Update
+            DB::table('tr_peminjaman')
+                ->where('ID_PEMINJAMAN', $id)
+                ->update([
+                    'TGL_HARUS_KEMBALI' => $tglHarusKembali->addDays(7),
+                    'JUMLAH_PERPANJANGAN' => ($peminjaman->JUMLAH_PERPANJANGAN ?? 0) + 1,
+                    'KETERANGAN_PEMINJAMAN' => ($peminjaman->KETERANGAN_PEMINJAMAN ?? '') . ' (Perpanjangan ke-' . (($peminjaman->JUMLAH_PERPANJANGAN ?? 0) + 1) . ')'
+                ]);
+
+            DB::commit();
+            return response()->json(['message' => 'Peminjaman berhasil diperpanjang selama 7 hari.']);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json(['message' => 'Gagal memperpanjang: ' . $e->getMessage()], 500);
         }
     }
 

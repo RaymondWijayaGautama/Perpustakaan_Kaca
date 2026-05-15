@@ -24,6 +24,7 @@ import DendaKerusakanPanel from './DendaKerusakanPanel';
 import StatistikKunjunganBulananPanel from './StatistikKunjunganBulananPanel';
 import LaporanPeminjamanKelasPanel from './LaporanPeminjamanKelasPanel';
 import VisitorLog from './VisitorLog';
+import BookingPanel from './BookingPanel';
 
 const getAdminDisplayName = (user) => (
     user?.NAMA_KARYAWAN ||
@@ -140,11 +141,15 @@ const AdminPanel = ({ user, onLogout }) => {
                         <div onClick={() => setActiveTab('data_pengunjung')} className={`p-3 rounded-lg cursor-pointer transition-all ${activeTab === 'data_pengunjung' ? 'bg-white text-[#265F9C] font-bold shadow-md' : 'hover:bg-white/10'}`}>Data Pengunjung</div>
                         
                         <div onClick={() => setActiveTab('koleksi')} className={`p-3 rounded-lg cursor-pointer transition-all ${activeTab === 'koleksi' ? 'bg-white text-[#265F9C] font-bold shadow-md' : 'hover:bg-white/10'}`}>Master Koleksi</div>
-                        {/* <div onClick={() => setActiveTab('kategori')} className={`p-3 rounded-lg cursor-pointer transition-all ${activeTab === 'kategori' ? 'bg-white text-[#265F9C] font-bold shadow-md' : 'hover:bg-white/10'}`}>Kategori</div> */}
                         <div onClick={() => setActiveTab('buku')} className={`p-3 rounded-lg cursor-pointer transition-all ${activeTab === 'buku' ? 'bg-white text-[#265F9C] font-bold shadow-md' : 'hover:bg-white/10'}`}>Manajemen Buku</div>
                         <div onClick={() => { setActiveTab('anggota'); setAnggotaPage(1); }} className={`p-3 rounded-lg cursor-pointer transition-all ${activeTab === 'anggota' ? 'bg-white text-[#265F9C] font-bold shadow-md' : 'hover:bg-white/10'}`}>Data Anggota</div>
                         <div onClick={() => setActiveTab('laporan')} className={`p-3 rounded-lg cursor-pointer transition-all ${activeTab === 'laporan' ? 'bg-white text-[#265F9C] font-bold shadow-md' : 'hover:bg-white/10'}`}>Laporan PKL</div>
                         <div onClick={() => setActiveTab('pengembalian')} className={`p-3 rounded-lg cursor-pointer transition-all ${activeTab === 'pengembalian' ? 'bg-white text-[#265F9C] font-bold shadow-md' : 'hover:bg-white/10'}`}>Pengembalian</div>
+                        
+                        {/* -------- TAMBAHAN MENU BOOKING -------- */}
+                        <div onClick={() => setActiveTab('booking')} className={`p-3 rounded-lg cursor-pointer transition-all ${activeTab === 'booking' ? 'bg-white text-[#265F9C] font-bold shadow-md' : 'hover:bg-white/10'}`}>Data Booking</div>
+                        {/* --------------------------------------- */}
+                        
                         <div onClick={() => setActiveTab('peminjaman')} className={`p-3 rounded-lg cursor-pointer transition-all ${activeTab === 'peminjaman' ? 'bg-white text-[#265F9C] font-bold shadow-md' : 'hover:bg-white/10'}`}>Peminjaman Buku</div>
                         <div onClick={() => setActiveTab('buku_belum_kembali')} className={`p-3 rounded-lg cursor-pointer transition-all ${activeTab === 'buku_belum_kembali' ? 'bg-white text-[#265F9C] font-bold shadow-md' : 'hover:bg-white/10'}`}>Buku Belum Kembali</div>
                         <div onClick={() => setActiveTab('denda_kerusakan')} className={`p-3 rounded-lg cursor-pointer transition-all ${activeTab === 'denda_kerusakan' ? 'bg-white text-[#265F9C] font-bold shadow-md' : 'hover:bg-white/10'}`}>Denda Kerusakan</div>
@@ -156,7 +161,7 @@ const AdminPanel = ({ user, onLogout }) => {
                                 onClick={() => setIsLaporanMenuOpen((current) => !current)}
                                 className={`p-3 cursor-pointer transition-all flex items-center justify-between rounded-lg ${isAnyLaporanActive ? 'bg-white text-[#265F9C] font-bold shadow-md' : 'hover:bg-white/10'}`}
                             >
-                                <span>Laporan Statistik</span>
+                                <span>Laporan</span>
                                 <span className={`text-xs transition-transform ${isLaporanMenuOpen ? 'rotate-180' : ''}`}>▼</span>
                             </div>
                             
@@ -280,6 +285,11 @@ const AdminPanel = ({ user, onLogout }) => {
 
                 {activeTab === 'laporan' && <LaporanPKLPanel />} 
                 {activeTab === 'pengembalian' && <PengembalianPanel user={user} />}
+                
+                {/* -------- TAMBAHAN KOMPONEN BOOKING PANEL -------- */}
+                {activeTab === 'booking' && <BookingPanel userRole="pustakawan" />}
+                {/* ------------------------------------------------- */}
+
                 {activeTab === 'kategori' && <KategoriPanel user={user} />}
                 {activeTab === 'peminjaman' && <PeminjamanPanel user={user} />}
                 {activeTab === 'buku_belum_kembali' && <BukuBelumKembaliPanel user={user} />}

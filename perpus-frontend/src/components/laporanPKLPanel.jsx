@@ -9,7 +9,9 @@ const LaporanPKLPanel = () => {
     const [laporanPagination, setLaporanPagination] = useState({});
     
     const [searchJudul, setSearchJudul] = useState('');
+    const [tempSearchJudul, setTempSearchJudul] = useState('');
     const [filterPenulis, setFilterPenulis] = useState('');
+    const [tempFilterPenulis, setTempFilterPenulis] = useState('');
     const [loading, setLoading] = useState(false);
     const [downloadingId, setDownloadingId] = useState(null);
 
@@ -34,6 +36,13 @@ const LaporanPKLPanel = () => {
         return error.message || 'Terjadi kesalahan.';
     };
 
+    const handleSearch = (e) => {
+        if (e) e.preventDefault();
+        setSearchJudul(tempSearchJudul);
+        setFilterPenulis(tempFilterPenulis);
+        setLaporanPage(1);
+    };
+
     // FETCH DATA
     const fetchLaporan = useCallback(async () => {
         setLoading(true);
@@ -51,8 +60,7 @@ const LaporanPKLPanel = () => {
     }, [laporanPage, searchJudul, filterPenulis]);
 
     useEffect(() => {
-        const handler = setTimeout(() => { fetchLaporan(); }, 400);
-        return () => clearTimeout(handler);
+        fetchLaporan();
     }, [fetchLaporan]);
 
     // --- FITUR DOWNLOAD (MENGGUNAKAN GET) ---
@@ -175,26 +183,30 @@ const LaporanPKLPanel = () => {
                     <p className="text-sm text-gray-500 mt-1">Arsip dan Referensi Laporan Siswa</p>
                 </div>
                 
-                <div className="flex flex-col md:flex-row items-center gap-4 w-full xl:w-auto">
-                    <button onClick={openAddModal} className="px-6 py-2.5 bg-[#00A651] hover:bg-[#008f45] text-white rounded-lg text-sm font-bold shadow-sm transition-all active:scale-95 flex items-center gap-2">
+                <form onSubmit={handleSearch} className="flex flex-col md:flex-row items-center gap-4 w-full xl:w-auto">
+                    <button type="button" onClick={openAddModal} className="px-6 py-2.5 bg-[#00A651] hover:bg-[#008f45] text-white rounded-lg text-sm font-bold shadow-sm transition-all active:scale-95 flex items-center gap-2">
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 4v16m8-8H4"></path></svg>
                         Tambah Laporan
                     </button>
 
                     <div className="relative w-full xl:w-64">
-                        <input type="text" placeholder="Cari Judul..." className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-[#265F9C] focus:border-transparent transition-all" value={searchJudul} onChange={(e) => { setSearchJudul(e.target.value); setLaporanPage(1); }} />
+                        <input type="text" placeholder="Cari Judul..." className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-[#265F9C] focus:border-transparent transition-all" value={tempSearchJudul} onChange={(e) => setTempSearchJudul(e.target.value)} />
                         <div className="absolute left-3 top-3 text-gray-400">
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
                         </div>
                     </div>
 
                     <div className="relative w-full xl:w-56">
-                        <input type="text" placeholder="Filter Penulis..." className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-[#00A651] focus:border-transparent transition-all" value={filterPenulis} onChange={(e) => { setFilterPenulis(e.target.value); setLaporanPage(1); }} />
+                        <input type="text" placeholder="Filter Penulis..." className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-[#00A651] focus:border-transparent transition-all" value={tempFilterPenulis} onChange={(e) => setTempFilterPenulis(e.target.value)} />
                         <div className="absolute left-3 top-2.5 text-[#00A651]">
                             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
                         </div>
                     </div>
-                </div>
+
+                    <button type="submit" className="bg-[#265F9C] text-white px-5 py-2.5 rounded-lg text-sm font-bold hover:bg-blue-800 transition-all">
+                        Cari
+                    </button>
+                </form>
             </div>
 
             {/* TABLE AREA */}

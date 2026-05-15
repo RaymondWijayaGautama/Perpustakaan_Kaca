@@ -13,11 +13,18 @@ use App\Http\Controllers\Api\LaporanPklController;
 use App\Http\Controllers\Api\LogController;
 use App\Http\Controllers\Pustakawan\BukuController;
 use App\Http\Controllers\Pustakawan\PengembalianController;
+use App\Http\Controllers\Api\BookingController;
 // 1. Tampil Data
 Route::get('/laporan', [LaporanController::class, 'getLaporan']);
 Route::post('/laporan/tambah', [LaporanController::class, 'store']);
 Route::put('/laporan/ubah/{isbn}', [LaporanController::class, 'update']);
 Route::delete('/laporan/hapus/{isbn}', [LaporanController::class, 'destroy']);
+
+// Booking Group
+Route::get('/bookings', [BookingController::class, 'index']);      
+Route::post('/bookings/store', [BookingController::class, 'store']);
+Route::put('/bookings/cancel/{id}', [BookingController::class, 'cancel']);
+
 
 // --- AUTH & USER ---
 Route::post('/login', [AuthController::class, 'login']);
@@ -44,6 +51,7 @@ Route::get('/peminjaman/cek-aktif', [PeminjamanController::class, 'cekAktif']);
 Route::get('/peminjaman/overdue', [PeminjamanController::class, 'overdue']);
 Route::get('/peminjaman', [PeminjamanController::class, 'index']);
 Route::post('/peminjaman', [PeminjamanController::class, 'store']);
+Route::post('/peminjaman/perpanjang/{id}', [PeminjamanController::class, 'perpanjang']);
 Route::put('/peminjaman/{id}', [PeminjamanController::class, 'update']);
 Route::delete('/peminjaman/{id}', [PeminjamanController::class, 'destroy']);
 
@@ -139,3 +147,5 @@ Route::get('/buku-overdue', [DashboardController::class, 'getBukuOverdue']);
 Route::put('/pemusnahan/{id}', [DashboardController::class, 'updatePemusnahan']);
 Route::patch('/pemusnahan/{id}', [DashboardController::class, 'updateStatusPemusnahan']);
 Route::patch('/pemusnahan/{id}/konfirmasi', [DashboardController::class, 'confirmPemusnahan']);
+
+

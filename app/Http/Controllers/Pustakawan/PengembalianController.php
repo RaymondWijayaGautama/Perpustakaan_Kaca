@@ -123,6 +123,20 @@ class PengembalianController extends Controller
         }
     }
 
+    public function destroy($id)
+    {
+        try {
+
+            DB::table('tr_pengembalian')->where('ID_PENGEMBALIAN', $id)->update([
+                'IS_DELETE' => 1 
+            ]);
+
+            return response()->json(['status' => 'success', 'pesan' => 'Mantap! Data pengembalian berhasil diarsipkan (Soft Delete).']);
+        } catch (\Exception $e) {
+            return response()->json(['status' => 'error', 'pesan' => $e->getMessage()], 500);
+        }
+    }
+
     public function exportExcel(Request $request)
     {
         $kelasTerakhir = DB::table('hst_kelas as hk')

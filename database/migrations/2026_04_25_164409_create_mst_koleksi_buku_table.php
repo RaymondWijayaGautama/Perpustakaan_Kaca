@@ -14,15 +14,15 @@ return new class extends Migration
         Schema::create('mst_koleksi_buku', function (Blueprint $table) {
             $table->string('ISBN', 25)->unique('mst_koleksi_buku_pk');
             $table->integer('ID_REF_KOLEKSI')->nullable()->index('relation_1116_fk');
-            $table->string('JUDUL_KOLEKSI', 25)->nullable();
-            $table->string('PENGARANG', 25)->nullable();
-            $table->string('PENERBIT', 25)->nullable();
+            $table->string('JUDUL_KOLEKSI', 255)->nullable();
+            $table->string('PENGARANG', 100)->nullable();
+            $table->string('PENERBIT', 100)->nullable();
             $table->char('TAHUN', 4)->nullable();
             $table->integer('NB_KOLEKSI')->nullable();
             $table->dateTime('TGL_MASUK_KOLEKSI')->nullable();
             $table->integer('JUMLAH_EKSEMPLAR')->nullable();
             $table->integer('JUMLAH_HALAMAN')->nullable();
-            $table->string('UKURAN_BUKU', 25)->nullable();
+            $table->string('UKURAN_BUKU', 50)->nullable();
             $table->string('BIBLIOGRAFI')->nullable();
             $table->integer('INDEKS_AWAL_AKHIR')->nullable();
             $table->string('KETERANGAN_BUKU')->nullable();
